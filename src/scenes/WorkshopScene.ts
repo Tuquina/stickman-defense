@@ -1,4 +1,4 @@
-import { GAME_H, GAME_W, txt } from '../config';
+import { GAME_H, GAME_W, ttl, txt } from '../config';
 import { Sound } from '../core/audio';
 import { fmt } from '../core/format';
 import { Save } from '../core/save';
@@ -27,10 +27,10 @@ export class WorkshopScene extends Phaser.Scene {
 
   create(): void {
     fadeIn(this);
-    Sound.music('menu');
+    Sound.music('shop');
     this.add.image(GAME_W / 2, GAME_H / 2, 'bg_dusk');
     this.add.rectangle(GAME_W / 2, GAME_H / 2, GAME_W, GAME_H, 0x05070a, 0.7);
-    this.add.text(GAME_W / 2, 60, 'TALLER DEL TÍO CLIP', txt(46, '#ffffff', 9)).setOrigin(0.5);
+    this.add.text(GAME_W / 2, 60, 'TALLER DEL TÍO CLIP', ttl(44, '#ffffff', 9)).setOrigin(0.5);
     const clip = this.add.graphics({ x: 640, y: 150 }).setScale(0.8);
     onUpdate(this, (_a: number, dt: number) => {
       this.t += dt / 1000;

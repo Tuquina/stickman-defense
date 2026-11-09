@@ -317,6 +317,13 @@ Todo pintado con Canvas 2D al arrancar (degradados, brillos, contornos) en `src/
 - **Precisión**: el golpe se calcula donde se dibuja el enemigo (incluida la altura de los que vuelan o saltan), los disparos rectos se adelantan al movimiento del objetivo, los números de daño siempre aparecen (se reciclan los más viejos) y las micro-pausas por crítico tienen un tiempo de espera.
 - **Rendimiento**: reutilización de imágenes (enemigos, gemas y monedas), descarte rápido en colisiones, menos partículas con multitudes y el retrato del HUD a 10 fps. Medido con más de 200 enemigos: unos 0,9 ms de lógica por frame y 58 fps con renderizado por CPU.
 
+### 5.0.2 Portada, tipografía y música (v0.7)
+
+- **Tipografías**: *Luckiest Guy* (Apache 2.0) para el logo y todos los títulos grandes (pantallas, Pausa, Victoria/Derrota, carteles y jefes) y *Lilita One* (OFL) para el resto. Se cargan con la API FontFace y el juego espera a que estén listas (en iPhone arrancaba antes con una fuente del sistema, más ancha, y el título se cortaba).
+- **Logo**: letras sobre un arco con extrusión 3D, contorno grueso, degradado y brillo; banda violeta con "DE TINTA" y la Corona rota detrás. Se ajusta solo a su espacio.
+- **Portada**: avance de la historia que va rotando ("Juraron no abandonarse nunca…", "Tú tienes {tu Poder}…", "¿Venganza… o liberación?"), siluetas de enemigos avanzando, Lino contra Dante con su Poder, **ficha del jugador** (rango, armadura y capítulo actual) y arranque en dos toques: el primero activa el sonido y la música del título, el segundo entra a jugar.
+- **Música**: el audio se desbloquea con cualquier toque, clic o tecla (iOS solo lo permite al soltar el dedo). Se intenta arrancar al cargar la página donde el navegador lo permite, y los temas cambian con fundido. Temas por pantalla: título, menú, taller, victoria, derrota, historia, uno por capítulo, jefe de los actos 1–3, jefe de los actos 4–6 y el Abismo, y el duelo final contra Dante.
+
 ### 5.1 Reglas de consistencia visual
 
 | Elemento | Regla |

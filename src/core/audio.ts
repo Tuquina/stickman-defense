@@ -9,7 +9,7 @@ export type SfxName =
   | 'coin' | 'xp' | 'levelup' | 'legend' | 'skill' | 'boom' | 'zap' | 'freeze' | 'heal'
   | 'barricade' | 'heart' | 'roar' | 'fury' | 'victory' | 'defeat' | 'wave' | 'buy' | 'error' | 'whoosh' | 'thud' | 'type';
 
-export type TrackId = 'menu' | 'story' | 'sad' | 'c1' | 'c2' | 'c3' | 'c4' | 'c5' | 'c6' | 'boss' | 'final' | 'abismo';
+export type TrackId = 'title' | 'menu' | 'shop' | 'victory' | 'story' | 'sad' | 'c1' | 'c2' | 'c3' | 'c4' | 'c5' | 'c6' | 'boss' | 'boss2' | 'final' | 'abismo';
 
 interface Track {
   bpm: number;
@@ -25,6 +25,14 @@ interface Track {
 }
 
 const TRACKS: Record<TrackId, Track> = {
+  // title: heroic and slow, big drums on 1 and 3
+  title: { bpm: 96, chords: [[45, 'm'], [41, 'M'], [43, 'M'], [40, 'M'], [45, 'm'], [41, 'M'], [38, 'm'], [40, 'M']], bass: 'x-------x---x---', arp: '0-1-2-3-2-1-2-3-', kick: 'x-------x-----x-', snare: '----x-------x---', hat: '--x---x---x---x-', lead: true, wave: 'triangle', pad: 0.045 },
+  // workshop: light and bouncy
+  shop: { bpm: 112, chords: [[48, 'M'], [45, 'm'], [41, 'M'], [43, 'M']], bass: 'x---o---x---o---', arp: '0-2-1-3-0-2-1-3-', kick: 'x-------x-------', snare: '----x-------x---', hat: '-x-x-x-x-x-x-x-x', lead: true, wave: 'square', pad: 0.02 },
+  // results (victory): bright major loop
+  victory: { bpm: 120, chords: [[48, 'M'], [43, 'M'], [45, 'm'], [41, 'M']], bass: 'x-x-o-x-x-x-o-x-', arp: '0123012301230123', kick: 'x---x---x---x---', snare: '----x-------x---', hat: '--x---x---x---x-', lead: true, wave: 'square', pad: 0.025 },
+  // second boss theme (later chapters): darker, syncopated
+  boss2: { bpm: 156, chords: [[47, 'm'], [43, 'M'], [42, 'm'], [44, 'M']], bass: 'xx-xx-xoxx-xx-xo', arp: '0-21-02-31-02-13', kick: 'x--x--x-x--x--x-', snare: '----x-------x---', hat: 'xxxxxxxxxxxxxxxx', lead: true, wave: 'sawtooth', pad: 0.025 },
   menu: { bpm: 84, chords: [[57, 'm'], [53, 'M'], [48, 'M'], [55, 'M']], bass: 'x-------x-------', arp: '0-1-2-1-0-1-2-3-', kick: 'x---------------', snare: '----------------', hat: '----x-------x---', lead: false, wave: 'triangle', pad: 0.035 },
   story: { bpm: 70, chords: [[57, 'm'], [53, 'M'], [48, 'M'], [52, 'M']], bass: 'x---------------', arp: '0---2---1---2---', kick: '----------------', snare: '----------------', hat: '----------------', lead: true, wave: 'sine', pad: 0.04 },
   sad: { bpm: 62, chords: [[57, 'm'], [52, 'm'], [53, 'M'], [55, 'M']], bass: 'x-------x-------', arp: '0-------2-------', kick: '----------------', snare: '----------------', hat: '----------------', lead: true, wave: 'sine', pad: 0.045 },
@@ -59,6 +67,8 @@ class AudioEngine {
   private nextTime = 0;
   private melody: number[] = [];
   private suspendedByHide = false;
+  /** per-track gain so switching tracks crossfades instead of cutting */
+  private trackGain: GainNode | null = null;
 
   /** Must be called from a user gesture. Safe to call repeatedly. */
   unlock(): void {
@@ -92,8 +102,31 @@ class AudioEngine {
         }
       });
     }
-    if (this.ctx.state === 'suspended' && !document.hidden) void this.ctx.resume();
+    if (this.ctx.state === 'suspended' && !document.hidden) {
+      void this.ctx.resume();
+      // iOS: playing a (silent) buffer inside the gesture fully unlocks the audio output
+      const b = this.ctx.createBufferSource();
+      b.buffer = this.ctx.createBuffer(1, 1, 22050);
+      b.connect(this.ctx.destination);
+      b.start(0);
+    }
     if (this.wanted && this.track !== this.wanted) this.startTrack(this.wanted);
+  }
+
+  /**
+   * Tries to start audio without a gesture (allowed on some desktop browsers and installed PWAs).
+   * Where it isn't allowed the context stays suspended and the first touch/click resumes it.
+   */
+  tryAutostart(): void {
+    try {
+      this.unlock();
+    } catch {
+      /* ignore: will unlock on the first gesture */
+    }
+  }
+
+  get running(): boolean {
+    return !!this.ctx && this.ctx.state === 'running';
   }
 
   applySettings(): void {
@@ -199,7 +232,22 @@ class AudioEngine {
       this.timer = null;
     }
     this.track = id;
-    if (!id || !this.ctx) return;
+    if (!this.ctx) return;
+    // crossfade: fade the previous track out, the new one in
+    const now = this.ctx.currentTime;
+    if (this.trackGain) {
+      const old = this.trackGain;
+      old.gain.cancelScheduledValues(now);
+      old.gain.setValueAtTime(old.gain.value, now);
+      old.gain.linearRampToValueAtTime(0, now + 0.5);
+      setTimeout(() => old.disconnect(), 900);
+      this.trackGain = null;
+    }
+    if (!id) return;
+    this.trackGain = this.ctx.createGain();
+    this.trackGain.gain.setValueAtTime(0, now);
+    this.trackGain.gain.linearRampToValueAtTime(1, now + 0.7);
+    this.trackGain.connect(this.musicBus);
     const tr = TRACKS[id];
     this.step = 0;
     this.nextTime = this.ctx.currentTime + 0.08;
@@ -226,7 +274,7 @@ class AudioEngine {
     const bar = Math.floor(step / 16);
     const [root, q] = tr.chords[bar];
     const tones = [0, q === 'm' ? 3 : 4, 7, 12];
-    const bus = this.musicBus;
+    const bus = this.trackGain ?? this.musicBus;
     if (s === 0 && tr.pad > 0) {
       for (const t of tones.slice(0, 3)) {
         this.tone('triangle', mtof(root + t + 12), mtof(root + t + 12), sd * 16, tr.pad, delay, bus, 0.25);

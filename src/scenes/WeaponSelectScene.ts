@@ -1,4 +1,4 @@
-import { GAME_H, GAME_W, txt } from '../config';
+import { GAME_H, GAME_W, ttl, txt } from '../config';
 import { Sound } from '../core/audio';
 import { Save } from '../core/save';
 import { weaponUnlocked } from '../core/stats';
@@ -24,7 +24,7 @@ export class WeaponSelectScene extends Phaser.Scene {
     this.add.image(GAME_W / 2, GAME_H / 2, ch.bg);
     this.add.rectangle(GAME_W / 2, GAME_H / 2, GAME_W, GAME_H, 0x05070a, 0.72);
     this.add.text(GAME_W / 2, 80, `${ch.num} · ${ch.name}`, txt(28, '#ffd34d', 6)).setOrigin(0.5);
-    this.add.text(GAME_W / 2, 140, 'SELECCIONA ARMA', txt(54, '#ffffff', 10)).setOrigin(0.5);
+    this.add.text(GAME_W / 2, 140, 'SELECCIONA ARMA', ttl(52, '#ffffff', 10)).setOrigin(0.5);
     const line = this.add.graphics();
     line.lineStyle(2, 0x6a8aa8, 1).lineBetween(170, 190, 550, 190);
 

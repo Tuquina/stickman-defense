@@ -1,4 +1,4 @@
-import { GAME_H, GAME_W, txt } from '../config';
+import { GAME_H, GAME_W, ttl, txt } from '../config';
 import { Sound } from '../core/audio';
 import { Save } from '../core/save';
 import { STORY, STORY_ORDER } from '../data/story';
@@ -24,10 +24,11 @@ export class SettingsScene extends Phaser.Scene {
   }
 
   private buildStory(): void {
-    this.add.text(GAME_W / 2, 90, 'HISTORIA', txt(56, '#ffffff', 10)).setOrigin(0.5);
+    this.add.text(GAME_W / 2, 90, 'HISTORIA', ttl(54, '#ffffff', 10)).setOrigin(0.5);
     this.add.text(GAME_W / 2, 150, 'Vuelve a ver las escenas desbloqueadas', txt(24, '#bfe9ff', 5)).setOrigin(0.5);
     const seen = Save.d.storySeen;
-    const list = scrollList(this, 190, 1140, STORY_ORDER.length * 100);
+    const list = scrollList(this, 190, 1130, STORY_ORDER.length * 100);
+    this.add.text(GAME_W / 2, 1148, 'Desliza para ver más', txt(18, '#9aa8b8', 4)).setOrigin(0.5);
     STORY_ORDER.forEach((id, i) => {
       const st = STORY[id];
       const ok = seen.includes(id);
@@ -47,7 +48,7 @@ export class SettingsScene extends Phaser.Scene {
   }
 
   private buildSettings(): void {
-    this.add.text(GAME_W / 2, 90, 'AJUSTES', txt(56, '#ffffff', 10)).setOrigin(0.5);
+    this.add.text(GAME_W / 2, 90, 'AJUSTES', ttl(54, '#ffffff', 10)).setOrigin(0.5);
     const s = Save.d.settings;
     const toggle = (y: number, label: string, get: () => boolean, set: (v: boolean) => void) => {
       const b = button(this, GAME_W / 2, y, 520, 90, `${label}: ${get() ? 'SÍ' : 'NO'}`, () => {
@@ -78,12 +79,12 @@ export class SettingsScene extends Phaser.Scene {
 
     const g = this.add.graphics();
     drawPanel(g, 60, 790, 600, 340, 0x1c2a44, 0x05070a, 18);
-    this.add.text(GAME_W / 2, 830, 'CRÉDITOS', txt(34, '#ffc93c', 6)).setOrigin(0.5);
+    this.add.text(GAME_W / 2, 830, 'CRÉDITOS', ttl(34, '#ffc93c', 7)).setOrigin(0.5);
     this.add.text(GAME_W / 2, 975, [
-      'Juramento de Tinta · v0.5 · Temporada 1',
+      'Juramento de Tinta · v0.7 · Temporada 1',
       'Diseño, código, arte y música: generados',
       'por código (Phaser 3 + WebAudio).',
-      'Tipografía: Lilita One (SIL OFL).',
+      'Tipografías: Lilita One (OFL) y Luckiest Guy (Apache 2.0).',
       '',
       'Guardado local en este dispositivo.',
     ].join('\n'), { ...txt(24, '#ffffff', 4), lineSpacing: 6 }).setOrigin(0.5);

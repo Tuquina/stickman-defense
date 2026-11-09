@@ -2,6 +2,8 @@ export const GAME_W = 720;
 export const GAME_H = 1280;
 
 export const FONT = '"Lilita One", "Arial Black", system-ui, sans-serif';
+/** Display font for the logo and big headlines. */
+export const TITLE_FONT = '"Luckiest Guy", "Lilita One", "Arial Black", sans-serif';
 
 /** Battlefield geometry (logical pixels). */
 export const FIELD = {
@@ -41,4 +43,9 @@ export function txt(size: number, color = '#ffffff', stroke = 6): Phaser.Types.G
     strokeThickness: stroke,
     align: 'center',
   };
+}
+
+/** Headline style (display font): screen titles, banners, victory/defeat. */
+export function ttl(size: number, color = '#ffffff', stroke = 10): Phaser.Types.GameObjects.Text.TextStyle {
+  return { ...txt(size, color, stroke), fontFamily: TITLE_FONT };
 }

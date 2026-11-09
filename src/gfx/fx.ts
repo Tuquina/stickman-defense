@@ -382,43 +382,123 @@ function icons(scene: Phaser.Scene): void {
 
 // ================================================================== logo + UI icons
 function logo(scene: Phaser.Scene): void {
-  paint(scene, 'logo', 680, 300, (ctx, w) => {
-    const font = (px: number) => `${px}px "Lilita One", "Arial Black", sans-serif`;
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    // brush stroke behind "DE TINTA"
-    ctx.fillStyle = 'rgba(8,10,14,0.9)';
-    ctx.beginPath();
-    ctx.moveTo(110, 196); ctx.quadraticCurveTo(340, 168, 590, 190); ctx.lineTo(600, 262);
-    ctx.quadraticCurveTo(340, 280, 90, 258); ctx.closePath(); ctx.fill();
-    for (const [x, y, r] of [[96, 252, 14], [604, 200, 10], [585, 268, 8], [130, 270, 6]]) { ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fill(); }
-    const word = (text: string, y: number, size: number, top: string, bottom: string, glow: string) => {
-      ctx.font = font(size);
-      ctx.lineJoin = 'round';
-      ctx.shadowColor = glow;
-      ctx.shadowBlur = 24;
-      ctx.lineWidth = 22;
-      ctx.strokeStyle = '#06080c';
-      ctx.strokeText(text, w / 2, y + 6);
-      ctx.shadowBlur = 0;
-      ctx.lineWidth = 16;
-      ctx.strokeText(text, w / 2, y);
-      const g = ctx.createLinearGradient(0, y - size / 2, 0, y + size / 2);
-      g.addColorStop(0, top);
-      g.addColorStop(1, bottom);
-      ctx.fillStyle = g;
-      ctx.fillText(text, w / 2, y);
-      // inner highlight on the upper half
-      ctx.save();
+  // Mobile-game style logo: chunky display font, letters on a gentle arc with 3D extrusion,
+  // thick ink outline and gradient, plus a ribbon banner. Everything auto-fits its canvas.
+  paint(scene, 'logo', 720, 400, (ctx, w) => {
+    const TITLE = '"Luckiest Guy", "Lilita One", "Arial Black", sans-serif';
+    // emblem behind: the broken Crown (the story's villain) in a violet glow
+    radial(ctx, w / 2, 120, 190, [[0, 'rgba(176,70,255,0.55)'], [1, 'rgba(176,70,255,0)']]);
+    ctx.save();
+    ctx.translate(w / 2, 108);
+    ctx.globalAlpha = 0.9;
+    for (const dir of [-1, 1]) {
       ctx.beginPath();
-      ctx.rect(0, y - size / 2, w, size * 0.42);
-      ctx.clip();
-      ctx.fillStyle = 'rgba(255,255,255,0.35)';
-      ctx.fillText(text, w / 2, y);
-      ctx.restore();
+      ctx.moveTo(dir * 10, 60); ctx.lineTo(dir * 150, 60); ctx.lineTo(dir * 168, -20); ctx.lineTo(dir * 118, 18);
+      ctx.lineTo(dir * 88, -58); ctx.lineTo(dir * 52, 14); ctx.lineTo(dir * 14, -36); ctx.closePath();
+      ctx.fillStyle = lin(ctx, 0, -58, 0, 60, [[0, '#7a3ad8'], [1, '#2a0e4a']]);
+      ctx.fill();
+      ctx.strokeStyle = INK; ctx.lineWidth = 6; ctx.stroke();
+      radial(ctx, dir * 88, -50, 14, [[0, 'rgba(255,200,255,1)'], [1, 'rgba(255,120,255,0)']]);
+    }
+    ctx.globalAlpha = 1;
+    ctx.restore();
+
+    // ---- line 1: JURAMENTO, letters on an arc, auto-fit to 660px
+    const word = 'JURAMENTO';
+    let size = 132;
+    ctx.font = `${size}px ${TITLE}`;
+    const spacing = -2;
+    const widthOf = () => [...word].reduce((a, ch) => a + ctx.measureText(ch).width + spacing, -spacing);
+    while (widthOf() > 640 && size > 60) { size -= 4; ctx.font = `${size}px ${TITLE}`; }
+    const total = widthOf();
+    const baseY = 200;
+    const R = 1400; // arc radius
+    const letters: { ch: string; x: number; y: number; a: number }[] = [];
+    let x = w / 2 - total / 2;
+    for (const ch of word) {
+      const cw = ctx.measureText(ch).width;
+      const cx = x + cw / 2;
+      const dx = cx - w / 2;
+      const a = dx / R;
+      letters.push({ ch, x: cx, y: baseY + (R - Math.sqrt(R * R - dx * dx)), a });
+      x += cw + spacing;
+    }
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'alphabetic';
+    ctx.lineJoin = 'round';
+    const each = (fn: (l: { ch: string; x: number; y: number; a: number }) => void) => {
+      for (const l of letters) { ctx.save(); ctx.translate(l.x, l.y); ctx.rotate(l.a); fn(l); ctx.restore(); }
     };
-    word('JURAMENTO', 92, 120, '#ffffff', '#bfe9ff', 'rgba(42,212,196,0.9)');
-    word('DE TINTA', 222, 100, '#6ff6e6', '#1fa89a', 'rgba(160,64,255,0.9)');
+    // extrusion (depth) + outline
+    each((l) => {
+      for (let d = 14; d > 0; d -= 2) {
+        ctx.fillStyle = d > 8 ? '#03191a' : '#0a3a3a';
+        ctx.lineWidth = 16; ctx.strokeStyle = '#05080c';
+        ctx.strokeText(l.ch, 0, d);
+        ctx.fillText(l.ch, 0, d);
+      }
+    });
+    each((l) => { ctx.lineWidth = 16; ctx.strokeStyle = '#05080c'; ctx.strokeText(l.ch, 0, 0); });
+    each((l) => {
+      const g = ctx.createLinearGradient(0, -size * 0.8, 0, 0);
+      g.addColorStop(0, '#ffffff'); g.addColorStop(0.45, '#d8fff8'); g.addColorStop(1, '#2ad4c4');
+      ctx.fillStyle = g;
+      ctx.fillText(l.ch, 0, 0);
+      // glossy top band
+      ctx.save();
+      ctx.beginPath(); ctx.rect(-size, -size * 0.82, size * 2, size * 0.3); ctx.clip();
+      ctx.fillStyle = 'rgba(255,255,255,0.55)';
+      ctx.fillText(l.ch, 0, 0);
+      ctx.restore();
+    });
+
+    // ---- line 2: ribbon banner with "DE TINTA"
+    const ry = 280;
+    const rw = 420;
+    const rh = 74;
+    const ribbon = (dx: number, tail: number) => {
+      ctx.beginPath();
+      ctx.moveTo(w / 2 + dx * (rw / 2 - 10), ry - rh / 2 + 12);
+      ctx.lineTo(w / 2 + dx * (rw / 2 + 60), ry - rh / 2 + 12);
+      ctx.lineTo(w / 2 + dx * (rw / 2 + 60 - tail), ry + 12);
+      ctx.lineTo(w / 2 + dx * (rw / 2 + 60), ry + rh / 2 + 12);
+      ctx.lineTo(w / 2 + dx * (rw / 2 - 10), ry + rh / 2 + 12);
+      ctx.closePath();
+      ctx.fillStyle = '#3a1268'; ctx.fill();
+      ctx.strokeStyle = INK; ctx.lineWidth = 5; ctx.stroke();
+    };
+    ribbon(-1, 26);
+    ribbon(1, 26);
+    ctx.beginPath();
+    ctx.moveTo(w / 2 - rw / 2, ry - rh / 2);
+    ctx.quadraticCurveTo(w / 2, ry - rh / 2 - 16, w / 2 + rw / 2, ry - rh / 2);
+    ctx.lineTo(w / 2 + rw / 2, ry + rh / 2);
+    ctx.quadraticCurveTo(w / 2, ry + rh / 2 - 16, w / 2 - rw / 2, ry + rh / 2);
+    ctx.closePath();
+    ctx.fillStyle = lin(ctx, 0, ry - rh / 2, 0, ry + rh / 2, [[0, '#a050ff'], [1, '#5a1aa8']]);
+    ctx.fill();
+    ctx.strokeStyle = INK; ctx.lineWidth = 6; ctx.stroke();
+    ctx.strokeStyle = 'rgba(255,220,140,0.9)'; ctx.lineWidth = 2.5;
+    ctx.beginPath();
+    ctx.moveTo(w / 2 - rw / 2 + 12, ry - rh / 2 + 10);
+    ctx.quadraticCurveTo(w / 2, ry - rh / 2 - 6, w / 2 + rw / 2 - 12, ry - rh / 2 + 10);
+    ctx.stroke();
+    let s2 = 60;
+    ctx.font = `${s2}px ${TITLE}`;
+    while (ctx.measureText('DE TINTA').width > rw - 50 && s2 > 30) { s2 -= 2; ctx.font = `${s2}px ${TITLE}`; }
+    ctx.textBaseline = 'middle';
+    ctx.lineWidth = 10; ctx.strokeStyle = '#05080c';
+    ctx.strokeText('DE TINTA', w / 2, ry + 2);
+    ctx.fillStyle = lin(ctx, 0, ry - s2 / 2, 0, ry + s2 / 2, [[0, '#fff6c8'], [1, '#ffb83a']]);
+    ctx.fillText('DE TINTA', w / 2, ry + 2);
+
+    // sparkles
+    for (const [sx, sy, sr] of [[90, 120, 14], [640, 150, 11], [600, 70, 8], [140, 300, 9]]) {
+      radial(ctx, sx, sy, sr * 2, [[0, 'rgba(255,255,255,0.9)'], [1, 'rgba(255,255,255,0)']]);
+      ctx.fillStyle = '#ffffff';
+      star(ctx, sx, sy, sr, 2, 4);
+      ctx.fill();
+    }
   });
   paint(scene, 'fx_rays', 512, 512, (ctx) => {
     ctx.translate(256, 256);

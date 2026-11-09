@@ -1,8 +1,8 @@
 import './phaser-global';
-import '@fontsource/lilita-one/latin.css';
-import '@fontsource/lilita-one/latin-ext.css';
 import Phaser from 'phaser';
 import { GAME_H, GAME_W } from './config';
+import { Sound } from './core/audio';
+import { loadFonts } from './core/fonts';
 import { BattleScene } from './scenes/BattleScene';
 import { BootScene } from './scenes/BootScene';
 import { ChaptersScene } from './scenes/ChaptersScene';
@@ -16,14 +16,11 @@ import { WeaponSelectScene } from './scenes/WeaponSelectScene';
 import { WorkshopScene } from './scenes/WorkshopScene';
 
 async function start(): Promise<void> {
-  try {
-    await Promise.race([
-      Promise.all([document.fonts.load('40px "Lilita One"'), document.fonts.load('40px "Lilita One"', 'ñáéíóú¡¿')]),
-      new Promise((r) => setTimeout(r, 2500)),
-    ]);
-  } catch {
-    /* fall back to system font */
-  }
+  await loadFonts();
+  // Browsers only allow audio after a user gesture. iOS only counts touchEND / click (not touchstart),
+  // so we unlock on every kind of gesture until the audio context is really running.
+  const unlock = () => Sound.unlock();
+  for (const ev of ['touchend', 'click', 'pointerup', 'keydown']) document.addEventListener(ev, unlock, { passive: true });
   document.getElementById('loading')?.remove();
 
   const game = new Phaser.Game({

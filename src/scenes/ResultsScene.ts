@@ -1,4 +1,4 @@
-import { GAME_H, GAME_W, txt } from '../config';
+import { GAME_H, GAME_W, ttl, txt } from '../config';
 import { Sound } from '../core/audio';
 import { fmt, pick } from '../core/format';
 import { addRankXp, Save } from '../core/save';
@@ -34,12 +34,12 @@ export class ResultsScene extends Phaser.Scene {
     const d = Save.d;
     const ranks = addRankXp(r.rankXp);
     Save.write();
-    Sound.music(r.victory ? 'menu' : 'sad');
+    Sound.music(r.victory ? 'victory' : 'sad');
 
     ensureBackground(this, ch.bg);
     this.add.image(GAME_W / 2, GAME_H / 2, ch.bg);
     this.add.rectangle(GAME_W / 2, GAME_H / 2, GAME_W, GAME_H, 0x05070a, 0.75);
-    const title = this.add.text(GAME_W / 2, 120, r.victory ? '¡VICTORIA!' : 'DERROTA', txt(92, r.victory ? '#ffd34d' : '#ff4a6a', 14)).setOrigin(0.5).setScale(0.5);
+    const title = this.add.text(GAME_W / 2, 120, r.victory ? '¡VICTORIA!' : 'DERROTA', ttl(88, r.victory ? '#ffd34d' : '#ff4a6a', 14)).setOrigin(0.5).setScale(0.5);
     this.tweens.add({ targets: title, scale: 1, duration: 400, ease: 'Back.easeOut' });
     this.add.text(GAME_W / 2, 200, `${ch.num} · ${ch.name}`, txt(28, '#bfe9ff', 6)).setOrigin(0.5);
 
