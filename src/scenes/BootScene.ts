@@ -46,8 +46,15 @@ export class BootScene extends Phaser.Scene {
     }
     if (DEBUG.scene) {
       const [s, arg] = DEBUG.scene.split(':');
-      const map: Record<string, string> = { menu: 'Menu', workshop: 'Workshop', chapters: 'Chapters', story: 'Story', weapons: 'WeaponSelect', settings: 'Settings', gallery: 'Gallery' };
-      this.scene.start(map[s] ?? 'Menu', s === 'story' ? { id: arg ?? 'prologo2', next: { scene: 'Menu' } } : s === 'gallery' ? { page: Number(arg ?? 0) } : { chapter: 'c1' });
+      const map: Record<string, string> = { menu: 'Menu', workshop: 'Workshop', chapters: 'Chapters', story: 'Story', weapons: 'WeaponSelect', settings: 'Settings', gallery: 'Gallery', results: 'Results', credits: 'Credits', story_list: 'Settings' };
+      const data: Record<string, object> = {
+        story: { id: arg ?? 'prologo2', next: { scene: 'Menu' } },
+        gallery: { page: Number(arg ?? 0) },
+        results: { chapter: 'c2', victory: arg !== 'lose', wave: arg === 'lose' ? 11 : 20, kills: 612, bestCombo: 48, gold: 7340, rankXp: 340, level: 41, firstClear: arg !== 'lose', rankBefore: 3, weapon: 'arco' },
+        credits: { finale: arg ?? 'liberacion' },
+        story_list: { tab: 'story' },
+      };
+      this.scene.start(map[s] ?? 'Menu', data[s] ?? { chapter: 'c1' });
       return;
     }
     this.titleScreen();
@@ -91,7 +98,7 @@ export class BootScene extends Phaser.Scene {
     this.add.text(GAME_W / 2, 420, 'Hermanos de trazo. Enemigos de poder.', txt(28, '#bfe9ff', 6)).setOrigin(0.5);
     const tap = this.add.text(GAME_W / 2, 1150, 'TOCA PARA EMPEZAR', txt(40, '#ffd34d', 8)).setOrigin(0.5);
     this.tweens.add({ targets: tap, alpha: 0.35, duration: 700, yoyo: true, repeat: -1 });
-    this.add.text(GAME_W / 2, 1240, 'v0.1 · MVP', txt(20, '#8899aa', 4)).setOrigin(0.5);
+    this.add.text(GAME_W / 2, 1240, 'v0.5 · Temporada 1', txt(20, '#8899aa', 4)).setOrigin(0.5);
 
     onUpdate(this, (time: number) => {
       const t = time / 1000;

@@ -170,6 +170,7 @@ export class BattleScene extends Phaser.Scene {
   private dangerImg!: Phaser.GameObjects.Image;
   private tutor: { box: Phaser.GameObjects.Container; label: Phaser.GameObjects.Text; dx: number; kind: 'mark' | 'skill' | 'fury' } | null = null;
   private lowFx = false;
+  private pendingStart = false;
   private trailsG!: Phaser.GameObjects.Graphics;
   private muzzles: Phaser.GameObjects.Image[] = [];
   private muzzleIdx = 0;
@@ -209,7 +210,7 @@ export class BattleScene extends Phaser.Scene {
     skillIcons: (Phaser.GameObjects.Container | null)[];
     skillLv: Phaser.GameObjects.Text[];
     furyText: Phaser.GameObjects.Text;
-    speedBtn: Phaser.GameObjects.Container;
+    speedBtn: ReturnType<typeof button>;
     hint: Phaser.GameObjects.Text;
     weaponStars: Phaser.GameObjects.Graphics | null;
     portrait: Phaser.GameObjects.Graphics;
@@ -265,6 +266,7 @@ export class BattleScene extends Phaser.Scene {
     this.splatIdx = 0;
     this.tutor = null;
     this.lowFx = Save.d.settings.lowFx;
+    this.pendingStart = false;
     this.muzzles = [];
     this.muzzleIdx = 0;
     this.modal = false;
@@ -354,8 +356,8 @@ export class BattleScene extends Phaser.Scene {
     this.events.once('shutdown', () => this.game.events.off('hidden', this.onHidden, this));
 
     this.time.delayedCall(400, () => {
-      this.startWave(Math.max(1, DEBUG.wave));
-      // every run starts with a free skill pick: decisions from second one
+      // every run starts with a free skill pick: decisions from second one; the first wave starts after it
+      this.pendingStart = true;
       this.showCards(this.starterCards(), 'ELIGE TU HABILIDAD', false, 'Tu primera habilidad de la partida');
     });
   }
@@ -420,7 +422,14 @@ export class BattleScene extends Phaser.Scene {
     const waveText = this.add.text(588, 66, '', txt(34, '#ffffff', 6)).setOrigin(0.5).setDepth(D + 2);
     const pauseBtn = button(this, 672, 52, 64, 64, '', () => this.openPause(), { color: 0x3a4a5e, radius: 14 }).setDepth(D + 3);
     pauseBtn.add(this.add.image(0, 0, 'pause').setScale(0.7));
-    const speedBtn = button(this, 650, 118, 90, 46, `x${this.speed > 2 ? this.speed : this.speed}`, () => this.toggleSpeed(), { color: 0x3a4a5e, size: 24, radius: 12 }).setDepth(D + 3);
+    // speed toggle lives in its own slot at the right of the milestone bar (never overlaps it)
+    const speedBtn = button(this, 652, 150, 104, 50, `x${this.speed}`, () => this.toggleSpeed(), { color: this.speed > 1 ? 0x2a9d8f : 0x3a4a5e, size: 26, radius: 12 }).setDepth(D + 3);
+    const ff = this.add.graphics();
+    ff.fillStyle(0xffffff, 1);
+    ff.fillTriangle(-40, -10, -40, 10, -28, 0);
+    ff.fillTriangle(-28, -10, -28, 10, -16, 0);
+    speedBtn.add(ff);
+    speedBtn.label.setX(14);
 
     // milestone bar labels
     for (const m of MILESTONES) {
@@ -468,17 +477,27 @@ export class BattleScene extends Phaser.Scene {
     this.hud.weaponStars = stars(this, 110, GOLD_POS.y, this.stars, 5, 22).setDepth(5003);
   }
 
+  /** Gold grows with the wave: up to ×3 at wave 20 in chapters; El Abismo keeps growing until wave 60. */
+  private goldWave(): number {
+    const cap = this.ch.waves === Infinity ? 60 : 20;
+    return 1 + Math.min(this.wave, cap) * 0.1;
+  }
+
+  private lootGold(): number {
+    return Math.round(25 * this.st.goldMult * (0.5 + this.goldWave() * 0.5));
+  }
+
   private milestoneX(level: number): number {
-    return 40 + (level / 40) * 560;
+    return 40 + (level / 40) * 516;
   }
 
   private toggleSpeed(): void {
     this.speed = this.speed === 1 ? 2 : 1;
     Save.d.settings.speed2 = this.speed === 2;
     Save.write();
-    this.hud.speedBtn.list.forEach((o) => {
-      if (o instanceof Phaser.GameObjects.Text) o.setText(`x${this.speed}`);
-    });
+    this.hud.speedBtn.label.setText(`x${this.speed}`);
+    this.hud.speedBtn.redraw(this.speed > 1 ? 0x2a9d8f : 0x3a4a5e);
+    this.floatHud(this.speed > 1 ? 'VELOCIDAD ×2' : 'VELOCIDAD ×1', GAME_W / 2, 250, '#bfe9ff');
   }
 
   private drawHud(): void {
@@ -499,9 +518,9 @@ export class BattleScene extends Phaser.Scene {
     g.fillStyle(0x0b2a30, 1).fillRoundedRect(138, 76, 384, 24, 8);
     g.fillStyle(COLORS.xp, 1).fillRoundedRect(138, 76, Math.max(8, 384 * xpk), 24, 8);
     // milestone bar
-    g.fillStyle(0x0a0a0a, 1).fillRoundedRect(36, 134, 568, 18, 9);
+    g.fillStyle(0x0a0a0a, 1).fillRoundedRect(36, 134, 528, 18, 9);
     const mk = clamp(this.level / 40, 0, 1);
-    g.fillStyle(0xffc93c, 1).fillRoundedRect(39, 137, Math.max(8, 562 * mk), 12, 6);
+    g.fillStyle(0xffc93c, 1).fillRoundedRect(39, 137, Math.max(8, 522 * mk), 12, 6);
     for (const m of MILESTONES) {
       const x = this.milestoneX(m);
       const got = this.claimedMilestones.has(m);
@@ -1008,7 +1027,7 @@ export class BattleScene extends Phaser.Scene {
     this.dropXp(e.x, cy, e.def.xp * sc * this.st.xpMult);
     if (Math.random() < e.def.gold) {
       const n = e.boss ? (e.def.rank === 'boss' ? 14 : 7) : 1;
-      for (let i = 0; i < n; i++) this.dropCoin(e.x, e.y, Math.max(1, Math.round((1 + Math.min(this.wave, 20) * 0.1) * this.st.goldMult * (e.boss ? 3 : 1))));
+      for (let i = 0; i < n; i++) this.dropCoin(e.x, e.y, Math.max(1, Math.round(this.goldWave() * this.st.goldMult * (e.boss ? 3 : 1))));
     }
     this.fury = Math.min(100, this.fury + (e.boss ? 20 : 1.5) * this.st.furyMult * (1 + Math.min(this.combo, 60) / 60));
     if (this.legends.has('vampiro')) this.hp = Math.min(this.st.maxHp, this.hp + this.st.maxHp * 0.005);
@@ -1048,7 +1067,7 @@ export class BattleScene extends Phaser.Scene {
   }
 
   private waveCleared(): void {
-    const g = Math.round(2 * Math.min(this.wave, 20) * this.st.goldMult);
+    const g = Math.round(10 * this.goldWave() * this.st.goldMult);
     this.gold += g;
     if (this.hud) this.floatHud(`+${fmt(g)}`, GOLD_POS.x + 70, GOLD_POS.y - 40);
     this.rankXp += 10;
@@ -1594,7 +1613,7 @@ export class BattleScene extends Phaser.Scene {
       case 'heal':
         return { name: 'Reparación', tag: 'Extra', desc: 'Cura 30% de la barricada', icon: 'ic_heal', glyph: '', color: 0x3aa05a, lv: 0, max: 0 };
       case 'gold':
-        return { name: 'Botín', tag: 'Extra', desc: `+${Math.round(25 * this.st.goldMult * (1 + Math.min(this.wave, 20) * 0.05))} de oro`, icon: 'ic_gold', glyph: '', color: 0xd8a020, lv: 0, max: 0 };
+        return { name: 'Botín', tag: 'Extra', desc: `+${this.lootGold()} de oro`, icon: 'ic_gold', glyph: '', color: 0xd8a020, lv: 0, max: 0 };
     }
   }
 
@@ -1652,6 +1671,10 @@ export class BattleScene extends Phaser.Scene {
     this.modalLayer?.destroy();
     this.modalLayer = null;
     this.modal = false;
+    if (this.pendingStart) {
+      this.pendingStart = false;
+      this.startWave(Math.max(1, DEBUG.wave));
+    }
     if (this.pendingLevels > 0) this.openCards();
   }
 
@@ -1694,7 +1717,7 @@ export class BattleScene extends Phaser.Scene {
         Sound.play('heal');
         break;
       case 'gold':
-        this.gold += Math.round(25 * this.st.goldMult * (1 + Math.min(this.wave, 20) * 0.05));
+        this.gold += this.lootGold();
         break;
     }
     this.recalc();
@@ -2343,42 +2366,57 @@ export class BattleScene extends Phaser.Scene {
     this.paused = true;
     const L = this.add.container(0, 0).setDepth(8000);
     this.modalLayer = L;
-    L.add(this.add.rectangle(GAME_W / 2, GAME_H / 2, GAME_W, GAME_H, 0x000000, 0.75).setInteractive());
+    L.add(this.add.rectangle(GAME_W / 2, GAME_H / 2, GAME_W, GAME_H, 0x000000, 0.78).setInteractive());
     const g = this.add.graphics();
-    drawPanel(g, 110, 330, 500, 600, 0x1c2a44, 0x05070a, 20);
+    drawPanel(g, 80, 250, 560, 800, 0x1c2a44, 0x05070a, 22);
     L.add(g);
-    L.add(this.add.text(GAME_W / 2, 400, 'PAUSA', txt(60, '#ffffff', 10)).setOrigin(0.5));
+    L.add(this.add.text(GAME_W / 2, 310, 'PAUSA', txt(60, '#ffffff', 10)).setOrigin(0.5));
+    // run summary
+    const waves = this.ch.waves === Infinity ? `${this.wave}` : `${this.wave}/${this.ch.waves}`;
+    L.add(this.add.text(GAME_W / 2, 368, `${this.ch.num} · ${this.ch.name}`, txt(24, '#ffd34d', 5)).setOrigin(0.5));
+    const info = this.add.graphics();
+    info.fillStyle(0x0b111a, 0.8).fillRoundedRect(120, 395, 480, 74, 14);
+    L.add(info);
+    [['OLEADA', waves], ['NIVEL', `${this.level}`], ['ORO', fmt(this.gold)], ['BAJAS', fmt(this.kills)]].forEach(([k, v], idx) => {
+      const x = 180 + idx * 120;
+      L.add(this.add.text(x, 416, k, txt(16, '#9aa8b8', 4)).setOrigin(0.5));
+      L.add(this.add.text(x, 448, v, txt(26, k === 'ORO' ? '#ffd34d' : '#ffffff', 5)).setOrigin(0.5));
+    });
+
     const s = Save.d.settings;
     const close = () => {
       L.destroy();
       this.modalLayer = null;
       this.paused = false;
     };
-    L.add(button(this, GAME_W / 2, 510, 400, 90, 'CONTINUAR', close, { color: 0x2a9d8f, size: 38 }));
-    const mus = button(this, GAME_W / 2, 620, 400, 80, `MÚSICA: ${s.music ? 'SÍ' : 'NO'}`, () => {
-      s.music = !s.music;
-      Save.write();
-      Sound.applySettings();
-      mus.label.setText(`MÚSICA: ${s.music ? 'SÍ' : 'NO'}`);
-    }, { color: 0x3a4a5e, size: 30 });
-    const sfx = button(this, GAME_W / 2, 720, 400, 80, `EFECTOS: ${s.sfx ? 'SÍ' : 'NO'}`, () => {
-      s.sfx = !s.sfx;
-      Save.write();
-      Sound.applySettings();
-      sfx.label.setText(`EFECTOS: ${s.sfx ? 'SÍ' : 'NO'}`);
-    }, { color: 0x3a4a5e, size: 30 });
+    const toggle = (y: number, label: string, get: () => string, act: () => void, on: () => boolean) => {
+      const b = button(this, GAME_W / 2, y, 440, 74, `${label}: ${get()}`, () => {
+        act();
+        Save.write();
+        Sound.applySettings();
+        b.label.setText(`${label}: ${get()}`);
+        b.redraw(on() ? 0x2a7a72 : 0x3a4a5e);
+      }, { color: on() ? 0x2a7a72 : 0x3a4a5e, size: 28 });
+      L.add(b);
+    };
+    L.add(button(this, GAME_W / 2, 545, 440, 88, 'CONTINUAR', close, { color: 0x2a9d8f, size: 38 }));
+    toggle(645, 'MÚSICA', () => (s.music ? 'SÍ' : 'NO'), () => { s.music = !s.music; }, () => s.music);
+    toggle(730, 'SONIDOS', () => (s.sfx ? 'SÍ' : 'NO'), () => { s.sfx = !s.sfx; }, () => s.sfx);
+    toggle(815, 'VELOCIDAD', () => `x${this.speed}`, () => this.toggleSpeed(), () => this.speed > 1);
+    toggle(900, 'EFECTOS VISUALES', () => (s.lowFx ? 'NO' : 'SÍ'), () => { s.lowFx = !s.lowFx; this.lowFx = s.lowFx; }, () => !s.lowFx);
     let confirm = false;
-    const quit = button(this, GAME_W / 2, 840, 400, 80, 'ABANDONAR', () => {
+    const quit = button(this, GAME_W / 2, 995, 440, 74, 'ABANDONAR', () => {
       if (!confirm) {
         confirm = true;
-        quit.label.setText('¿SEGURO? (te quedas el oro)');
+        quit.label.setText('¿SEGURO? Te quedas el oro');
         quit.label.setFontSize(24);
+        quit.redraw(0xd8402e);
         return;
       }
       close();
       this.endRun(false, true);
-    }, { color: 0xb83a3a, size: 30 });
-    L.add([mus, sfx, quit]);
+    }, { color: 0xb83a3a, size: 28 });
+    L.add(quit);
   }
 
   private endRun(victory: boolean, abandoned = false): void {

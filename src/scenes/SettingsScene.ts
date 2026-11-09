@@ -80,7 +80,7 @@ export class SettingsScene extends Phaser.Scene {
     drawPanel(g, 60, 790, 600, 340, 0x1c2a44, 0x05070a, 18);
     this.add.text(GAME_W / 2, 830, 'CRÉDITOS', txt(34, '#ffc93c', 6)).setOrigin(0.5);
     this.add.text(GAME_W / 2, 975, [
-      'Juramento de Tinta · v0.1 (MVP)',
+      'Juramento de Tinta · v0.5 · Temporada 1',
       'Diseño, código, arte y música: generados',
       'por código (Phaser 3 + WebAudio).',
       'Tipografía: Lilita One (SIL OFL).',
