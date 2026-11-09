@@ -110,6 +110,20 @@ era de cartón. Literal." · "Tranqui, todos empezamos siendo basura. Bueno, tú
 | Elegir mejora | Tocar 1 de 3 cartas | La decisión estratégica central |
 | Velocidad ×1/×2 | Botón en el HUD | Para grindear más rápido capítulos ya dominados |
 
+### 3.2.1 Capa de "jugo" y decisiones (revisión de jugabilidad v0.2)
+
+| Mecánica | Qué hace | Por qué |
+|---|---|---|
+| **Habilidad inicial** | Cada partida empieza eligiendo 1 de 3 habilidades | Hay una decisión desde el segundo uno y el inicio deja de ser pasivo |
+| **Combo** | Matar en cadena (menos de 2,2 s entre bajas) suma combo: más carga de Furia (hasta ×2), y cada 25 de combo da oro extra y un aviso ("¡EN RACHA!", "¡MASACRE!", "¡IMPARABLE!") | Premia usar las habilidades de área en el momento justo |
+| **Cambiar cartas** | 1 cambio gratis por partida, +1 en cada cofre de hito | Evita sentirse "estafado" por malas cartas |
+| **Sinergias** | Congelado = +25 % de daño recibido. La Cadena de Rayos hace ×2 al marcado. El Tornado agrupa enemigos para las bombas. | Las habilidades se combinan entre sí, no solo suman números |
+| **Impacto** | Micro-pausa en críticos a jefes, empuje en críticos, enemigos que estallan en blanco y dejan una mancha de tinta | Cada golpe se siente |
+| **Presentación de jefes** | Cámara lenta, franjas de cine, nombre, título y frase | Los jefes se sienten como eventos |
+| **Peligro** | Viñeta roja que late y latido de corazón con la barricada bajo 35 % | Tensión y aviso claro |
+| **Tutorial en batalla** | Una mano guía enseña, de a una cosa por vez: marcar, usar habilidades y activar la Furia (solo la primera vez) | Onboarding sin pantallas de texto |
+| **Calidad visual** | Ajustes → Efectos visuales: desactiva partículas, manchas y animaciones extra | Celulares de gama baja |
+
 ### 3.3 Partida (roguelite)
 
 1. **Seleccionar arma**: se elige 1 de las armas desbloqueadas.

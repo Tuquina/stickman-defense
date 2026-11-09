@@ -14,6 +14,7 @@ import { WEAPONS, type ProjKind, type WeaponDef, type WeaponId } from '../data/w
 import { drawStickman, POSES } from '../gfx/stickman';
 import { ENEMY_TEX } from '../gfx/textures';
 import { button, drawPanel, iconBox, stars } from '../ui/widgets';
+import { ensureBackground } from '../gfx/backgrounds';
 
 // ------------------------------------------------------------------ types
 interface Enemy {
@@ -155,6 +156,19 @@ export class BattleScene extends Phaser.Scene {
   private st!: Stats;
   private pendingLevels = 0;
   private claimedMilestones = new Set<number>();
+  private combo = 0;
+  private comboT = 0;
+  private bestCombo = 0;
+  private rerolls = 1;
+  private hitstop = 0;
+  private slowmo = 0;
+  private heartT = 0;
+  private splats: Phaser.GameObjects.Image[] = [];
+  private splatIdx = 0;
+  private comboText!: Phaser.GameObjects.Text;
+  private dangerImg!: Phaser.GameObjects.Image;
+  private tutor: { box: Phaser.GameObjects.Container; label: Phaser.GameObjects.Text; dx: number; kind: 'mark' | 'skill' | 'fury' } | null = null;
+  private lowFx = false;
 
   // flow
   private modal = false;
@@ -236,6 +250,17 @@ export class BattleScene extends Phaser.Scene {
     this.simTime = 0;
     this.pendingLevels = 0;
     this.claimedMilestones = new Set();
+    this.combo = 0;
+    this.comboT = 0;
+    this.bestCombo = 0;
+    this.rerolls = 1;
+    this.hitstop = 0;
+    this.slowmo = 0;
+    this.heartT = 0;
+    this.splats = [];
+    this.splatIdx = 0;
+    this.tutor = null;
+    this.lowFx = Save.d.settings.lowFx;
     this.modal = false;
     this.paused = false;
     this.ended = false;
@@ -259,6 +284,7 @@ export class BattleScene extends Phaser.Scene {
     this.recalc(true);
     this.hp = this.st.maxHp;
 
+    ensureBackground(this, this.ch.bg);
     this.add.image(GAME_W / 2, GAME_H / 2, this.ch.bg).setDepth(-10);
     this.overlayG = this.add.graphics().setDepth(1);
     this.add.image(FIELD.heroX + 6, FIELD.heroY + 26, 'rock').setDepth(FIELD.heroY - 2);
@@ -285,6 +311,10 @@ export class BattleScene extends Phaser.Scene {
     this.emitters.green = mkEm('green', 0x6aff8a, { gravityY: -100 });
 
     this.buildHud();
+    this.ambient();
+    this.comboText = this.add.text(GAME_W - 24, 330, '', txt(40, '#ffd34d', 8)).setOrigin(1, 0.5).setDepth(4100).setVisible(false);
+    this.add.image(GAME_W / 2, GAME_H / 2, 'vignette').setDisplaySize(GAME_W, GAME_H).setAlpha(0.6).setDepth(1990);
+    this.dangerImg = this.add.image(GAME_W / 2, GAME_H / 2, 'vignette').setDisplaySize(GAME_W, GAME_H).setTint(0xff1a1a).setAlpha(0).setDepth(2950);
 
     // input: mark enemies / collect coins
     this.input.on('pointerdown', (p: Phaser.Input.Pointer) => {
@@ -296,7 +326,11 @@ export class BattleScene extends Phaser.Scene {
     this.game.events.on('hidden', this.onHidden, this);
     this.events.once('shutdown', () => this.game.events.off('hidden', this.onHidden, this));
 
-    this.time.delayedCall(400, () => this.startWave(Math.max(1, DEBUG.wave)));
+    this.time.delayedCall(400, () => {
+      this.startWave(Math.max(1, DEBUG.wave));
+      // every run starts with a free skill pick: decisions from second one
+      this.showCards(this.starterCards(), 'ELIGE TU HABILIDAD', false, 'Tu primera habilidad de la partida');
+    });
   }
 
   private onHidden(): void {
@@ -589,8 +623,9 @@ export class BattleScene extends Phaser.Scene {
       this.cameras.main.shake(500, 0.01);
       Sound.play('roar');
       Sound.vibrate([60, 40, 120]);
-      this.bossQuote(id);
+      this.bossIntro(def);
     } else if (def.rank === 'mini') {
+      this.bossQuote(id);
       Sound.play('roar');
       this.cameras.main.shake(300, 0.006);
     }
@@ -599,9 +634,6 @@ export class BattleScene extends Phaser.Scene {
 
   private bossQuote(id: string): void {
     const q: Record<string, string> = {
-      reina: '¡Mis hijas tienen hambre, palito!',
-      sirHueco: '…Quien busca la Corona… encuentra el vacío.',
-      ecoDante: '¡CIEN MIL! ¡CIEN MIL! ¡CIEN MIL!',
       aranaMadre: '¡Más arañitas!',
       gargola: '¡KRAAAH!',
       guardian: 'La Corona no se toca.',
@@ -617,7 +649,15 @@ export class BattleScene extends Phaser.Scene {
       if (DEBUG.bot && this.modal) this.bot();
       return;
     }
-    let dt = Math.min(delta, 50) / 1000 * this.speed;
+    const real = Math.min(delta, 50) / 1000;
+    if (this.hitstop > 0) {
+      // micro-freeze on heavy hits: sells the impact
+      this.hitstop -= real;
+      this.render();
+      return;
+    }
+    if (this.slowmo > 0) this.slowmo -= real;
+    let dt = real * this.speed * (this.slowmo > 0 ? 0.25 : 1);
     // bot runs: fixed number of sim steps per frame regardless of frame rate (fast balancing)
     if (DEBUG.bot && DEBUG.speed > 1) dt = DEBUG.speed / 60;
     // fixed sub-steps keep collisions stable at high speed
@@ -674,6 +714,13 @@ export class BattleScene extends Phaser.Scene {
       if (this.furyT <= 0) this.furyT = 0;
     }
     if (this.heroSlowT > 0) this.heroSlowT -= dt;
+    if (this.comboT > 0) {
+      this.comboT -= dt;
+      if (this.comboT <= 0) {
+        this.combo = 0;
+        this.tweens.add({ targets: this.comboText, alpha: 0, duration: 250 });
+      }
+    }
     if (this.st.regen > 0) this.hp = Math.min(this.st.maxHp, this.hp + this.st.maxHp * this.st.regen * dt);
     for (const s of this.skills) if (s.cd > 0) s.cd = Math.max(0, s.cd - dt);
 
@@ -858,14 +905,18 @@ export class BattleScene extends Phaser.Scene {
     if (this.legends.has('corazon') && this.hp / this.st.maxHp < 0.35) amt *= 1.6;
     if (e === this.marked) amt *= 1.3;
     if (opts.skill) amt *= this.st.skillMult;
+    if (e.frozenT > 0) amt *= 1.25; // synergy: Escarcha de Grafito
     let armor = e.def.armor ?? 0;
     if (e.shieldT > 0) armor = 0.8;
     amt *= 1 - armor;
     e.hp -= amt;
     e.flashT = 0.07;
     if (!opts.silent) this.dmgText(e.x + Phaser.Math.Between(-22, 22), e.y - e.hitY * 1.6 + Phaser.Math.Between(-12, 8), amt, crit);
-    if (crit) Sound.play('crit', 70);
-    else Sound.play('hit', 50);
+    if (crit) {
+      Sound.play('crit', 70);
+      if (e.boss) this.hitstop = Math.max(this.hitstop, 0.03);
+      else e.kb += 14;
+    } else Sound.play('hit', 50);
     if (this.legends.has('ejecutor') && !e.boss && e.hp > 0 && e.hp < e.maxHp * 0.12) {
       e.hp = 0;
       this.dmgText(e.x, e.y - e.hitY * 2, 0, true, '!!');
@@ -890,7 +941,12 @@ export class BattleScene extends Phaser.Scene {
 
   private kill(e: Enemy): void {
     e.alive = false;
-    e.img.destroy();
+    const img = e.img;
+    if (this.lowFx) img.destroy();
+    else {
+      img.setTintFill(0xffffff);
+      this.tweens.add({ targets: img, scaleX: 1.3, scaleY: 0.15, alpha: 0, duration: 170, ease: 'Quad.easeIn', onComplete: () => img.destroy() });
+    }
     if (e === this.marked) {
       this.marked = null;
       this.markImg.setVisible(false);
@@ -900,7 +956,9 @@ export class BattleScene extends Phaser.Scene {
     const color = ['arana', 'aranaMadre', 'reina', 'escarabajo', 'seta'].includes(e.def.id) ? 'red' : ['mancha', 'manchita', 'sombra', 'guardian', 'ecoDante'].includes(e.def.id) ? 'purple' : 'ink';
     this.emitters[color].explode(e.boss ? 40 : 10, e.x, cy);
     this.emitters.ink.explode(e.boss ? 20 : 4, e.x, cy);
+    this.splat(e.x, e.y, color === 'red' ? 0x7a141c : color === 'purple' ? 0x3a1458 : 0x111116, e.boss ? 2.6 : Math.max(0.6, e.r / 24));
     Sound.play('death', 60);
+    this.addCombo();
 
     // drops
     const sc = this.ch.waves === Infinity ? 1 + this.wave * 0.06 : 1 + (this.wave - 1) * 0.07;
@@ -909,7 +967,7 @@ export class BattleScene extends Phaser.Scene {
       const n = e.boss ? (e.def.rank === 'boss' ? 14 : 7) : 1;
       for (let i = 0; i < n; i++) this.dropCoin(e.x, e.y, Math.max(1, Math.round((1 + Math.min(this.wave, 20) * 0.1) * this.st.goldMult * (e.boss ? 3 : 1))));
     }
-    this.fury = Math.min(100, this.fury + (e.boss ? 20 : 1.5) * this.st.furyMult);
+    this.fury = Math.min(100, this.fury + (e.boss ? 20 : 1.5) * this.st.furyMult * (1 + Math.min(this.combo, 60) / 60));
     if (this.legends.has('vampiro')) this.hp = Math.min(this.st.maxHp, this.hp + this.st.maxHp * 0.005);
     if (this.legends.has('estallido') && !e.boss) {
       const r2 = 70 * 70;
@@ -949,6 +1007,7 @@ export class BattleScene extends Phaser.Scene {
   private waveCleared(): void {
     const g = Math.round(2 * Math.min(this.wave, 20) * this.st.goldMult);
     this.gold += g;
+    if (this.hud) this.floatHud(`+${fmt(g)}`, GOLD_POS.x + 70, GOLD_POS.y - 40);
     this.rankXp += 10;
   }
 
@@ -1319,6 +1378,7 @@ export class BattleScene extends Phaser.Scene {
     this.markImg.setVisible(!!best);
     if (best) {
       Sound.play('click');
+      this.tutorDone('mark');
       this.markImg.setScale(1.3);
       this.tweens.add({ targets: this.markImg, scale: best.boss ? 1.5 : 0.75, duration: 150 });
       if (this.hud.hint.visible && this.kills > 5) this.hud.hint.setVisible(false);
@@ -1348,6 +1408,7 @@ export class BattleScene extends Phaser.Scene {
     const milestone = MILESTONES.find((m) => this.level >= m && !this.claimedMilestones.has(m));
     if (milestone) {
       this.claimedMilestones.add(milestone);
+      this.rerolls++;
       this.showCards(this.legendCards(), `COFRE DE HITO · Lv.${milestone}`, true);
       Sound.play('legend');
     } else {
@@ -1402,7 +1463,7 @@ export class BattleScene extends Phaser.Scene {
         return { name: this.wdef.evoName, tag: 'EVOLUCIÓN', desc: this.wdef.evoDesc, icon: 'ic_evo', glyph: '', color: 0xff5a3a, lv: 0, max: 0 };
       case 'passive': {
         const p = PASSIVES[c.id];
-        return { name: p.name, tag: 'Pasiva', desc: p.desc, icon: null, glyph: p.icon, color: p.color, lv: this.passives[c.id] + 1, max: MAX_PASSIVE };
+        return { name: p.name, tag: 'Pasiva', desc: p.desc, icon: `pi_${c.id}`, glyph: p.icon, color: p.color, lv: this.passives[c.id] + 1, max: MAX_PASSIVE };
       }
       case 'skill': {
         const s = SKILLS[c.id];
@@ -1422,7 +1483,7 @@ export class BattleScene extends Phaser.Scene {
     }
   }
 
-  private showCards(cards: Card[], title: string, legend: boolean): void {
+  private showCards(cards: Card[], title: string, legend: boolean, subtitle?: string): void {
     this.modal = true;
     const L = this.add.container(0, 0).setDepth(8000);
     this.modalLayer = L;
@@ -1430,7 +1491,7 @@ export class BattleScene extends Phaser.Scene {
     L.add(dim);
     const tt = this.add.text(GAME_W / 2, 300, title, txt(legend ? 46 : 52, legend ? '#e0a0ff' : '#ffffff', 10)).setOrigin(0.5);
     L.add(tt);
-    L.add(this.add.text(GAME_W / 2, 356, legend ? 'Elige un poder legendario' : `Nivel ${this.level}`, txt(26, '#bfe9ff', 5)).setOrigin(0.5));
+    L.add(this.add.text(GAME_W / 2, 356, subtitle ?? (legend ? 'Elige un poder legendario' : `Nivel ${this.level}`), txt(26, '#bfe9ff', 5)).setOrigin(0.5));
     const lockUntil = this.time.now + 350;
     cards.forEach((c, i) => {
       const info = this.cardInfo(c);
@@ -1457,6 +1518,19 @@ export class BattleScene extends Phaser.Scene {
       L.add(cc);
       (cc as unknown as { card: Card }).card = c;
     });
+    if (this.rerolls > 0 && !subtitle) {
+      const rb = button(this, GAME_W / 2, 1125, 300, 74, `CAMBIAR (${this.rerolls})`, () => {
+        if (this.time.now < lockUntil) return;
+        this.rerolls--;
+        this.modalLayer?.destroy();
+        this.showCards(legend ? this.legendCards() : this.normalCards(), title, legend);
+      }, { size: 28, color: 0x3a4a5e });
+      L.add(rb);
+    }
+  }
+
+  private starterCards(): Card[] {
+    return shuffle(Object.keys(SKILLS) as SkillId[]).slice(0, 3).map((id) => ({ type: 'skill', id }) as Card);
   }
 
   private closeCards(): void {
@@ -1549,6 +1623,7 @@ export class BattleScene extends Phaser.Scene {
       return;
     }
     s.cd = this.skillCd(s);
+    this.tutorDone('skill');
     this.castSkill(s.id, s.lv, 1);
     if (this.legends.has('eco')) this.later.push({ t: 0.45, fn: () => this.castSkill(s.id, s.lv, 0.5) });
     const p = SKILL_POS[i];
@@ -1693,7 +1768,7 @@ export class BattleScene extends Phaser.Scene {
       }
       g.lineTo(tx, ty);
       g.strokePath();
-      this.damage(next, dmg, { skill: true });
+      this.damage(next, next === this.marked ? dmg * 2 : dmg, { skill: true });
       this.emitters.cyan.explode(6, tx, ty);
       px = tx;
       py = ty;
@@ -1711,11 +1786,158 @@ export class BattleScene extends Phaser.Scene {
     if (this.modal || this.paused || this.ended || this.fury < 100 || this.furyT > 0) return;
     this.fury = 0;
     this.furyT = this.furyDur();
+    this.tutorDone('fury');
     this.banner('¡MODO TRAZO!', '#2ad4c4');
     Sound.play('fury', 0);
     Sound.vibrate([40, 30, 80]);
     this.cameras.main.flash(250, 42, 212, 196);
     this.emitters.cyan.explode(40, FIELD.heroX, FIELD.heroY - 60);
+  }
+
+  /** Cheap atmospheric particles (≤ 24 alive): fireflies, dust, embers or falling ink. */
+  private ambient(): void {
+    if (this.lowFx) return;
+    const cfg: Record<string, Phaser.Types.GameObjects.Particles.ParticleEmitterConfig> = {
+      c1: { tint: 0xe8ff8a, speedX: { min: -12, max: 12 }, speedY: { min: -14, max: 6 }, scale: { start: 0.45, end: 0.15 } },
+      c2: { tint: 0xfff0d0, speedX: { min: 6, max: 22 }, speedY: { min: -4, max: 6 }, scale: { start: 0.3, end: 0.1 } },
+      c3: { tint: 0xff9a50, speedX: { min: -8, max: 8 }, speedY: { min: -45, max: -20 }, scale: { start: 0.4, end: 0.05 } },
+      abismo: { tint: 0xb060ff, speedX: { min: -4, max: 4 }, speedY: { min: 20, max: 45 }, scale: { start: 0.45, end: 0.2 } },
+    };
+    const c = cfg[this.ch.id];
+    if (!c) return;
+    this.add.particles(0, 0, 'dot', {
+      x: { min: 0, max: GAME_W }, y: { min: 160, max: 900 }, lifespan: { min: 3500, max: 6000 },
+      alpha: { start: 0.9, end: 0 }, frequency: 260, maxAliveParticles: 24, blendMode: Phaser.BlendModes.ADD, ...c,
+    }).setDepth(1980);
+  }
+
+  // ================================================================= juice & feedback
+  /** Ink stain left on the ground; pooled so it costs nothing after warm-up. */
+  private splat(x: number, y: number, tint: number, scale: number): void {
+    if (this.lowFx) return;
+    let img = this.splats[this.splatIdx];
+    if (!img) {
+      img = this.add.image(0, 0, 'splat').setDepth(3);
+      this.splats.push(img);
+    }
+    this.splatIdx = (this.splatIdx + 1) % 28;
+    this.tweens.killTweensOf(img);
+    img.setPosition(x, y + 4).setTint(tint).setAlpha(0.75).setScale(scale * 0.4, scale * 0.16).setRotation(Math.random() * 0.4 - 0.2).setVisible(true);
+    this.tweens.add({ targets: img, scaleX: scale, scaleY: scale * 0.38, duration: 120, ease: 'Quad.easeOut' });
+    this.tweens.add({ targets: img, alpha: 0, delay: 3500, duration: 1500 });
+  }
+
+  private addCombo(): void {
+    this.combo++;
+    this.comboT = 2.2;
+    this.bestCombo = Math.max(this.bestCombo, this.combo);
+    if (this.combo >= 5) {
+      this.comboText.setText(`×${this.combo} COMBO`).setVisible(true).setAlpha(1);
+      this.comboText.setColor(this.combo >= 50 ? '#ff4a6a' : this.combo >= 25 ? '#ffb340' : '#ffd34d');
+      this.comboText.setScale(1.25);
+      this.tweens.add({ targets: this.comboText, scale: 1, duration: 120 });
+    }
+    if (this.combo % 25 === 0) {
+      const bonus = Math.round(this.combo * 0.6 * this.st.goldMult);
+      this.gold += bonus;
+      this.fury = Math.min(100, this.fury + 10);
+      this.banner(this.combo >= 100 ? '¡IMPARABLE!' : this.combo >= 50 ? '¡MASACRE!' : '¡EN RACHA!', '#ffb340', 380, 48);
+      this.floatHud(`+${fmt(bonus)}`, GOLD_POS.x + 70, GOLD_POS.y - 40);
+      Sound.play('coin', 0);
+    }
+  }
+
+  private floatHud(text: string, x: number, y: number, color = '#ffd34d'): void {
+    const t = this.add.text(x, y, text, txt(30, color, 6)).setOrigin(0.5).setDepth(6000);
+    this.tweens.add({ targets: t, y: y - 50, alpha: 0, duration: 1100, ease: 'Quad.easeOut', onComplete: () => t.destroy() });
+  }
+
+  private bossIntro(def: EnemyDef): void {
+    const sub: Record<string, string> = {
+      reina: 'Madre del Bosque Sombrío',
+      sirHueco: 'El primer vaciado por la Corona',
+      ecoDante: 'Lo que la Corona dejó de Dante',
+    };
+    const quote: Record<string, string> = {
+      reina: '"¡Mis hijas tienen hambre, palito!"',
+      sirHueco: '"Quien busca la Corona… encuentra el vacío."',
+      ecoDante: '"¡CIEN MIL! ¡CIEN MIL!"',
+    };
+    this.slowmo = 1.6;
+    const D = 7000;
+    const top = this.add.rectangle(GAME_W / 2, -70, GAME_W, 140, 0x000000).setDepth(D);
+    const bot = this.add.rectangle(GAME_W / 2, GAME_H + 70, GAME_W, 140, 0x000000).setDepth(D);
+    const name = this.add.text(GAME_W / 2, 560, def.name.toUpperCase(), txt(64, '#ffffff', 12)).setOrigin(0.5).setDepth(D).setAlpha(0).setScale(1.4);
+    name.setShadow(0, 0, '#d050ff', 20, true, true);
+    const st = this.add.text(GAME_W / 2, 625, sub[def.id] ?? 'Jefe', txt(28, '#d8b0ff', 6)).setOrigin(0.5).setDepth(D).setAlpha(0);
+    const qt = this.add.text(GAME_W / 2, 680, quote[def.id] ?? '', { ...txt(26, '#ffffff', 6), wordWrap: { width: 640 } }).setOrigin(0.5).setDepth(D).setAlpha(0);
+    this.tweens.add({ targets: top, y: 70, duration: 250, ease: 'Quad.easeOut' });
+    this.tweens.add({ targets: bot, y: GAME_H - 70, duration: 250, ease: 'Quad.easeOut' });
+    this.tweens.add({ targets: name, alpha: 1, scale: 1, duration: 300, ease: 'Back.easeOut' });
+    this.tweens.add({ targets: [st, qt], alpha: 1, delay: 250, duration: 300 });
+    this.time.delayedCall(2000, () => {
+      this.tweens.add({ targets: top, y: -70, duration: 250 });
+      this.tweens.add({ targets: bot, y: GAME_H + 70, duration: 250 });
+      this.tweens.add({ targets: [name, st, qt], alpha: 0, duration: 250, onComplete: () => [top, bot, name, st, qt].forEach((o) => o.destroy()) });
+    });
+  }
+
+  // ---------------------------------------------------------------- tutorial (first runs only)
+  private updateTutor(): void {
+    if (DEBUG.bot || this.ended) return;
+    const tut = Save.d.tutorial;
+    if (this.tutor) {
+      const k = this.tutor.kind;
+      if (tut[k]) {
+        this.tutor.box.destroy();
+        this.tutor = null;
+      } else if (k === 'mark') {
+        const t = this.getTarget();
+        if (t) this.tutor.box.setPosition(t.x, t.y - t.hitY);
+      }
+      this.keepOnScreen();
+      return;
+    }
+    if (!tut.mark && this.simTime > 4) {
+      const t = this.getTarget();
+      if (t && t.x < GAME_W - 80) {
+        this.showTutor('mark', t.x, t.y - t.hitY, '¡Tócalo para marcarlo!\n+30% de daño');
+        return;
+      }
+    }
+    // teach one thing at a time: skills only after marking was learned (or after a while)
+    if (!tut.mark && this.simTime < 16) return;
+    if (!tut.skill && this.skills.some((sk) => sk.cd <= 0) && this.enemies.some((e) => this.onField(e))) {
+      const i = this.skills.findIndex((sk) => sk.cd <= 0);
+      this.showTutor('skill', SKILL_POS[i].x, SKILL_POS[i].y, '¡Usa tu habilidad!');
+    } else if (!tut.fury && this.fury >= 100) {
+      this.showTutor('fury', FURY_POS.x, FURY_POS.y, '¡Activa la FURIA!');
+    }
+  }
+
+  private showTutor(kind: 'mark' | 'skill' | 'fury', x: number, y: number, text: string): void {
+    const box = this.add.container(x, y).setDepth(6500);
+    const hand = this.add.image(18, 40, 'hand').setOrigin(0.2, 0);
+    const above = kind !== 'mark';
+    const label = this.add.text(kind === 'fury' ? -60 : kind === 'skill' ? 90 : 0, above ? -110 : 150, text, { ...txt(26, '#ffffff', 7), align: 'center' }).setOrigin(0.5);
+    box.add([hand, label]);
+    this.tweens.add({ targets: hand, y: 22, duration: 420, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
+    this.tutor = { box, label, dx: label.x, kind };
+    this.keepOnScreen();
+  }
+
+  /** Keeps the tutorial text fully inside the screen wherever the pointer is. */
+  private keepOnScreen(): void {
+    if (!this.tutor) return;
+    const { box, label, dx } = this.tutor;
+    const half = label.width / 2 + 12;
+    label.x = clamp(dx, half - box.x, GAME_W - half - box.x);
+  }
+
+  private tutorDone(kind: 'mark' | 'skill' | 'fury'): void {
+    if (Save.d.tutorial[kind]) return;
+    Save.d.tutorial[kind] = true;
+    if (!DEBUG.bot && DEBUG.meta === null) Save.write();
   }
 
   // ================================================================= rendering
@@ -1741,6 +1963,15 @@ export class BattleScene extends Phaser.Scene {
       hg.strokeCircle(FIELD.heroX, FIELD.heroY - 60, 40);
     }
     this.furyVignette.setAlpha(this.furyT > 0 ? 0.08 + Math.sin(t * 8) * 0.04 : 0);
+    const hpk = this.hp / this.st.maxHp;
+    if (hpk < 0.35 && !this.ended) {
+      this.dangerImg.setAlpha(0.35 + Math.sin(t * 7) * 0.2);
+      if (t - this.heartT > 0.85) {
+        this.heartT = t;
+        Sound.play('heart', 0);
+      }
+    } else this.dangerImg.setAlpha(0);
+    this.updateTutor();
 
     // enemies
     const og = this.overlayG;
@@ -1907,7 +2138,7 @@ export class BattleScene extends Phaser.Scene {
     // rank XP is applied (and saved) by the Results scene so it can animate the rank-up
     const rx = this.rankXp + Math.floor(this.kills / 25);
     const result = {
-      chapter: id, victory, wave: this.wave, kills: this.kills, gold: this.gold, rankXp: rx, level: this.level,
+      chapter: id, victory, wave: this.wave, kills: this.kills, bestCombo: this.bestCombo, gold: this.gold, rankXp: rx, level: this.level,
       firstClear, rankBefore, weapon: this.weaponId,
     };
     if (!DEBUG.bot && DEBUG.meta === null) Save.write();

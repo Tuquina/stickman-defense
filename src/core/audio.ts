@@ -7,7 +7,7 @@ import { Save } from './save';
 export type SfxName =
   | 'click' | 'arrow' | 'bullet' | 'orb' | 'pellet' | 'star' | 'hit' | 'crit' | 'death'
   | 'coin' | 'xp' | 'levelup' | 'legend' | 'skill' | 'boom' | 'zap' | 'freeze' | 'heal'
-  | 'barricade' | 'roar' | 'fury' | 'victory' | 'defeat' | 'wave' | 'buy' | 'error' | 'whoosh' | 'thud' | 'type';
+  | 'barricade' | 'heart' | 'roar' | 'fury' | 'victory' | 'defeat' | 'wave' | 'buy' | 'error' | 'whoosh' | 'thud' | 'type';
 
 export type TrackId = 'menu' | 'story' | 'sad' | 'c1' | 'c2' | 'c3' | 'boss' | 'abismo';
 
@@ -164,6 +164,7 @@ class AudioEngine {
       case 'freeze': this.tone('sine', 2000, 3000, 0.4, 0.05); this.noise(0.5, 0.08, 'highpass', 6000, 9000); break;
       case 'heal': [392, 523, 659].forEach((f, i) => this.tone('sine', f, f * 1.01, 0.3, 0.07, i * 0.06)); break;
       case 'barricade': this.noise(0.1, 0.18, 'lowpass', 700 * r, 200); this.tone('square', 90, 60, 0.08, 0.06); break;
+      case 'heart': this.tone('sine', 70, 50, 0.12, 0.3); this.tone('sine', 70, 50, 0.12, 0.22, 0.16); break;
       case 'thud': this.tone('sine', 90, 40, 0.25, 0.3); this.noise(0.15, 0.15, 'lowpass', 500, 100); break;
       case 'roar': this.tone('sawtooth', 110, 55, 0.9, 0.18); this.tone('sawtooth', 116, 50, 0.9, 0.14); this.noise(0.9, 0.12, 'lowpass', 900, 200); break;
       case 'fury': this.tone('sawtooth', 200, 1200, 0.5, 0.1); [523, 784, 1047].forEach((f, i) => this.tone('square', f, f, 0.2, 0.06, 0.1 + i * 0.07)); break;

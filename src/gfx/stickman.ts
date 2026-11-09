@@ -96,6 +96,11 @@ function poly(g: G, c: V, s: number, f: number, pts: number[][], color: number, 
   });
   g.fillStyle(color, alpha);
   g.fillPoints(out, true);
+  // thin ink outline on coloured pieces: the same sticker finish as the baked sprites
+  if (alpha === 1 && color !== INK && s >= 0.6) {
+    g.lineStyle(Math.max(1.2, 1.5 * s), INK, 0.85);
+    g.strokePoints(out, true, true);
+  }
 }
 
 export interface Skeleton {

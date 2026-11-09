@@ -88,6 +88,15 @@ export class WorkshopScene extends Phaser.Scene {
     this.refresh();
   }
 
+  /** Adds a coin icon to a price button. */
+  private priceTag(b: ReturnType<typeof button>, maxed: boolean): ReturnType<typeof button> {
+    if (!maxed) {
+      b.label.setX(14);
+      b.addAt(this.add.image(-48, -1, 'coin').setScale(0.95), 2);
+    }
+    return b;
+  }
+
   private buildUpgrades(): void {
     const d = Save.d;
     UPGRADES.forEach((u, i) => {
@@ -96,14 +105,14 @@ export class WorkshopScene extends Phaser.Scene {
       const lv = d.upgrades[u.id];
       const maxed = lv >= u.max;
       const cost = upgradeCost(u, lv);
-      this.content.add(iconBox(this, 90, y + 56, 84, null, u.icon, u.color));
+      this.content.add(iconBox(this, 90, y + 56, 84, u.tex, u.icon, u.color));
       this.content.add(this.add.text(150, y + 14, `${u.name}  Nv.${lv}`, txt(32, '#ffc93c', 6)).setOrigin(0, 0));
       const now = u.id === 'precision' ? `+${(lv * u.per * 100).toFixed(0)}%` : `+${Math.round(lv * u.per * 100)}%`;
       this.content.add(this.add.text(150, y + 60, `${now} ${u.desc} (+${Math.round(u.per * 100)}%/nv)`, txt(21, '#bfe9ff', 4)).setOrigin(0, 0));
       const b = button(this, 590, y + 56, 170, 76, maxed ? 'MÁX' : fmt(cost), () => this.buy(cost, () => { d.upgrades[u.id]++; }), {
         size: 28, color: maxed ? 0x4a5260 : d.gold >= cost ? 0xe2a020 : 0x6a5a3a, disabled: maxed,
       });
-      this.content.add(b);
+      this.content.add(this.priceTag(b, maxed));
     });
   }
 
@@ -124,9 +133,9 @@ export class WorkshopScene extends Phaser.Scene {
       if (unlocked) {
         this.content.add(this.add.text(170, y + 60, `Nivel ${lv}/${WEAPON_MAX_LV} · Daño +${(lv - 1) * 10}%`, txt(23, '#bfe9ff', 4)).setOrigin(0, 0));
         this.content.add(this.add.text(170, y + 96, `Evolución: ${w.evoName}`, txt(20, '#ffb340', 4)).setOrigin(0, 0));
-        this.content.add(button(this, 590, y + 78, 170, 76, maxed ? 'MÁX' : fmt(cost), () => this.buy(cost, () => { d.weaponLv[id]++; }), {
+        this.content.add(this.priceTag(button(this, 590, y + 78, 170, 76, maxed ? 'MÁX' : fmt(cost), () => this.buy(cost, () => { d.weaponLv[id]++; }), {
           size: 28, color: maxed ? 0x4a5260 : d.gold >= cost ? 0xe2a020 : 0x6a5a3a, disabled: maxed,
-        }));
+        }), maxed));
       } else {
         this.content.add(this.add.text(170, y + 66, `Bloqueado: ${w.unlockText}`, txt(23, '#8a94a0', 4)).setOrigin(0, 0));
         this.content.add(this.add.image(600, y + 78, 'lock'));

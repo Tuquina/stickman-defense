@@ -36,5 +36,9 @@ export function poseFor(p: PoseId | undefined, t: number): Pose {
 /** Draws a story/menu character into g with feet at (0,0). */
 export function drawCharacter(g: Phaser.GameObjects.Graphics, a: Actor, heroTier: number, s: number, facing: number, t: number): void {
   g.clear();
+  if (a.pose !== 'fallen') {
+    g.fillStyle(0x000000, 0.28);
+    g.fillEllipse(0, 3, 40 * s, 10 * s);
+  }
   drawStickman(g, 0, 0, s, poseFor(a.pose, t), charLook(a, heroTier), facing, t);
 }

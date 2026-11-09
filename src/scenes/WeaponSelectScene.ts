@@ -5,6 +5,7 @@ import { weaponUnlocked } from '../core/stats';
 import { CHAPTERS, type ChapterId } from '../data/chapters';
 import { WEAPON_ORDER, WEAPONS } from '../data/weapons';
 import { button, drawPanel, fadeIn, go, iconBox } from '../ui/widgets';
+import { ensureBackground } from '../gfx/backgrounds';
 
 export class WeaponSelectScene extends Phaser.Scene {
   private chapter: ChapterId = 'c1';
@@ -19,6 +20,7 @@ export class WeaponSelectScene extends Phaser.Scene {
   create(): void {
     fadeIn(this);
     const ch = CHAPTERS[this.chapter];
+    ensureBackground(this, ch.bg);
     this.add.image(GAME_W / 2, GAME_H / 2, ch.bg);
     this.add.rectangle(GAME_W / 2, GAME_H / 2, GAME_W, GAME_H, 0x05070a, 0.72);
     this.add.text(GAME_W / 2, 80, `${ch.num} · ${ch.name}`, txt(28, '#ffd34d', 6)).setOrigin(0.5);
