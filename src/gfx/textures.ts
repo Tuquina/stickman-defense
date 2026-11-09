@@ -1,0 +1,422 @@
+import { drawStickman, POSES, type Look } from './stickman';
+
+type G = Phaser.GameObjects.Graphics;
+const INK = 0x0b0b0e;
+
+function bake(scene: Phaser.Scene, key: string, w: number, h: number, draw: (g: G) => void): void {
+  if (scene.textures.exists(key)) return;
+  const g = scene.make.graphics({ x: 0, y: 0 }, false);
+  draw(g);
+  g.generateTexture(key, w, h);
+  g.destroy();
+}
+
+function pts(arr: number[][], ox = 0, oy = 0, sx = 1, sy = 1): Phaser.Math.Vector2[] {
+  return arr.map(([x, y]) => new Phaser.Math.Vector2(ox + x * sx, oy + y * sy));
+}
+
+function star(g: G, cx: number, cy: number, r1: number, r2: number, n: number, rot = -Math.PI / 2): void {
+  const p: Phaser.Math.Vector2[] = [];
+  for (let i = 0; i < n * 2; i++) {
+    const r = i % 2 === 0 ? r1 : r2;
+    const a = rot + (i * Math.PI) / n;
+    p.push(new Phaser.Math.Vector2(cx + Math.cos(a) * r, cy + Math.sin(a) * r));
+  }
+  g.fillPoints(p, true);
+}
+
+/** Texture size + frame count per enemy id (for sprite setup). */
+export const ENEMY_TEX: Record<string, { w: number; h: number; scale?: number }> = {};
+
+function enemy(scene: Phaser.Scene, id: string, w: number, h: number, draw: (g: G, frame: number) => void): void {
+  ENEMY_TEX[id] = { w, h };
+  for (let f = 0; f < 2; f++) bake(scene, `e_${id}_${f}`, w, h, (g) => draw(g, f));
+}
+
+function spider(g: G, frame: number, cx: number, cy: number, s: number, body: number, crown = false, eggs = false): void {
+  g.lineStyle(4 * s, INK, 1);
+  for (let i = 0; i < 4; i++) {
+    const bx = cx - 10 * s + i * 8 * s;
+    const ph = (i + frame) % 2 === 0 ? 1 : -1;
+    // near legs
+    g.lineBetween(bx, cy + 2 * s, bx - 8 * s + ph * 4 * s, cy - 14 * s);
+    g.lineBetween(bx - 8 * s + ph * 4 * s, cy - 14 * s, bx - 14 * s + ph * 6 * s, cy + 22 * s);
+    g.lineBetween(bx, cy + 2 * s, bx + 10 * s - ph * 4 * s, cy - 10 * s);
+    g.lineBetween(bx + 10 * s - ph * 4 * s, cy - 10 * s, bx + 16 * s - ph * 5 * s, cy + 22 * s);
+  }
+  if (eggs) {
+    g.fillStyle(0xf0e6d0, 1);
+    g.fillCircle(cx + 28 * s, cy - 2 * s, 12 * s);
+    g.fillStyle(0xd8c8a8, 1);
+    g.fillCircle(cx + 31 * s, cy + 1 * s, 6 * s);
+  }
+  g.fillStyle(Phaser.Display.Color.ValueToColor(body).darken(30).color, 1);
+  g.fillEllipse(cx + 8 * s, cy + 2 * s, 46 * s, 34 * s);
+  g.fillStyle(body, 1);
+  g.fillEllipse(cx + 8 * s, cy - 1 * s, 44 * s, 30 * s);
+  g.fillStyle(0xff8a8a, 0.6);
+  g.fillEllipse(cx + 2 * s, cy - 8 * s, 16 * s, 8 * s);
+  g.lineStyle(3 * s, INK, 0.7);
+  g.lineBetween(cx + 8 * s, cy - 15 * s, cx + 8 * s, cy + 13 * s);
+  g.fillStyle(INK, 1);
+  g.fillCircle(cx - 16 * s, cy + 4 * s, 10 * s);
+  g.fillStyle(0xffffff, 1);
+  g.fillPoints(pts([[-6, -2], [-1, 0], [-5, 2]], cx - 16 * s, cy + 3 * s, s, s), true);
+  g.fillPoints(pts([[-1, 3], [3, 2], [0, 5]], cx - 18 * s, cy + 3 * s, s, s), true);
+  if (crown) {
+    g.fillStyle(0x6a2fc0, 1);
+    g.fillPoints(pts([[-14, 0], [-16, -14], [-8, -6], [0, -18], [8, -6], [16, -14], [14, 0]], cx + 8 * s, cy - 14 * s, s, s), true);
+    g.fillStyle(0xd27bff, 1);
+    g.fillCircle(cx + 8 * s, cy - 24 * s, 3 * s);
+  }
+}
+
+function humanoid(scene: Phaser.Scene, id: string, w: number, h: number, s: number, look: Look, extra?: (g: G, frame: number) => void): void {
+  enemy(scene, id, w, h, (g, frame) => {
+    const pose = POSES.walk(frame === 0 ? 0.8 : -0.8);
+    drawStickman(g, w / 2, h - 4, s, pose, look, -1, frame * 0.6);
+    extra?.(g, frame);
+  });
+}
+
+export function generateTextures(scene: Phaser.Scene): void {
+  // ------------------------------------------------------------ particles & misc
+  bake(scene, 'dot', 12, 12, (g) => { g.fillStyle(0xffffff, 1); g.fillCircle(6, 6, 6); });
+  bake(scene, 'spark', 20, 20, (g) => { g.fillStyle(0xffffff, 1); star(g, 10, 10, 10, 3, 4); });
+  bake(scene, 'ring', 128, 128, (g) => { g.lineStyle(8, 0xffffff, 1); g.strokeCircle(64, 64, 58); });
+  bake(scene, 'disc', 128, 128, (g) => { g.fillStyle(0xffffff, 1); g.fillCircle(64, 64, 64); });
+  bake(scene, 'shadow', 64, 20, (g) => { g.fillStyle(0x000000, 0.32); g.fillEllipse(32, 10, 64, 20); });
+  bake(scene, 'mark', 84, 84, (g) => {
+    g.lineStyle(5, 0xff3b3b, 1);
+    g.strokeCircle(42, 42, 34);
+    g.lineStyle(5, 0xff3b3b, 1);
+    for (const [x1, y1, x2, y2] of [[42, 0, 42, 16], [42, 68, 42, 84], [0, 42, 16, 42], [68, 42, 84, 42]]) g.lineBetween(x1, y1, x2, y2);
+  });
+  bake(scene, 'coin', 30, 30, (g) => {
+    g.fillStyle(0xb8860b, 1); g.fillCircle(15, 15, 14);
+    g.fillStyle(0xffc93c, 1); g.fillCircle(15, 14, 12);
+    g.fillStyle(0xfff0a0, 1); g.fillRect(12, 7, 6, 14);
+    g.fillStyle(0xb8860b, 1); g.fillRect(14, 9, 2, 10);
+  });
+  bake(scene, 'xp', 18, 22, (g) => {
+    g.fillStyle(0x0b5c66, 1); g.fillPoints(pts([[9, 0], [18, 11], [9, 22], [0, 11]]), true);
+    g.fillStyle(0x5fe0d2, 1); g.fillPoints(pts([[9, 3], [15, 11], [9, 19], [3, 11]]), true);
+    g.fillStyle(0xffffff, 0.8); g.fillPoints(pts([[9, 4], [12, 9], [9, 11], [6, 9]]), true);
+  });
+  bake(scene, 'stake', 56, 64, (g) => {
+    g.lineStyle(13, 0x3a2116, 1); g.lineBetween(10, 8, 46, 58); g.lineBetween(46, 8, 10, 58);
+    g.lineStyle(9, 0x7a4a33, 1); g.lineBetween(10, 8, 46, 58); g.lineBetween(46, 8, 10, 58);
+    g.fillStyle(0x9a6a4d, 1); g.fillCircle(10, 8, 4.5); g.fillCircle(46, 8, 4.5);
+  });
+  bake(scene, 'rock', 170, 80, (g) => {
+    g.fillStyle(0x4a4e52, 1);
+    g.fillPoints(pts([[8, 70], [20, 26], [60, 10], [120, 14], [156, 34], [166, 72]]), true);
+    g.fillStyle(0x6a6f74, 1);
+    g.fillPoints(pts([[24, 30], [62, 14], [118, 18], [150, 36], [110, 40], [50, 40]]), true);
+    g.fillStyle(0x34373a, 1);
+    g.fillPoints(pts([[8, 70], [166, 72], [160, 80], [12, 80]]), true);
+  });
+  bake(scene, 'chest', 48, 44, (g) => {
+    g.fillStyle(0x6a3a1c, 1); g.fillRoundedRect(2, 14, 44, 28, 5);
+    g.fillStyle(0x8a4a24, 1); g.fillRoundedRect(2, 4, 44, 16, { tl: 12, tr: 12, bl: 2, br: 2 });
+    g.fillStyle(0xffc93c, 1); g.fillRect(2, 18, 44, 5); g.fillRect(20, 14, 8, 14);
+    g.fillStyle(0xfff0a0, 1); g.fillRect(22, 18, 4, 6);
+  });
+  bake(scene, 'gear', 48, 48, (g) => {
+    g.fillStyle(0xffffff, 1);
+    for (let i = 0; i < 8; i++) {
+      const a = (i * Math.PI) / 4;
+      g.fillCircle(24 + Math.cos(a) * 17, 24 + Math.sin(a) * 17, 6);
+    }
+    g.fillCircle(24, 24, 17);
+    g.fillStyle(0x3a4a5e, 1); g.fillCircle(24, 24, 7);
+  });
+  bake(scene, 'pause', 40, 40, (g) => { g.fillStyle(0xffffff, 1); g.fillRoundedRect(6, 4, 10, 32, 3); g.fillRoundedRect(24, 4, 10, 32, 3); });
+  bake(scene, 'lock', 40, 48, (g) => {
+    g.lineStyle(6, 0x8a94a0, 1); g.beginPath(); g.arc(20, 20, 11, Math.PI, 0); g.strokePath();
+    g.lineBetween(9, 20, 9, 24); g.lineBetween(31, 20, 31, 24);
+    g.fillStyle(0xb8c2cc, 1); g.fillRoundedRect(4, 22, 32, 24, 5);
+    g.fillStyle(0x2a2e36, 1); g.fillCircle(20, 32, 4); g.fillRect(18, 32, 4, 8);
+  });
+
+  // ------------------------------------------------------------ projectiles
+  bake(scene, 'p_arrow', 44, 12, (g) => {
+    g.lineStyle(3, 0x8a5a2c, 1); g.lineBetween(4, 6, 34, 6);
+    g.fillStyle(0xd8dee6, 1); g.fillPoints(pts([[32, 1], [44, 6], [32, 11]]), true);
+    g.fillStyle(0x2ad4c4, 1); g.fillPoints(pts([[0, 1], [10, 6], [0, 11], [4, 6]]), true);
+  });
+  bake(scene, 'p_arrowGold', 48, 14, (g) => {
+    g.fillStyle(0xffe27a, 0.4); g.fillEllipse(24, 7, 48, 14);
+    g.lineStyle(3, 0xffd86a, 1); g.lineBetween(4, 7, 36, 7);
+    g.fillStyle(0xffffff, 1); g.fillPoints(pts([[34, 2], [48, 7], [34, 12]]), true);
+  });
+  bake(scene, 'p_bullet', 30, 10, (g) => {
+    g.fillStyle(0xffb340, 0.5); g.fillEllipse(15, 5, 30, 10);
+    g.fillStyle(0xfff0a0, 1); g.fillEllipse(19, 5, 20, 5);
+  });
+  bake(scene, 'p_orb', 34, 34, (g) => {
+    g.fillStyle(0x6fe3ff, 0.25); g.fillCircle(17, 17, 17);
+    g.fillStyle(0x6fe3ff, 0.6); g.fillCircle(17, 17, 11);
+    g.fillStyle(0xffffff, 1); g.fillCircle(17, 17, 6);
+  });
+  bake(scene, 'p_orbGold', 40, 40, (g) => {
+    g.fillStyle(0xffe27a, 0.25); g.fillCircle(20, 20, 20);
+    g.fillStyle(0xffe27a, 0.6); g.fillCircle(20, 20, 13);
+    g.fillStyle(0xffffff, 1); g.fillCircle(20, 20, 7);
+  });
+  bake(scene, 'p_pellet', 16, 16, (g) => {
+    g.fillStyle(0xff6a3d, 0.5); g.fillCircle(8, 8, 8);
+    g.fillStyle(0xffd0a0, 1); g.fillCircle(8, 8, 4);
+  });
+  bake(scene, 'p_star', 30, 30, (g) => {
+    g.fillStyle(0xc8d2e0, 1); star(g, 15, 15, 15, 5, 4);
+    g.fillStyle(0x6a7480, 1); g.fillCircle(15, 15, 4);
+  });
+  bake(scene, 'p_starGold', 36, 36, (g) => {
+    g.fillStyle(0xffe27a, 0.4); g.fillCircle(18, 18, 18);
+    g.fillStyle(0xffd86a, 1); star(g, 18, 18, 17, 6, 4);
+    g.fillStyle(0xffffff, 1); g.fillCircle(18, 18, 4);
+  });
+  bake(scene, 'p_turret', 20, 8, (g) => { g.fillStyle(0x2ad4c4, 1); g.fillEllipse(10, 4, 20, 6); g.fillStyle(0xffffff, 1); g.fillEllipse(13, 4, 8, 3); });
+  bake(scene, 'p_earrow', 40, 10, (g) => {
+    g.lineStyle(3, 0x3a2a2a, 1); g.lineBetween(10, 5, 36, 5);
+    g.fillStyle(0xff3b3b, 1); g.fillPoints(pts([[12, 0], [0, 5], [12, 10]]), true);
+  });
+  bake(scene, 'p_web', 34, 34, (g) => {
+    g.lineStyle(2, 0xffffff, 0.95);
+    for (let i = 0; i < 4; i++) { const a = (i * Math.PI) / 4; g.lineBetween(17 + Math.cos(a) * 16, 17 + Math.sin(a) * 16, 17 - Math.cos(a) * 16, 17 - Math.sin(a) * 16); }
+    g.strokeCircle(17, 17, 7); g.strokeCircle(17, 17, 13);
+  });
+  bake(scene, 'p_eorb', 34, 34, (g) => {
+    g.fillStyle(0xa040ff, 0.35); g.fillCircle(17, 17, 17);
+    g.fillStyle(0xd27bff, 1); g.fillCircle(17, 17, 9);
+    g.fillStyle(0xffffff, 1); g.fillCircle(17, 17, 4);
+  });
+  bake(scene, 'p_bomb', 40, 40, (g) => {
+    g.fillStyle(INK, 1); g.fillCircle(20, 22, 15);
+    g.fillStyle(0x9a5cff, 1); g.fillCircle(15, 17, 5);
+    g.lineStyle(3, 0x8a5a2c, 1); g.lineBetween(26, 10, 32, 3);
+    g.fillStyle(0xffc93c, 1); g.fillCircle(33, 3, 3);
+  });
+  bake(scene, 'p_fall', 12, 50, (g) => {
+    g.lineStyle(3, 0x8a5a2c, 1); g.lineBetween(6, 0, 6, 38);
+    g.fillStyle(0xd8dee6, 1); g.fillPoints(pts([[0, 36], [6, 50], [12, 36]]), true);
+  });
+  for (let f = 0; f < 2; f++) {
+    bake(scene, `tornado_${f}`, 110, 170, (g) => {
+      for (let i = 0; i < 9; i++) {
+        const y = 160 - i * 18;
+        const w = 20 + i * 9;
+        const off = Math.sin(i * 0.9 + f * 1.6) * 10;
+        g.fillStyle(i % 2 === 0 ? 0xf2f2f2 : 0xd0d6de, 0.85);
+        g.fillEllipse(55 + off, y, w, 16);
+      }
+      g.lineStyle(2, 0x9aa4ae, 0.8);
+      for (let i = 0; i < 5; i++) g.lineBetween(30 + i * 12, 40 + i * 20, 70 - i * 6, 50 + i * 22);
+    });
+  }
+
+  // ------------------------------------------------------------ turret (mini stickman with pencil gun)
+  bake(scene, 'turret', 60, 70, (g) => {
+    const sk = drawStickman(g, 26, 68, 0.52, POSES.aim(0, 1.5), { scarf: 0x2ad4c4, eyes: 'determined' }, 1, 0);
+    g.lineStyle(5, 0xffc93c, 1);
+    g.lineBetween(sk.handF.x - 4, sk.handF.y, sk.handF.x + 20, sk.handF.y);
+    g.fillStyle(0xf0d0a0, 1);
+    g.fillPoints(pts([[0, -3], [8, 0], [0, 3]], sk.handF.x + 20, sk.handF.y), true);
+  });
+
+  // ------------------------------------------------------------ chapter 1 enemies
+  enemy(scene, 'arana', 80, 60, (g, f) => spider(g, f, 36, 34, 0.9, 0xd8323a));
+  enemy(scene, 'aranaMadre', 150, 110, (g, f) => spider(g, f, 66, 64, 1.75, 0xb8222a, false, true));
+  enemy(scene, 'reina', 230, 170, (g, f) => spider(g, f, 100, 100, 2.6, 0xc81e3a, true));
+  enemy(scene, 'escarabajo', 96, 66, (g, f) => {
+    g.lineStyle(5, INK, 1);
+    for (let i = 0; i < 3; i++) {
+      const bx = 30 + i * 18;
+      const ph = (i + f) % 2 === 0 ? 5 : -5;
+      g.lineBetween(bx, 46, bx - 8 + ph, 64);
+    }
+    g.fillStyle(0x5a1a1e, 1); g.fillEllipse(54, 38, 72, 50);
+    g.fillStyle(0x8a2a2e, 1); g.fillEllipse(54, 34, 66, 40);
+    g.lineStyle(3, 0x3a0a0e, 1); g.lineBetween(54, 14, 54, 56);
+    g.fillStyle(0xff9a9a, 0.4); g.fillEllipse(44, 24, 22, 10);
+    g.fillStyle(INK, 1); g.fillCircle(18, 42, 13);
+    g.fillPoints(pts([[8, 36], [-2, 22], [14, 32]]), true);
+    g.fillStyle(0xffffff, 1); g.fillPoints(pts([[10, 38], [17, 41], [11, 44]]), true);
+  });
+  enemy(scene, 'seta', 64, 76, (g, f) => {
+    const sq = f === 0 ? 0 : 4;
+    g.lineStyle(5, INK, 1);
+    g.lineBetween(26, 54, 20 + sq, 74); g.lineBetween(38, 54, 44 - sq, 74);
+    g.fillStyle(0xe8dcc0, 1); g.fillRoundedRect(20, 34 + sq, 24, 24 - sq, 6);
+    g.fillStyle(0xd8323a, 1);
+    g.fillEllipse(32, 30 + sq, 60, 38 - sq);
+    g.fillStyle(0xe8dcc0, 1); g.fillRect(2, 30 + sq, 60, 14);
+    g.fillStyle(0xd8323a, 1); g.fillEllipse(32, 30 + sq, 60, 30 - sq);
+    g.fillStyle(0xffffff, 1);
+    g.fillCircle(18, 22 + sq, 5); g.fillCircle(38, 16 + sq, 6); g.fillCircle(50, 28 + sq, 4);
+    g.fillStyle(INK, 1);
+    g.fillPoints(pts([[22, 44], [30, 46], [22, 49]], 0, sq), true);
+    g.fillPoints(pts([[34, 46], [42, 44], [42, 49]], 0, sq), true);
+  });
+
+  // ------------------------------------------------------------ chapter 2 enemies
+  const bone: Look = { bones: true, eyes: 'glow', eyeColor: 0xff3b3b, body: 0x1a1a1e };
+  humanoid(scene, 'esqueleto', 90, 128, 0.82, { ...bone, weapon: 'sword' });
+  humanoid(scene, 'arquero', 90, 128, 0.82, { ...bone, weapon: 'arco' });
+  humanoid(scene, 'caballero', 100, 138, 0.9, { helm: 'hollow', shield: true, tier: 2, capeColor: 0x6a2a2a, body: 0x15151a, scarf: null });
+  humanoid(scene, 'sirHueco', 230, 290, 2.15, { helm: 'hollow', tier: 2, capeColor: 0x7a1e22, weapon: 'sword', body: 0x15151a, outline: 0xff3b3b, scarf: null });
+  enemy(scene, 'murcielago', 84, 56, (g, f) => {
+    const up = f === 0 ? -1 : 1;
+    g.fillStyle(0x4a2a6a, 1);
+    g.fillPoints(pts([[42, 28], [8, 14 + up * 14], [16, 30], [4, 36], [30, 36]]), true);
+    g.fillPoints(pts([[42, 28], [76, 14 + up * 14], [68, 30], [80, 36], [54, 36]]), true);
+    g.fillStyle(INK, 1); g.fillCircle(42, 30, 13);
+    g.fillPoints(pts([[34, 20], [32, 8], [40, 18]]), true); g.fillPoints(pts([[50, 20], [52, 8], [44, 18]]), true);
+    g.fillStyle(0xff3b3b, 1); g.fillCircle(37, 29, 3); g.fillCircle(47, 29, 3);
+  });
+  enemy(scene, 'gargola', 150, 120, (g, f) => {
+    const up = f === 0 ? -1 : 1;
+    g.fillStyle(0x5a6068, 1);
+    g.fillPoints(pts([[75, 54], [10, 20 + up * 20], [26, 50], [6, 64], [56, 70]]), true);
+    g.fillPoints(pts([[75, 54], [140, 20 + up * 20], [124, 50], [144, 64], [94, 70]]), true);
+    g.fillStyle(0x7a8088, 1); g.fillEllipse(75, 70, 54, 60);
+    g.fillStyle(0x4a4e56, 1); g.fillCircle(68, 42, 22);
+    g.fillPoints(pts([[56, 26], [46, 4], [62, 24]]), true); g.fillPoints(pts([[78, 26], [88, 4], [74, 24]]), true);
+    g.fillStyle(0xffb340, 1); g.fillPoints(pts([[52, 40], [62, 44], [52, 47]]), true); g.fillPoints(pts([[68, 44], [78, 40], [78, 47]]), true);
+    g.lineStyle(6, 0x4a4e56, 1); g.lineBetween(60, 96, 54, 118); g.lineBetween(88, 96, 94, 118);
+  });
+
+  // ------------------------------------------------------------ chapter 3 enemies
+  const blob = (g: G, f: number, cx: number, cy: number, s: number) => {
+    const sq = f === 0 ? 1 : 0.88;
+    g.fillStyle(0x2a1a3a, 1);
+    g.fillEllipse(cx, cy, 52 * s / sq, 42 * s * sq);
+    g.fillCircle(cx - 22 * s, cy + 12 * s, 7 * s); g.fillCircle(cx + 20 * s, cy + 14 * s, 6 * s);
+    g.fillStyle(0x6a3a9a, 0.7); g.fillEllipse(cx - 6 * s, cy - 10 * s, 20 * s, 10 * s);
+    g.fillStyle(0xffffff, 1);
+    g.fillPoints(pts([[-14, -4], [-4, 0], [-13, 4]], cx, cy, s, s), true);
+    g.fillPoints(pts([[2, 0], [12, -4], [11, 4]], cx, cy, s, s), true);
+  };
+  enemy(scene, 'mancha', 70, 56, (g, f) => blob(g, f, 35, 30, 1));
+  enemy(scene, 'manchita', 44, 36, (g, f) => blob(g, f, 22, 20, 0.6));
+  humanoid(scene, 'sombra', 96, 124, 0.85, { eyes: 'glow', eyeColor: 0xd27bff, body: 0x120a1a, outline: 0x6a2fc0 });
+  humanoid(scene, 'brujo', 90, 130, 0.85, { eyes: 'glow', eyeColor: 0x6aff8a, hoodColor: 0x2a5a3a, capeColor: 0x1a3a2a, weapon: 'baston' });
+  enemy(scene, 'golem', 120, 124, (g, f) => {
+    const step = f === 0 ? 4 : -4;
+    g.fillStyle(0x4a4038, 1);
+    g.fillRoundedRect(30 + step, 88, 22, 34, 6); g.fillRoundedRect(68 - step, 88, 22, 34, 6);
+    g.fillStyle(0x6a5a4c, 1); g.fillRoundedRect(22, 34, 76, 62, 14);
+    g.fillStyle(0x7a6a5a, 1); g.fillRoundedRect(30, 40, 40, 20, 8);
+    g.fillStyle(0x4a4038, 1); g.fillRoundedRect(4, 44 - step, 22, 50, 8); g.fillRoundedRect(94, 44 + step, 22, 50, 8);
+    g.fillStyle(0x5a4c40, 1); g.fillRoundedRect(36, 6, 46, 36, 10);
+    g.fillStyle(0xff8a3d, 1);
+    g.fillPoints(pts([[40, 22], [52, 26], [41, 30]]), true); g.fillPoints(pts([[58, 26], [70, 22], [69, 30]]), true);
+    g.lineStyle(3, 0xff8a3d, 0.7); g.lineBetween(50, 50, 62, 70); g.lineBetween(62, 70, 56, 86);
+  });
+  humanoid(scene, 'guardian', 170, 210, 1.55, { corrupt: true, eyes: 'glow', eyeColor: 0xd27bff, capeColor: 0x3a1a5a, weapon: 'sword', outline: 0x8a3ae0 });
+  humanoid(scene, 'ecoDante', 240, 300, 2.1, { corrupt: true, crown: true, eyes: 'glow', eyeColor: 0xffffff, capeColor: 0x5a1a2a, outline: 0xb060ff });
+
+  // ------------------------------------------------------------ icons
+  generateIcons(scene);
+}
+
+function iconBg(g: G, color: number): void {
+  g.fillStyle(0x5a3a10, 1); g.fillRoundedRect(0, 0, 72, 72, 12);
+  g.fillStyle(color, 1); g.fillRoundedRect(3, 3, 66, 66, 10);
+  g.fillStyle(0xffffff, 0.25); g.fillRoundedRect(6, 6, 60, 22, 8);
+}
+
+function generateIcons(scene: Phaser.Scene): void {
+  const orange = 0xf6a63a;
+  const weaponIcon = (key: string, draw: (g: G) => void) => bake(scene, key, 72, 72, (g) => { iconBg(g, orange); draw(g); });
+  weaponIcon('ic_arco', (g) => {
+    g.lineStyle(6, 0x6a3a1c, 1); g.beginPath(); g.arc(22, 36, 28, -1.15, 1.15); g.strokePath();
+    g.lineStyle(2, 0xffffff, 1); g.lineBetween(22 + Math.cos(-1.15) * 28, 36 + Math.sin(-1.15) * 28, 22 + Math.cos(1.15) * 28, 36 + Math.sin(1.15) * 28);
+    g.lineStyle(3, 0x3a2a1a, 1); g.lineBetween(14, 36, 58, 36);
+    g.fillStyle(0xe0e6ec, 1); g.fillPoints(pts([[56, 30], [66, 36], [56, 42]]), true);
+    g.fillStyle(0x2ad4c4, 1); g.fillPoints(pts([[10, 31], [18, 36], [10, 41]]), true);
+  });
+  weaponIcon('ic_pistola', (g) => {
+    g.fillStyle(0x2a2e36, 1); g.fillPoints(pts([[10, 24], [62, 24], [62, 36], [34, 36], [30, 58], [16, 58], [20, 36], [10, 36]]), true);
+    g.fillStyle(0x4a505a, 1); g.fillRect(12, 26, 48, 4);
+    g.fillStyle(0xff6a3d, 1); g.fillRect(36, 28, 6, 4); g.fillRect(46, 28, 6, 4);
+  });
+  weaponIcon('ic_baston', (g) => {
+    g.lineStyle(5, 0x2a3a48, 1); g.lineBetween(16, 64, 46, 20);
+    g.fillStyle(0x6fe3ff, 0.4); g.fillCircle(50, 16, 13);
+    g.fillStyle(0x6fe3ff, 1); g.fillCircle(50, 16, 7);
+    g.lineStyle(3, 0x8ab8c8, 1); g.beginPath(); g.arc(50, 16, 11, 1.2, 1.2 + Math.PI * 1.6); g.strokePath();
+  });
+  weaponIcon('ic_escopeta', (g) => {
+    g.fillStyle(0x6a3a1c, 1); g.fillPoints(pts([[8, 40], [30, 34], [30, 44], [12, 54]]), true);
+    g.fillStyle(0x2a2e36, 1); g.fillRect(28, 30, 38, 8); g.fillRect(28, 38, 34, 6);
+    g.fillStyle(0xff6a3d, 1); g.fillRect(34, 44, 12, 6);
+  });
+  weaponIcon('ic_shuriken', (g) => {
+    g.fillStyle(0x6a7480, 1); star(g, 36, 38, 28, 9, 4, 0.3);
+    g.fillStyle(0xd8e0ea, 1); star(g, 36, 36, 26, 8, 4, 0.3);
+    g.fillStyle(0x2a2e36, 1); g.fillCircle(36, 36, 6);
+  });
+
+  const skillIcon = (key: string, color: number, draw: (g: G) => void) => bake(scene, key, 72, 72, (g) => { iconBg(g, color); draw(g); });
+  skillIcon('ic_lluvia', 0x7a4a2a, (g) => {
+    for (let i = 0; i < 4; i++) {
+      const x = 16 + i * 13; const y = 12 + (i % 2) * 10;
+      g.lineStyle(3, 0xf0d0a0, 1); g.lineBetween(x, y, x, y + 30);
+      g.fillStyle(0xffffff, 1); g.fillPoints(pts([[-5, 0], [0, 10], [5, 0]], x, y + 30), true);
+    }
+  });
+  skillIcon('ic_rayo', 0x1a5a8a, (g) => {
+    g.fillStyle(0xfff27a, 1);
+    g.fillPoints(pts([[40, 6], [18, 40], [34, 40], [26, 66], [54, 28], [38, 28], [48, 6]]), true);
+  });
+  skillIcon('ic_bomba', 0x4a2a7a, (g) => {
+    g.fillStyle(INK, 1); g.fillCircle(34, 40, 20);
+    g.fillStyle(0x9a5cff, 1); g.fillCircle(27, 33, 6);
+    g.lineStyle(4, 0x8a5a2c, 1); g.lineBetween(46, 24, 54, 12);
+    g.fillStyle(0xffc93c, 1); star(g, 56, 10, 8, 3, 5);
+  });
+  skillIcon('ic_muro', 0x157a72, (g) => {
+    g.fillStyle(0x0b3a36, 1); g.fillRoundedRect(12, 22, 48, 40, 4);
+    g.fillStyle(0x2ad4c4, 1);
+    for (let r = 0; r < 3; r++) for (let c = 0; c < 3; c++) g.fillRect(14 + c * 16 + (r % 2) * 6, 24 + r * 13, 12, 10);
+    g.fillStyle(0xffffff, 1); g.fillRect(31, 6, 10, 22); g.fillRect(25, 12, 22, 10);
+  });
+  skillIcon('ic_hielo', 0x4a8ac0, (g) => {
+    g.lineStyle(5, 0xffffff, 1);
+    for (let i = 0; i < 3; i++) {
+      const a = (i * Math.PI) / 3;
+      g.lineBetween(36 + Math.cos(a) * 24, 36 + Math.sin(a) * 24, 36 - Math.cos(a) * 24, 36 - Math.sin(a) * 24);
+    }
+    g.fillStyle(0xbfe9ff, 1); g.fillCircle(36, 36, 7);
+  });
+  skillIcon('ic_tornado', 0x6a7480, (g) => {
+    for (let i = 0; i < 6; i++) { g.fillStyle(0xffffff, 0.9 - i * 0.08); g.fillEllipse(36 + Math.sin(i) * 4, 60 - i * 9, 14 + i * 8, 9); }
+  });
+  bake(scene, 'ic_turret', 72, 72, (g) => {
+    iconBg(g, 0x2a8a80);
+    drawStickman(g, 32, 66, 0.5, POSES.aim(0, 1.5), { scarf: 0xffc93c, eyes: 'determined' }, 1, 0);
+  });
+  bake(scene, 'ic_legend', 72, 72, (g) => {
+    iconBg(g, 0xb84ae0);
+    g.fillStyle(0xffe27a, 1); star(g, 36, 38, 26, 11, 5);
+    g.fillStyle(0xffffff, 0.8); star(g, 36, 38, 12, 5, 5);
+  });
+  bake(scene, 'ic_evo', 72, 72, (g) => {
+    iconBg(g, 0xff5a3a);
+    g.fillStyle(0xffffff, 1);
+    g.fillPoints(pts([[36, 8], [60, 36], [46, 36], [46, 64], [26, 64], [26, 36], [12, 36]]), true);
+  });
+  bake(scene, 'ic_heal', 72, 72, (g) => {
+    iconBg(g, 0x3aa05a);
+    g.fillStyle(0xffffff, 1); g.fillRect(28, 14, 16, 44); g.fillRect(14, 28, 44, 16);
+  });
+  bake(scene, 'ic_gold', 72, 72, (g) => {
+    iconBg(g, 0xd8a020);
+    for (const [x, y] of [[24, 46], [44, 46], [34, 30]]) {
+      g.fillStyle(0xb8860b, 1); g.fillCircle(x, y, 13);
+      g.fillStyle(0xffe27a, 1); g.fillCircle(x, y - 1, 11);
+    }
+  });
+}
