@@ -217,9 +217,7 @@ héroe). Hasta 3.
 Jefes: base × (1 + 0,05·(oleada−1)) × capítulo. En el Abismo: multiplicador 2,2 y además ×1,35 cada 5
 oleadas (crecimiento exponencial, para que haya un techo de récord).
 
-**Oro**: monedas = (1 + 0,1·oleada) × multiplicador de oro (Cap. 1/2/3/Abismo = 1 / 1,6 / 2,4 / 1,5),
-más 2·oleada por oleada superada y un bonus de victoria. A partir de la oleada 20 el valor deja de crecer
-(para que el Abismo no rompa la economía).
+**Oro (economía proporcional, v0.5)**: cada moneda vale (1 + 0,1·oleada) × multiplicador del capítulo, así que dentro de una partida las oleadas avanzadas pagan hasta ×3. El tope está en la oleada 20 en capítulos y en la 60 en el Abismo. Cada oleada superada da 10 × lo mismo, y la victoria suma un bonus. Los multiplicadores por capítulo son **×1 / ×2,5 / ×3,5 / ×7 / ×20 / ×28** (Abismo ×6, que crece con la oleada) y se ven en la tarjeta de cada capítulo. Las mejoras cuestan base × **1,22**^nivel. Resultado medido con el bot: hacen falta unas **3–5 partidas** por capítulo para conseguir las mejoras del siguiente (antes iban de 5 a más de 100).
 
 ### 3.7 Balance verificado (simulaciones con el bot)
 
@@ -252,7 +250,7 @@ varias partidas de grindeo en el Taller, y el Abismo es el techo para el récord
 
 ### 4.2 Taller del Tío Clip
 
-**Mejoras permanentes** (costo = base × 1,3^nivel)
+**Mejoras permanentes** (costo = base × 1,22^nivel)
 
 | Mejora | Efecto por nivel | Costo base | Nivel máx. |
 |---|---|---|---|
@@ -310,6 +308,14 @@ Todo pintado con Canvas 2D al arrancar (degradados, brillos, contornos) en `src/
 | Habilidades | **Lluvia:** marcador rojo en el suelo y flechas en diagonal con polvo. **Rayos:** triple capa (brillo, color y núcleo blanco) con ramas y parpadeo. **Bomba:** mecha con chispas, sombra en el suelo, destello, doble onda expansiva, humo y manchas. **Muro:** ola de tinta turquesa con espuma y chispas curativas en las estacas. **Escarcha:** nova helada desde el héroe y **bloques de hielo** sobre cada enemigo, que estallan en esquirlas al descongelarse. **Tornado:** 4 cuadros de animación con papeles girando, polvo y anillo en la base. |
 | Furia | Aura de llamas turquesa sobre el héroe y proyectiles más grandes y teñidos. |
 | Calidad baja | Desactiva estelas, destellos de disparo, chispas, humo y manchas. |
+
+### 5.0.1 Personajes, portada y rendimiento (v0.6)
+
+- **Personajes**: torso ancho que se estrecha en la cintura, extremidades más gruesas en la raíz, puños cuadrados alineados con el antebrazo, botas con talón y un brillo suave en la cabeza. Aplica a todos los personajes y enemigos humanoides.
+- **Portada**: logo pintado (degradado, contorno, brillo y pincelada), rayos de luz girando, Lino y Dante enfrentados con sus números de Poder y un "VS" (tras el final Liberación: "JUNTOS"), un rayo violeta entre ellos, partículas de tinta y un botón "TOCA PARA EMPEZAR" con mano guía.
+- **Menú**: logo, pedestal brillante bajo el héroe, botones con íconos y una pista del siguiente objetivo.
+- **Precisión**: el golpe se calcula donde se dibuja el enemigo (incluida la altura de los que vuelan o saltan), los disparos rectos se adelantan al movimiento del objetivo, los números de daño siempre aparecen (se reciclan los más viejos) y las micro-pausas por crítico tienen un tiempo de espera.
+- **Rendimiento**: reutilización de imágenes (enemigos, gemas y monedas), descarte rápido en colisiones, menos partículas con multitudes y el retrato del HUD a 10 fps. Medido con más de 200 enemigos: unos 0,9 ms de lógica por frame y 58 fps con renderizado por CPU.
 
 ### 5.1 Reglas de consistencia visual
 

@@ -78,6 +78,43 @@ function limb(g: G, pts: V[], w: number, color: number, alpha = 1): void {
   for (const p of pts) g.fillCircle(p.x, p.y, w / 2);
 }
 
+/** Tapered limb chain: thick at the root, thinner at the tip (reads as muscle, not as a wire). */
+function taper(g: G, pts: V[], w0: number, w1: number, color: number): void {
+  g.fillStyle(color, 1);
+  const n = pts.length - 1;
+  for (let i = 0; i < n; i++) {
+    const a = pts[i];
+    const b = pts[i + 1];
+    const wa = w0 + (w1 - w0) * (i / n);
+    const wb = w0 + (w1 - w0) * ((i + 1) / n);
+    const dx = b.x - a.x;
+    const dy = b.y - a.y;
+    const len = Math.hypot(dx, dy) || 1;
+    const nx = (-dy / len) / 2;
+    const ny = (dx / len) / 2;
+    g.fillPoints([
+      new Phaser.Math.Vector2(a.x + nx * wa, a.y + ny * wa),
+      new Phaser.Math.Vector2(b.x + nx * wb, b.y + ny * wb),
+      new Phaser.Math.Vector2(b.x - nx * wb, b.y - ny * wb),
+      new Phaser.Math.Vector2(a.x - nx * wa, a.y - ny * wa),
+    ], true);
+    g.fillCircle(a.x, a.y, wa / 2);
+  }
+  g.fillCircle(pts[n].x, pts[n].y, w1 / 2);
+}
+
+/** Squared fist aligned with the forearm. */
+function fist(g: G, elbow: V, hand: V, size: number, color: number): void {
+  const a = Math.atan2(hand.y - elbow.y, hand.x - elbow.x);
+  const c = Math.cos(a);
+  const sn = Math.sin(a);
+  const hs = size / 2;
+  const pts = [[-hs * 0.6, -hs], [hs, -hs * 0.8], [hs, hs * 0.8], [-hs * 0.6, hs]].map(([x, y]) => new Phaser.Math.Vector2(hand.x + x * c - y * sn, hand.y + x * sn + y * c));
+  g.fillStyle(color, 1);
+  g.fillPoints(pts, true);
+  g.fillCircle(hand.x, hand.y, hs * 0.95);
+}
+
 function seg(g: G, a: V, b: V, from: number, to: number, w: number, color: number): void {
   const p = { x: a.x + (b.x - a.x) * from, y: a.y + (b.y - a.y) * from };
   const q = { x: a.x + (b.x - a.x) * to, y: a.y + (b.y - a.y) * to };
@@ -172,16 +209,18 @@ export function drawStickman(g: G, x: number, y: number, s: number, pose: Pose, 
   }
 
   // ---------------- back limbs
-  limb(g, [sk.shoulder, sk.elbowB, sk.handB], w, body);
-  limb(g, [sk.hip, sk.kneeB, sk.footB], w, body);
+  taper(g, [sk.shoulder, sk.elbowB, sk.handB], w * 1.05, w * 0.82, body);
+  fist(g, sk.elbowB, sk.handB, w * 1.7, body);
+  taper(g, [sk.hip, sk.kneeB, sk.footB], w * 1.2, w * 0.85, body);
   foot(g, sk.footB, s, f, body);
   if (look.twin && look.weapon === 'pistola') drawWeapon(g, 'pistola', sk.elbowB, sk.handB, s, f, t);
 
   // ---------------- torso
-  limb(g, [sk.hip, sk.neck], w * 1.15, body);
+  // torso: broad chest, narrower waist
+  taper(g, [sk.hip, sk.neck], w * 1.15, w * 1.75, body);
 
   // ---------------- front leg
-  limb(g, [sk.hip, sk.kneeF, sk.footF], w, body);
+  taper(g, [sk.hip, sk.kneeF, sk.footF], w * 1.2, w * 0.85, body);
   foot(g, sk.footF, s, f, body);
 
   // ---------------- leg/arm armor accents
@@ -277,7 +316,7 @@ export function drawStickman(g: G, x: number, y: number, s: number, pose: Pose, 
     poly(g, hc, s, f, [[2, -26], [20, -22], [20, 14], [8, 28], [2, 22]], 0x5d6670);
     poly(g, hc, s, f, [[5, -21], [16, -18], [16, 11], [8, 21], [5, 17]], 0x8a949e);
   }
-  limb(g, [sk.shoulder, sk.elbowF, sk.handF], w, body);
+  taper(g, [sk.shoulder, sk.elbowF, sk.handF], w * 1.05, w * 0.82, body);
   if (tier >= 1 || look.corrupt) {
     const br = look.corrupt ? 0x5a2f9a : tier >= 3 ? 0xe8b84a : tier === 2 ? 0xc8d2dc : 0x7a3f2c;
     seg(g, sk.elbowF, sk.handF, 0.25, 0.8, w * 1.4, br);
@@ -288,16 +327,14 @@ export function drawStickman(g: G, x: number, y: number, s: number, pose: Pose, 
     g.lineBetween(sk.shoulder.x, sk.shoulder.y, sk.elbowF.x, sk.elbowF.y);
     g.lineBetween(sk.elbowF.x, sk.elbowF.y, sk.handF.x, sk.handF.y);
   }
-  g.fillStyle(body, 1);
-  g.fillCircle(sk.handF.x, sk.handF.y, w * 0.85);
-  g.fillCircle(sk.handB.x, sk.handB.y, w * 0.85);
+  fist(g, sk.elbowF, sk.handF, w * 1.7, body);
   if (look.weapon) drawWeapon(g, look.weapon, sk.elbowF, sk.handF, s, f, t);
 
   return sk;
 }
 
 function foot(g: G, p: V, s: number, f: number, color: number): void {
-  poly(g, p, s, f, [[-4, -4], [10, 0], [10, 4], [-5, 4]], color);
+  poly(g, p, s, f, [[-6, -5], [3, -4], [12, 0], [13, 4], [-6, 4]], color);
 }
 
 function drawHead(g: G, sk: Skeleton, s: number, f: number, look: Look, tier: number, t: number): void {
@@ -327,6 +364,10 @@ function drawHead(g: G, sk: Skeleton, s: number, f: number, look: Look, tier: nu
 
   g.fillStyle(body, 1);
   g.fillCircle(h.x, h.y, r);
+  if (!hood && tier < 2 && !look.corrupt) {
+    g.fillStyle(0xffffff, 0.13);
+    g.fillEllipse(h.x - r * 0.3 * f, h.y - r * 0.5, r * 0.9, r * 0.42);
+  }
 
   // knight-type helmets for the hero (tier 2+)
   if (tier >= 2 && !look.corrupt) {

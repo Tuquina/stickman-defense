@@ -21,4 +21,5 @@ export const DEBUG = {
   armor: q.get('armor') ? Number(q.get('armor')) : null,
   wave: q.get('wave') ? Number(q.get('wave')) : 1,
   unlock: q.get('unlock') === '1',
+  perf: q.get('perf') === '1',
 };

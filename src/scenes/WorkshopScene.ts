@@ -120,25 +120,25 @@ export class WorkshopScene extends Phaser.Scene {
     const d = Save.d;
     WEAPON_ORDER.forEach((id, i) => {
       const w = WEAPONS[id];
-      const y = 280 + i * 170;
-      this.row(y, 155);
+      const y = 272 + i * 148;
+      this.row(y, 134);
       const unlocked = weaponUnlocked(d, id);
       const lv = d.weaponLv[id];
       const maxed = lv >= WEAPON_MAX_LV;
       const cost = weaponLvCost(lv);
-      const ic = iconBox(this, 100, y + 78, 110, `ic_${id}`, '', 0xf6a63a);
+      const ic = iconBox(this, 96, y + 67, 100, `ic_${id}`, '', 0xf6a63a);
       if (!unlocked) ic.setAlpha(0.35);
       this.content.add(ic);
-      this.content.add(this.add.text(170, y + 16, w.name, txt(32, unlocked ? '#ffc93c' : '#6a7480', 6)).setOrigin(0, 0));
+      this.content.add(this.add.text(162, y + 10, w.name, txt(30, unlocked ? '#ffc93c' : '#6a7480', 6)).setOrigin(0, 0));
       if (unlocked) {
-        this.content.add(this.add.text(170, y + 60, `Nivel ${lv}/${WEAPON_MAX_LV} · Daño +${(lv - 1) * 10}%`, txt(23, '#bfe9ff', 4)).setOrigin(0, 0));
-        this.content.add(this.add.text(170, y + 96, `Evolución: ${w.evoName}`, txt(20, '#ffb340', 4)).setOrigin(0, 0));
-        this.content.add(this.priceTag(button(this, 590, y + 78, 170, 76, maxed ? 'MÁX' : fmt(cost), () => this.buy(cost, () => { d.weaponLv[id]++; }), {
+        this.content.add(this.add.text(162, y + 52, `Nivel ${lv}/${WEAPON_MAX_LV} · Daño +${(lv - 1) * 10}%`, txt(23, '#bfe9ff', 4)).setOrigin(0, 0));
+        this.content.add(this.add.text(162, y + 88, `Evolución: ${w.evoName}`, txt(20, '#ffb340', 4)).setOrigin(0, 0));
+        this.content.add(this.priceTag(button(this, 590, y + 67, 170, 72, maxed ? 'MÁX' : fmt(cost), () => this.buy(cost, () => { d.weaponLv[id]++; }), {
           size: 28, color: maxed ? 0x4a5260 : d.gold >= cost ? 0xe2a020 : 0x6a5a3a, disabled: maxed,
         }), maxed));
       } else {
-        this.content.add(this.add.text(170, y + 66, `Bloqueado: ${w.unlockText}`, txt(23, '#8a94a0', 4)).setOrigin(0, 0));
-        this.content.add(this.add.image(600, y + 78, 'lock'));
+        this.content.add(this.add.text(162, y + 58, `Bloqueado: ${w.unlockText}`, txt(23, '#8a94a0', 4)).setOrigin(0, 0));
+        this.content.add(this.add.image(600, y + 67, 'lock'));
       }
     });
   }

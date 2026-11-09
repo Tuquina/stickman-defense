@@ -45,7 +45,7 @@ export const CHAPTERS: Record<ChapterId, ChapterDef> = {
       { id: 'arquero', weight: 3, from: 4 },
       { id: 'caballero', weight: 3, from: 6 },
     ],
-    mini: 'gargola', boss: 'sirHueco', hpMult: 2.3, goldMult: 1.6, waves: 20,
+    mini: 'gargola', boss: 'sirHueco', hpMult: 2.3, goldMult: 2.5, waves: 20,
     intro: 'c2_intro', outro: 'c2_outro', requires: 'c1', requiresText: 'Vence el Capítulo 1', color: 0x8a7a64,
   },
   c3: {
@@ -57,7 +57,7 @@ export const CHAPTERS: Record<ChapterId, ChapterDef> = {
       { id: 'brujo', weight: 2, from: 4 },
       { id: 'golem', weight: 3, from: 6 },
     ],
-    mini: 'guardian', boss: 'ecoDante', hpMult: 4.4, goldMult: 2.4, waves: 20,
+    mini: 'guardian', boss: 'ecoDante', hpMult: 4.4, goldMult: 3.5, waves: 20,
     intro: 'c3_intro', outro: 'c3_outro', requires: 'c2', requiresText: 'Vence el Capítulo 2', color: 0x9b4fd0,
   },
   c4: {
@@ -69,7 +69,7 @@ export const CHAPTERS: Record<ChapterId, ChapterDef> = {
       { id: 'pescador', weight: 3, from: 4 },
       { id: 'tortuga', weight: 3, from: 6 },
     ],
-    mini: 'hidra', boss: 'kraken', hpMult: 12, goldMult: 3.2, waves: 20,
+    mini: 'hidra', boss: 'kraken', hpMult: 12, goldMult: 7, waves: 20,
     intro: 'c4_intro', outro: 'c4_outro', requires: 'c3', requiresText: 'Vence el Capítulo 3', color: 0x1f6a6a,
   },
   c5: {
@@ -81,7 +81,7 @@ export const CHAPTERS: Record<ChapterId, ChapterDef> = {
       { id: 'escriba', weight: 2, from: 4 },
       { id: 'guardiaCorona', weight: 3, from: 6 },
     ],
-    mini: 'golemLibros', boss: 'recuerdo', hpMult: 16, goldMult: 4, waves: 20,
+    mini: 'golemLibros', boss: 'recuerdo', hpMult: 16, goldMult: 20, waves: 20,
     intro: 'c5_intro', outro: 'c5_outro', requires: 'c4', requiresText: 'Vence el Capítulo 4', color: 0x4a5ab0,
   },
   c6: {
@@ -94,7 +94,7 @@ export const CHAPTERS: Record<ChapterId, ChapterDef> = {
       { id: 'guardiaCorona', weight: 3, from: 5 },
       { id: 'escriba', weight: 2, from: 7 },
     ],
-    mini: 'ecoDante', boss: 'dante', hpMult: 17.5, goldMult: 5, waves: 20,
+    mini: 'ecoDante', boss: 'dante', hpMult: 17.5, goldMult: 28, waves: 20,
     intro: 'c6_intro', outro: 'c6_outro', requires: 'c5', requiresText: 'Vence el Capítulo 5', color: 0x8a2ad0,
   },
   abismo: {
@@ -116,7 +116,7 @@ export const CHAPTERS: Record<ChapterId, ChapterDef> = {
       { id: 'coronado', weight: 2, from: 16 },
       { id: 'tortuga', weight: 1, from: 18 },
     ],
-    mini: 'gargola', boss: 'ecoDante', hpMult: 2.2, goldMult: 1.5, waves: Infinity,
+    mini: 'gargola', boss: 'ecoDante', hpMult: 2.2, goldMult: 6, waves: Infinity,
     requires: 'c3', requiresText: 'Vence el Capítulo 3', color: 0x5a2a8a,
   },
 };

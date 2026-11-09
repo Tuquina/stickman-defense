@@ -24,5 +24,6 @@ export const UPGRADES: UpgradeDef[] = [
 ];
 
 export function upgradeCost(def: UpgradeDef, lv: number): number {
-  return Math.round(def.base * Math.pow(1.3, lv));
+  // 1.22 per level keeps late upgrades reachable with the late-chapter gold multipliers
+  return Math.round(def.base * Math.pow(1.22, lv));
 }

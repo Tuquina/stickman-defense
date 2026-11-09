@@ -32,24 +32,24 @@ export class WeaponSelectScene extends Phaser.Scene {
     WEAPON_ORDER.forEach((id, i) => {
       const w = WEAPONS[id];
       const unlocked = weaponUnlocked(d, id);
-      const y = 230 + i * 182;
+      const y = 215 + i * 152;
       const c = this.add.container(GAME_W / 2, y);
       const g = this.add.graphics();
       const sel = d.lastWeapon === id;
-      drawPanel(g, -330, 0, 660, 165, unlocked ? (sel ? 0x24365a : 0x1c2a44) : 0x1a1d22, sel ? 0xffc93c : 0x05070a, 14);
+      drawPanel(g, -330, 0, 660, 140, unlocked ? (sel ? 0x24365a : 0x1c2a44) : 0x1a1d22, sel ? 0xffc93c : 0x05070a, 14);
       c.add(g);
-      const ic = iconBox(this, -250, 82, 116, `ic_${id}`, '', 0xf6a63a);
+      const ic = iconBox(this, -255, 70, 104, `ic_${id}`, '', 0xf6a63a);
       if (!unlocked) ic.setAlpha(0.35);
       c.add(ic);
-      c.add(this.add.text(-170, 20, w.name, txt(38, unlocked ? '#ffc93c' : '#6a7480', 7)).setOrigin(0, 0));
+      c.add(this.add.text(-180, 14, w.name, txt(34, unlocked ? '#ffc93c' : '#6a7480', 7)).setOrigin(0, 0));
       if (unlocked) {
-        c.add(this.add.text(-170, 70, w.desc, { ...txt(22, '#bfe9ff', 4), align: 'left', lineSpacing: 2 }).setOrigin(0, 0));
-        c.add(this.add.text(300, 130, `Nv. ${d.weaponLv[id]}`, txt(26, '#6aff8a', 5)).setOrigin(1, 0.5));
+        c.add(this.add.text(-180, 58, w.desc, { ...txt(21, '#bfe9ff', 4), align: 'left', lineSpacing: 1 }).setOrigin(0, 0));
+        c.add(this.add.text(310, 30, `Nv. ${d.weaponLv[id]}`, txt(26, '#6aff8a', 5)).setOrigin(1, 0.5));
       } else {
-        c.add(this.add.text(-170, 82, `Bloqueado: ${w.unlockText}`, txt(24, '#8a94a0', 4)).setOrigin(0, 0));
-        c.add(this.add.image(270, 90, 'lock'));
+        c.add(this.add.text(-180, 70, `Bloqueado: ${w.unlockText}`, txt(23, '#8a94a0', 4)).setOrigin(0, 0));
+        c.add(this.add.image(275, 75, 'lock'));
       }
-      const z = this.add.zone(0, 82, 660, 165).setInteractive({ useHandCursor: true });
+      const z = this.add.zone(0, 70, 660, 140).setInteractive({ useHandCursor: true });
       c.add(z);
       z.on('pointerdown', () => {
         Sound.unlock();

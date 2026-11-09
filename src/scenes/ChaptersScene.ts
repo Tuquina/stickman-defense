@@ -44,6 +44,9 @@ export class ChaptersScene extends Phaser.Scene {
       frame.lineStyle(3, 0x05070a, 1).strokeRect(-310, 10, 220, CARD - 20);
       c.add([g, thumb, frame]);
       c.add(this.add.text(-70, 18, ch.num, txt(22, unlocked ? '#ffd34d' : '#6a7480', 5)).setOrigin(0, 0));
+      // gold reward multiplier: later chapters pay proportionally more
+      c.add(this.add.image(232, 30, 'coin').setScale(0.85).setAlpha(unlocked ? 1 : 0.4));
+      c.add(this.add.text(250, 30, `×${ch.goldMult}`, txt(22, unlocked ? '#ffd34d' : '#6a7480', 5)).setOrigin(0, 0.5));
       c.add(this.add.text(-70, 46, ch.name, txt(36, unlocked ? '#ffffff' : '#6a7480', 7)).setOrigin(0, 0));
       c.add(this.add.text(-70, 94, unlocked ? ch.subtitle : `Bloqueado: ${ch.requiresText}`, { ...txt(21, unlocked ? '#bfe9ff' : '#8a94a0', 4), wordWrap: { width: 370 } }).setOrigin(0, 0));
       let status = '';
