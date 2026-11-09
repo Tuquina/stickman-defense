@@ -21,6 +21,8 @@ export interface SaveData {
   storySeen: string[];
   settings: { music: boolean; sfx: boolean; vibrate: boolean; speed2: boolean; lowFx: boolean };
   tutorial: { mark: boolean; skill: boolean; fury: boolean };
+  /** ending chosen at the end of chapter 6 (season 1) */
+  finale: 'venganza' | 'liberacion' | null;
   stats: { runs: number; kills: number; bossKills: number; goldEarned: number };
 }
 
@@ -31,7 +33,7 @@ function fresh(): SaveData {
     rank: 1,
     rankXp: 0,
     upgrades: { fuerza: 0, barricada: 0, agilidad: 0, precision: 0, codicia: 0, sabiduria: 0, furia: 0 },
-    weaponLv: { arco: 1, pistola: 1, baston: 1, escopeta: 1, shuriken: 1 },
+    weaponLv: { arco: 1, pistola: 1, baston: 1, escopeta: 1, shuriken: 1, lanza: 1 },
     lastWeapon: 'arco',
     armorEquipped: 0,
     armorSeen: 0,
@@ -39,11 +41,15 @@ function fresh(): SaveData {
       c1: { cleared: false, bestWave: 0 },
       c2: { cleared: false, bestWave: 0 },
       c3: { cleared: false, bestWave: 0 },
+      c4: { cleared: false, bestWave: 0 },
+      c5: { cleared: false, bestWave: 0 },
+      c6: { cleared: false, bestWave: 0 },
       abismo: { cleared: false, bestWave: 0 },
     },
     storySeen: [],
     settings: { music: true, sfx: true, vibrate: true, speed2: false, lowFx: false },
     tutorial: { mark: false, skill: false, fury: false },
+    finale: null,
     stats: { runs: 0, kills: 0, bossKills: 0, goldEarned: 0 },
   };
 }

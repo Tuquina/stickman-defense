@@ -43,7 +43,8 @@ export class GalleryScene extends Phaser.Scene {
         label(gg.x, gg.y + 20, id);
       });
     } else {
-      const ids = Object.keys(ENEMIES);
+      // 15 enemies per page: ?scene=gallery:1, gallery:2, gallery:3…
+      const ids = Object.keys(ENEMIES).slice((this.page - 1) * 15, this.page * 15);
       ids.forEach((id, i) => {
         const tex = ENEMY_TEX[id];
         const col = i % 3;

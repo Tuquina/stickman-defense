@@ -8,6 +8,7 @@ import { generateBackgrounds } from '../gfx/backgrounds';
 import { drawCharacter } from '../gfx/characters';
 import { generateTextures } from '../gfx/textures';
 import { onUpdate } from '../ui/widgets';
+import { STORY_ORDER } from '../data/story';
 
 export class BootScene extends Phaser.Scene {
   constructor() {
@@ -31,7 +32,7 @@ export class BootScene extends Phaser.Scene {
       d.settings.sfx = false;
       if (DEBUG.unlock) {
         for (const c of Object.values(d.chapters)) { c.cleared = true; c.bestWave = 20; }
-        d.storySeen = ['prologo1', 'prologo2', 'c1_intro', 'c1_outro', 'c2_intro', 'c2_outro', 'c3_intro', 'c3_outro'];
+        d.storySeen = STORY_ORDER.filter((s) => !s.startsWith('final_'));
         d.gold = 12345;
       }
       Save.override(d);

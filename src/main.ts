@@ -6,6 +6,7 @@ import { GAME_H, GAME_W } from './config';
 import { BattleScene } from './scenes/BattleScene';
 import { BootScene } from './scenes/BootScene';
 import { ChaptersScene } from './scenes/ChaptersScene';
+import { CreditsScene } from './scenes/CreditsScene';
 import { GalleryScene } from './scenes/GalleryScene';
 import { MenuScene } from './scenes/MenuScene';
 import { ResultsScene } from './scenes/ResultsScene';
@@ -35,7 +36,7 @@ async function start(): Promise<void> {
     render: { antialias: true, roundPixels: false, powerPreference: 'high-performance' },
     input: { activePointers: 2 },
     fps: { target: 60 },
-    scene: [BootScene, MenuScene, ChaptersScene, WeaponSelectScene, StoryScene, BattleScene, ResultsScene, WorkshopScene, SettingsScene, GalleryScene],
+    scene: [BootScene, MenuScene, ChaptersScene, WeaponSelectScene, StoryScene, BattleScene, ResultsScene, WorkshopScene, SettingsScene, GalleryScene, CreditsScene],
   });
   (window as unknown as { game: Phaser.Game }).game = game;
 }

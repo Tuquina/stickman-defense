@@ -136,3 +136,44 @@ export function onUpdate(scene: Phaser.Scene, fn: (time: number, delta: number) 
   scene.events.on('update', fn);
   scene.events.once('shutdown', () => scene.events.off('update', fn));
 }
+
+export interface ScrollList extends Phaser.GameObjects.Container {
+  /** true when the current gesture is a tap (not a drag) inside the visible area */
+  isTap(p: Phaser.Input.Pointer): boolean;
+  scrollTo(contentY: number): void;
+}
+
+/**
+ * Vertical drag-to-scroll list (touch + mouse wheel). Children use local y from 0.
+ * Masks don't block input, so item handlers must check `list.isTap(pointer)`.
+ */
+export function scrollList(scene: Phaser.Scene, top: number, bottom: number, contentH: number): ScrollList {
+  const c = scene.add.container(0, top) as ScrollList;
+  const m = scene.make.graphics({}, false);
+  m.fillRect(0, top, scene.scale.width, bottom - top);
+  c.setMask(m.createGeometryMask());
+  const minY = Math.min(top, bottom - contentH - 20);
+  let dragging = false;
+  let startY = 0;
+  let startC = 0;
+  let moved = 0;
+  const clampY = (y: number) => Math.max(minY, Math.min(top, y));
+  scene.input.on('pointerdown', (p: Phaser.Input.Pointer) => {
+    if (p.y < top || p.y > bottom) return;
+    dragging = true;
+    startY = p.y;
+    startC = c.y;
+    moved = 0;
+  });
+  scene.input.on('pointermove', (p: Phaser.Input.Pointer) => {
+    if (!dragging || !p.isDown) return;
+    const dy = p.y - startY;
+    moved = Math.max(moved, Math.abs(dy));
+    c.y = clampY(startC + dy);
+  });
+  scene.input.on('pointerup', () => { dragging = false; });
+  scene.input.on('wheel', (_p: unknown, _o: unknown, _dx: number, dy: number) => { c.y = clampY(c.y - dy); });
+  c.isTap = (p: Phaser.Input.Pointer) => moved < 12 && p.y >= top && p.y <= bottom;
+  c.scrollTo = (contentY: number) => { c.y = clampY(top - contentY); };
+  return c;
+}

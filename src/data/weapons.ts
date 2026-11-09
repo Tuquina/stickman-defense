@@ -1,5 +1,5 @@
-export type WeaponId = 'arco' | 'pistola' | 'baston' | 'escopeta' | 'shuriken';
-export type ProjKind = 'arrow' | 'bullet' | 'orb' | 'pellet' | 'star';
+export type WeaponId = 'arco' | 'pistola' | 'baston' | 'escopeta' | 'shuriken' | 'lanza';
+export type ProjKind = 'arrow' | 'bullet' | 'orb' | 'pellet' | 'star' | 'lance';
 
 export interface WeaponDef {
   id: WeaponId;
@@ -65,9 +65,17 @@ export const WEAPONS: Record<WeaponId, WeaponDef> = {
     kind: 'star', dmgMult: 0.85, rate: 1.5, speed: 900, combo: 0.1, pierce: 0, bounce: 2,
     unlockText: 'Vence el Capítulo 2', color: 0xc8d2e0,
   },
+  lanza: {
+    id: 'lanza', name: 'LANZA DE TINTA', evoName: 'LANZA DEL JURAMENTO', rarity: 'Legendario',
+    desc: 'Atraviesa filas enteras.\nLenta pero devastadora',
+    starDesc: '+25% daño · +1 perforación en 3★ y 5★',
+    evoDesc: 'Cada impacto estalla en tinta.',
+    kind: 'lance', dmgMult: 2.1, rate: 0.6, speed: 1150, combo: 0.05, pierce: 2,
+    unlockText: 'Vence el Capítulo 4', color: 0x6fe3d6,
+  },
 };
 
-export const WEAPON_ORDER: WeaponId[] = ['arco', 'pistola', 'baston', 'escopeta', 'shuriken'];
+export const WEAPON_ORDER: WeaponId[] = ['arco', 'pistola', 'baston', 'escopeta', 'shuriken', 'lanza'];
 export const WEAPON_MAX_LV = 10;
 export function weaponLvCost(lv: number): number {
   return Math.round(120 * Math.pow(1.45, lv - 1));

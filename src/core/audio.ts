@@ -9,7 +9,7 @@ export type SfxName =
   | 'coin' | 'xp' | 'levelup' | 'legend' | 'skill' | 'boom' | 'zap' | 'freeze' | 'heal'
   | 'barricade' | 'heart' | 'roar' | 'fury' | 'victory' | 'defeat' | 'wave' | 'buy' | 'error' | 'whoosh' | 'thud' | 'type';
 
-export type TrackId = 'menu' | 'story' | 'sad' | 'c1' | 'c2' | 'c3' | 'boss' | 'abismo';
+export type TrackId = 'menu' | 'story' | 'sad' | 'c1' | 'c2' | 'c3' | 'c4' | 'c5' | 'c6' | 'boss' | 'final' | 'abismo';
 
 interface Track {
   bpm: number;
@@ -31,6 +31,14 @@ const TRACKS: Record<TrackId, Track> = {
   c1: { bpm: 122, chords: [[50, 'm'], [46, 'M'], [53, 'M'], [48, 'M']], bass: 'x-x-o-x-x-x-o-x-', arp: '0120120120120120', kick: 'x---x---x---x---', snare: '----x-------x---', hat: '--x---x---x---x-', lead: true, wave: 'square', pad: 0.02 },
   c2: { bpm: 128, chords: [[52, 'm'], [48, 'M'], [55, 'M'], [50, 'M']], bass: 'x-xo-xx-x-xo-xx-', arp: '0-2-1-2-0-2-1-3-', kick: 'x-----x-x-------', snare: '----x-------x---', hat: 'x-x-x-x-x-x-x-x-', lead: true, wave: 'square', pad: 0.02 },
   c3: { bpm: 134, chords: [[52, 'm'], [53, 'M'], [52, 'm'], [50, 'M']], bass: 'xx-xx-x-xx-xx-o-', arp: '0-1-2-1-0-1-2-1-', kick: 'x--x--x-x--x--x-', snare: '----x-------x---', hat: '-x-x-x-x-x-x-x-x', lead: true, wave: 'sawtooth', pad: 0.02 },
+  // swamp: slow, heavy, eerie
+  c4: { bpm: 112, chords: [[45, 'm'], [41, 'M'], [43, 'M'], [40, 'M']], bass: 'x--x--x-x--x--o-', arp: '0-2-1-2-3-2-1-2-', kick: 'x-----x---x-----', snare: '----x-------x---', hat: '--x---x---x---x-', lead: true, wave: 'triangle', pad: 0.03 },
+  // tower: mysterious, music-box arpeggios
+  c5: { bpm: 124, chords: [[50, 'm'], [53, 'M'], [48, 'M'], [55, 'M']], bass: 'x-------x---x---', arp: '0123210301232103', kick: 'x-------x-------', snare: '----x-------x---', hat: 'x-x-x-x-x-x-x-x-', lead: true, wave: 'sine', pad: 0.035 },
+  // throne: dark march
+  c6: { bpm: 140, chords: [[47, 'm'], [43, 'M'], [45, 'M'], [42, 'M']], bass: 'xxoxxxoxxxoxxxox', arp: '0-1-2-3-2-1-0-2-', kick: 'x--x--x-x--x--x-', snare: '----x-------x---', hat: 'x-xxx-xxx-xxx-xx', lead: true, wave: 'sawtooth', pad: 0.025 },
+  // final duel against Dante: epic, fast
+  final: { bpm: 164, chords: [[45, 'm'], [41, 'M'], [43, 'M'], [44, 'M'], [45, 'm'], [41, 'M'], [38, 'm'], [40, 'M']], bass: 'xoxoxoxoxoxoxoxo', arp: '0123012301230123', kick: 'x-x-x-x-x-x-x-x-', snare: '----x--x----x---', hat: 'xxxxxxxxxxxxxxxx', lead: true, wave: 'sawtooth', pad: 0.03 },
   boss: { bpm: 150, chords: [[48, 'm'], [44, 'M'], [46, 'M'], [43, 'M']], bass: 'xoxoxoxoxoxoxoxo', arp: '0120312001203120', kick: 'x-x-x-x-x-x-x-x-', snare: '----x-------x---', hat: 'xxxxxxxxxxxxxxxx', lead: true, wave: 'sawtooth', pad: 0.02 },
   abismo: { bpm: 140, chords: [[46, 'm'], [42, 'M'], [49, 'M'], [44, 'M']], bass: 'x-xox-xox-xox-xo', arp: '0-1-2-3-2-1-0-1-', kick: 'x---x---x---x-x-', snare: '----x-------x---', hat: '-xx--xx--xx--xx-', lead: true, wave: 'sawtooth', pad: 0.025 },
 };
