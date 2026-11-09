@@ -297,6 +297,20 @@ varias partidas de grindeo en el Taller, y el Abismo es el techo para el récord
 
 ---
 
+### 5.0 Armas, efectos y habilidades (v0.4)
+
+Todo pintado con Canvas 2D al arrancar (degradados, brillos, contornos) en `src/gfx/fx.ts`. Durante la partida solo se usan sprites con mezcla aditiva y *pools*, así que el rendimiento no cambia.
+
+| Elemento | Tratamiento |
+|---|---|
+| Armas en mano | Contorno de tinta y piezas con detalle: arco con empuñadura y puntas doradas, pistola con corredera y grip, bastón con cristal y garra, escopeta con bombeo, lanza con hoja de dos tonos. Las evoluciones brillan en dorado. |
+| Íconos | Marco con degradado y brillo (naranja para armas, color propio para cada habilidad), dibujo con contorno y luces. |
+| Proyectiles | Flechas con punta metálica y plumas, trazadoras con núcleo blanco, orbes con anillo y destello, shuriken metálico, lanza con hoja brillante. **Estela de luz** detrás de cada proyectil. |
+| Disparo e impacto | Destello en la boca del arma en cada disparo; chispas del color del arma al impactar (astillas de madera en flechas, onda en orbes y lanza); destello extra en críticos. |
+| Habilidades | **Lluvia:** marcador rojo en el suelo y flechas en diagonal con polvo. **Rayos:** triple capa (brillo, color y núcleo blanco) con ramas y parpadeo. **Bomba:** mecha con chispas, sombra en el suelo, destello, doble onda expansiva, humo y manchas. **Muro:** ola de tinta turquesa con espuma y chispas curativas en las estacas. **Escarcha:** nova helada desde el héroe y **bloques de hielo** sobre cada enemigo, que estallan en esquirlas al descongelarse. **Tornado:** 4 cuadros de animación con papeles girando, polvo y anillo en la base. |
+| Furia | Aura de llamas turquesa sobre el héroe y proyectiles más grandes y teñidos. |
+| Calidad baja | Desactiva estelas, destellos de disparo, chispas, humo y manchas. |
+
 ### 5.1 Reglas de consistencia visual
 
 | Elemento | Regla |

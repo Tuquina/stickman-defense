@@ -470,111 +470,187 @@ function drawHead(g: G, sk: Skeleton, s: number, f: number, look: Look, tier: nu
   }
 }
 
-/** Draws the held weapon from the forearm direction. */
+/** Draws the held weapon from the forearm direction (outlined, shaded, evolved variants glow). */
 export function drawWeapon(g: G, w: Look['weapon'], elbow: V, hand: V, s: number, f: number, t: number): void {
   const ang = Math.atan2(hand.y - elbow.y, hand.x - elbow.x);
   const c = hand;
-  const rotPoly = (pts: number[][], color: number) => {
-    // pts are in forearm-aligned space: x forward along the arm, y "down" (mirrored by facing
-    // so the weapon never renders upside-down).
-    const ux = Math.cos(ang);
-    const uy = Math.sin(ang);
-    const dx = -Math.sin(ang) * f;
-    const dy = Math.cos(ang) * f;
-    const out = pts.map(([x, y]) => new Phaser.Math.Vector2(c.x + (ux * x + dx * y) * s, c.y + (uy * x + dy * y) * s));
-    g.fillStyle(color, 1);
+  // forearm space: x forward along the arm, y "down" (mirrored by facing so nothing renders upside-down)
+  const ux = Math.cos(ang);
+  const uy = Math.sin(ang);
+  const dx = -Math.sin(ang) * f;
+  const dy = Math.cos(ang) * f;
+  const P = (x: number, y: number) => new Phaser.Math.Vector2(c.x + (ux * x + dx * y) * s, c.y + (uy * x + dy * y) * s);
+  const shape = (pts: number[][], color: number, outline = true, alpha = 1) => {
+    const out = pts.map(([x, y]) => P(x, y));
+    g.fillStyle(color, alpha);
     g.fillPoints(out, true);
+    if (outline) {
+      g.lineStyle(1.6 * s, INK, 1);
+      g.strokePoints(out, true, true);
+    }
   };
+  const line = (x0: number, y0: number, x1: number, y1: number, width: number, color: number, alpha = 1) => {
+    const a = P(x0, y0);
+    const b = P(x1, y1);
+    g.lineStyle(width * s, color, alpha);
+    g.lineBetween(a.x, a.y, b.x, b.y);
+  };
+  const dot = (x: number, y: number, r: number, color: number, alpha = 1) => {
+    const p = P(x, y);
+    g.fillStyle(color, alpha);
+    g.fillCircle(p.x, p.y, r * s);
+  };
+  const pulse = 0.5 + Math.sin(t * 6) * 0.5;
+
   switch (w) {
     case 'arco':
     case 'bowE': {
-      const col = w === 'bowE' ? 0xffd86a : 0x8a5a2c;
-      const perp = ang + Math.PI / 2;
-      const R = 24 * s;
-      const cx = c.x - Math.cos(ang) * 6 * s;
-      const cy = c.y - Math.sin(ang) * 6 * s;
-      g.lineStyle(4.5 * s, col, 1);
-      g.beginPath();
-      g.arc(cx, cy, R, ang - 1.15, ang + 1.15, false);
-      g.strokePath();
-      const p1 = { x: cx + Math.cos(ang - 1.15) * R, y: cy + Math.sin(ang - 1.15) * R };
-      const p2 = { x: cx + Math.cos(ang + 1.15) * R, y: cy + Math.sin(ang + 1.15) * R };
-      g.lineStyle(1.5 * s, 0xf0f0f0, 0.9);
-      g.lineBetween(p1.x, p1.y, p2.x, p2.y);
-      void perp;
+      const gold = w === 'bowE';
+      const wood = gold ? 0xffd86a : 0x8a5a2c;
+      const woodHi = gold ? 0xfff2b0 : 0xc88a50;
+      if (gold) dot(6, 0, 30, 0xffe27a, 0.18 + pulse * 0.1);
+      const pts: Phaser.Math.Vector2[] = [];
+      for (let i = -10; i <= 10; i++) {
+        const k = i / 10;
+        pts.push(P(4 + 13 * (1 - k * k), k * 27));
+      }
+      g.lineStyle(7.5 * s, INK, 1);
+      g.strokePoints(pts, false);
+      g.lineStyle(4.5 * s, wood, 1);
+      g.strokePoints(pts, false);
+      g.lineStyle(1.6 * s, woodHi, 0.9);
+      g.strokePoints(pts.slice(3, 9), false);
+      line(4, -27, 4, 27, 1.4, gold ? 0xfff2b0 : 0xf0f0f0, 0.95);
+      shape([[13, -4], [19, -4], [19, 4], [13, 4]], gold ? 0xffffff : 0x2ad4c4);
+      dot(4, -27, 2.4, gold ? 0xffffff : 0xffc93c);
+      dot(4, 27, 2.4, gold ? 0xffffff : 0xffc93c);
       break;
     }
-    case 'pistola':
-      rotPoly([[-2, -4], [22, -4], [22, 2], [6, 2], [4, 10], [-2, 10]], 0x3a3f48);
-      rotPoly([[4, -6], [20, -6], [20, -3], [4, -3]], 0xffb340);
+    case 'pistola': {
+      shape([[-3, 0], [6, 0], [3, 13], [-6, 13]], 0x24282e);
+      line(-3, 4, 3, 4, 1, 0x5a606a);
+      line(-4, 8, 2, 8, 1, 0x5a606a);
+      shape([[-3, -7], [27, -7], [27, 0], [-3, 0]], 0x3e444e);
+      line(-1, -6, 25, -6, 1.2, 0x9aa2ac);
+      shape([[27, -6], [31, -6], [31, -1], [27, -1]], 0x16191d);
+      shape([[9, -5], [19, -5], [19, -2.5], [9, -2.5]], 0xff6a3d, false);
+      line(6, 1, 9, 5, 1.4, INK);
       break;
-    case 'escopeta':
-      rotPoly([[-16, -3], [34, -3], [34, 3], [-4, 3], [-14, 9], [-18, 5]], 0x4a3a2a);
-      rotPoly([[2, -6], [34, -6], [34, -2], [2, -2]], 0x2a2e36);
-      rotPoly([[10, 2], [20, 2], [20, 6], [10, 6]], 0xff6a3d);
+    }
+    case 'escopeta': {
+      shape([[-24, -2], [-4, -5], [-4, 4], [-21, 11]], 0x7a4a24);
+      line(-20, 1, -7, -1, 1.2, 0xb07a44);
+      shape([[-4, -6], [12, -6], [12, 4], [-4, 4]], 0x2a2e36);
+      shape([[12, -6], [46, -6], [46, -1.5], [12, -1.5]], 0x4e545e);
+      shape([[12, -1.5], [42, -1.5], [42, 3], [12, 3]], 0x363b44);
+      line(14, -5, 44, -5, 1, 0xa8b0ba);
+      shape([[17, 3], [31, 3], [31, 8], [17, 8]], 0x8a5a2c);
+      shape([[21, 4], [26, 4], [26, 7], [21, 7]], 0xff6a3d, false);
       break;
+    }
     case 'baston':
     case 'staffE': {
-      const dx = Math.cos(ang - 1.2 * f);
-      const dy = Math.sin(ang - 1.2 * f);
-      const top = { x: c.x + dx * 44 * s, y: c.y + dy * 44 * s };
-      const bot = { x: c.x - dx * 26 * s, y: c.y - dy * 26 * s };
+      const gold = w === 'staffE';
+      const sx = Math.cos(ang - 1.2 * f);
+      const sy = Math.sin(ang - 1.2 * f);
+      const at = (k: number) => ({ x: c.x + sx * k * s, y: c.y + sy * k * s });
+      const top = at(46);
+      const bot = at(-28);
+      g.lineStyle(6 * s, INK, 1);
+      g.lineBetween(bot.x, bot.y, top.x, top.y);
       g.lineStyle(3.5 * s, 0x2a3a48, 1);
       g.lineBetween(bot.x, bot.y, top.x, top.y);
-      const glow = w === 'staffE' ? 0xffe27a : 0x6fe3ff;
-      g.fillStyle(glow, 0.35);
-      g.fillCircle(top.x, top.y, 11 * s + Math.sin(t * 6) * 1.5 * s);
-      g.fillStyle(glow, 1);
-      g.fillCircle(top.x, top.y, 5.5 * s);
-      g.lineStyle(2.5 * s, 0x8ab8c8, 1);
-      g.beginPath();
-      g.arc(top.x, top.y, 9 * s, ang - 1.2 * f + 0.9, ang - 1.2 * f + Math.PI * 2 - 0.9);
-      g.strokePath();
+      for (const k of [10, 30]) {
+        const p = at(k);
+        g.fillStyle(gold ? 0xffffff : 0xffc93c, 1);
+        g.fillCircle(p.x, p.y, 2.6 * s);
+      }
+      const glow = gold ? 0xffe27a : 0x6fe3ff;
+      g.fillStyle(glow, 0.18 + pulse * 0.12);
+      g.fillCircle(top.x, top.y, 15 * s);
+      // claw holding the crystal
+      const px = -sy;
+      const py = sx;
+      g.lineStyle(2.4 * s, gold ? 0xffd86a : 0x8ab8c8, 1);
+      g.lineBetween(top.x - sx * 6 * s, top.y - sy * 6 * s, top.x + px * 8 * s + sx * 4 * s, top.y + py * 8 * s + sy * 4 * s);
+      g.lineBetween(top.x - sx * 6 * s, top.y - sy * 6 * s, top.x - px * 8 * s + sx * 4 * s, top.y - py * 8 * s + sy * 4 * s);
+      const crystal = [
+        new Phaser.Math.Vector2(top.x + sx * 10 * s, top.y + sy * 10 * s),
+        new Phaser.Math.Vector2(top.x + px * 6 * s, top.y + py * 6 * s),
+        new Phaser.Math.Vector2(top.x - sx * 6 * s, top.y - sy * 6 * s),
+        new Phaser.Math.Vector2(top.x - px * 6 * s, top.y - py * 6 * s),
+      ];
+      g.fillStyle(gold ? 0xffd86a : 0x3aa8e8, 1);
+      g.fillPoints(crystal, true);
+      g.fillStyle(0xffffff, 0.85);
+      g.fillPoints([crystal[0], crystal[1], new Phaser.Math.Vector2(top.x, top.y)], true);
+      g.lineStyle(1.6 * s, INK, 1);
+      g.strokePoints(crystal, true, true);
       break;
     }
     case 'shuriken': {
-      const r = t * 10;
+      const rot = t * 10;
       const pts: Phaser.Math.Vector2[] = [];
       for (let i = 0; i < 8; i++) {
-        const rr = (i % 2 === 0 ? 12 : 4) * s;
-        const a = r + (i * Math.PI) / 4;
+        const rr = (i % 2 === 0 ? 13 : 4) * s;
+        const a = rot + (i * Math.PI) / 4;
         pts.push(new Phaser.Math.Vector2(c.x + Math.cos(a) * rr, c.y + Math.sin(a) * rr));
       }
       g.fillStyle(0xc8d2e0, 1);
       g.fillPoints(pts, true);
+      g.fillStyle(0xffffff, 0.7);
+      g.fillPoints([pts[0], pts[1], new Phaser.Math.Vector2(c.x, c.y), pts[7]], true);
+      g.lineStyle(1.6 * s, INK, 1);
+      g.strokePoints(pts, true, true);
       g.fillStyle(INK, 1);
-      g.fillCircle(c.x, c.y, 2.5 * s);
+      g.fillCircle(c.x, c.y, 2.8 * s);
       break;
     }
     case 'lanza': {
-      const dx = Math.cos(ang - 1.25 * f);
-      const dy = Math.sin(ang - 1.25 * f);
-      const tip = { x: c.x + dx * 58 * s, y: c.y + dy * 58 * s };
-      const butt = { x: c.x - dx * 30 * s, y: c.y - dy * 30 * s };
-      g.lineStyle(4 * s, 0x1f3a40, 1);
+      const sx = Math.cos(ang - 1.25 * f);
+      const sy = Math.sin(ang - 1.25 * f);
+      const at = (k: number) => ({ x: c.x + sx * k * s, y: c.y + sy * k * s });
+      const tip = at(58);
+      const butt = at(-30);
+      g.lineStyle(6.5 * s, INK, 1);
       g.lineBetween(butt.x, butt.y, tip.x, tip.y);
-      const px = -dy;
-      const py = dx;
+      g.lineStyle(4 * s, 0x2a4a52, 1);
+      g.lineBetween(butt.x, butt.y, tip.x, tip.y);
+      for (const k of [-6, 0, 6]) {
+        const p = at(k);
+        g.fillStyle(0x2ad4c4, 1);
+        g.fillCircle(p.x, p.y, 2.4 * s);
+      }
+      const px = -sy;
+      const py = sx;
+      const blade = [
+        new Phaser.Math.Vector2(tip.x + sx * 22 * s, tip.y + sy * 22 * s),
+        new Phaser.Math.Vector2(tip.x + px * 7 * s + sx * 6 * s, tip.y + py * 7 * s + sy * 6 * s),
+        new Phaser.Math.Vector2(tip.x, tip.y),
+        new Phaser.Math.Vector2(tip.x - px * 7 * s + sx * 6 * s, tip.y - py * 7 * s + sy * 6 * s),
+      ];
       g.fillStyle(0x6fe3d6, 1);
-      g.fillPoints([
-        new Phaser.Math.Vector2(tip.x + dx * 18 * s, tip.y + dy * 18 * s),
-        new Phaser.Math.Vector2(tip.x + px * 6 * s, tip.y + py * 6 * s),
-        new Phaser.Math.Vector2(tip.x - px * 6 * s, tip.y - py * 6 * s),
-      ], true);
-      g.fillStyle(0x2ad4c4, 1);
-      g.fillCircle(butt.x, butt.y, 3 * s);
+      g.fillPoints(blade, true);
+      g.fillStyle(0xe8fffb, 0.9);
+      g.fillPoints([blade[0], blade[1], blade[2]], true);
+      g.lineStyle(1.6 * s, INK, 1);
+      g.strokePoints(blade, true, true);
       break;
     }
     case 'sword': {
-      const dx = Math.cos(ang - 1.0 * f);
-      const dy = Math.sin(ang - 1.0 * f);
-      const tip = { x: c.x + dx * 70 * s, y: c.y + dy * 70 * s };
-      g.lineStyle(8 * s, 0x9aa4ae, 1);
+      const sx = Math.cos(ang - 1.0 * f);
+      const sy = Math.sin(ang - 1.0 * f);
+      const tip = { x: c.x + sx * 70 * s, y: c.y + sy * 70 * s };
+      g.lineStyle(10 * s, INK, 1);
       g.lineBetween(c.x, c.y, tip.x, tip.y);
-      g.lineStyle(3 * s, 0xe0e6ec, 1);
-      g.lineBetween(c.x + dx * 8 * s, c.y + dy * 8 * s, tip.x, tip.y);
-      g.lineStyle(5 * s, 0x6a3a2a, 1);
-      g.lineBetween(c.x - dy * 10 * s, c.y + dx * 10 * s, c.x + dy * 10 * s, c.y - dx * 10 * s);
+      g.lineStyle(7 * s, 0x9aa4ae, 1);
+      g.lineBetween(c.x, c.y, tip.x, tip.y);
+      g.lineStyle(2.5 * s, 0xeef2f6, 1);
+      g.lineBetween(c.x + sx * 8 * s, c.y + sy * 8 * s, tip.x, tip.y);
+      g.lineStyle(7 * s, INK, 1);
+      g.lineBetween(c.x - sy * 11 * s, c.y + sx * 11 * s, c.x + sy * 11 * s, c.y - sx * 11 * s);
+      g.lineStyle(4.5 * s, 0xc8a050, 1);
+      g.lineBetween(c.x - sy * 10 * s, c.y + sx * 10 * s, c.x + sy * 10 * s, c.y - sx * 10 * s);
       break;
     }
     default:
