@@ -141,7 +141,7 @@ export const STORY: Record<string, StoryScene> = {
       { who: 'R', text: 'Hermanito… viniste.', right: eco({ eyes: 'glow', pose: 'cross' }), fx: ['purple', 'shake'] },
       { who: 'L', text: '¡DANTE!', left: lino({ eyes: 'angry', pose: 'point' }) },
       { who: 'R', text: 'No soy Dante. Soy lo que la Corona', hl: 'dejó de él. Un eco.', right: eco({ eyes: 'glow', pose: 'idle' }) },
-      { who: 'R', text: 'Mi poder ya es de', hl: '¡CIEN MIL! ¡CIEN MIL! ¡CIEN MIL!', right: eco({ eyes: 'glow', mouth: 'open', pose: 'fist' }), fx: ['shake', 'pulse'] },
+      { who: 'R', text: 'Mi poder ya es de', hl: '¡CIEN MIL! ¡CIEN MIL!', right: eco({ eyes: 'glow', mouth: 'open', pose: 'fist' }), fx: ['shake', 'pulse'] },
       { who: 'R', text: 'Ok, eso fue perturbador.', hl: 'Disco rayado nivel jefe.', right: clip({ eyes: 'cool', mouth: 'frown', pose: 'hands' }) },
     ],
   },

@@ -44,11 +44,11 @@ criaturas de tinta corrupta que devoran trazos.
 | Personaje | Rol | Diseño |
 |---|---|---|
 | **Lino** | Protagonista, el *hermanito*. Poder 10 → 500 → … | Stickman negro, bufanda **turquesa** de cola larga, ojos blancos decididos. Su ropa cambia con cada armadura. |
-| **Dante** | Hermano mayor. El antagonista. Poder 100.000. | De niño: pañuelo **rojo-naranja** en la frente, sonrisa confiada. Corrupto: armadura violeta con grietas brillantes, capa morada y la **Corona Hueca** flotando sobre la cabeza (rota, con un vacío en el centro). |
+| **Dante** | Hermano mayor. El antagonista. Poder 100.000. | De niño: cuello/pañuelo **rojo-naranja** y sonrisa confiada. Corrupto: yelmo y armadura violeta con cuernos cortos, gema roja en el pecho, capa rojo oscuro, contorno violeta brillante y la **Corona Hueca** (rota en dos mitades) flotando sobre la cabeza. Conserva una **bufanda rojo-naranja desgastada**: lo único que queda del niño que fue. |
 | **Tío Clip** | Mercader y alivio cómico. Dueño del Taller. | Stickman con lentes de sol, un clip doblado como antena y cadena dorada. Habla en memes. |
 | **Reina Telaraña** | Jefa del Capítulo 1 | Araña gigante carmesí con corona de espinas. |
 | **Sir Hueco** | Jefe del Capítulo 2 | Caballero gigante con el yelmo vacío. Fue la primera víctima de Dante. |
-| **Eco de Dante** | Jefe del Capítulo 3 | Sombra de Dante creada por la Corona. Repite "100.000" como un disco rayado. |
+| **Eco de Dante** | Jefe del Capítulo 3 | Sombra de Dante creada por la Corona: cuerpo de tinta violeta, sin capa ni bufanda, ojos brillantes y la misma corona. Repite "100.000" como un disco rayado. |
 
 ### 2.3 ¿Por qué Dante se volvió tan fuerte?
 
@@ -268,6 +268,32 @@ varias partidas de grindeo en el Taller, y el Abismo es el techo para el récord
     historia (melancólica).
 
 ---
+
+### 5.1 Reglas de consistencia visual
+
+| Elemento | Regla |
+|---|---|
+| Colores de identidad | Lino = **turquesa**; Dante = **rojo-naranja** (de niño) que se apaga a rojo oscuro; la Corona y todo lo corrupto = **violeta**; enemigos del bosque = **carmesí**; oro y recompensas = **amarillo**. |
+| Números de Poder | Azul (10, la infancia), amarillo (el héroe), violeta con brillo (Dante y la Corona), rojo (otros jefes) y dorado `¿?` (Tío Clip). |
+| Siluetas | Todos los personajes salen del mismo esqueleto (`gfx/stickman.ts`), con trazo negro grueso y ojos blancos angulares. Las diferencias están en los accesorios, no en el cuerpo. |
+| Armaduras | Cada tier suma piezas sobre el anterior: bufanda → capucha y cuero → yelmo, hombreras y capa → oro, alas y halo → blanco y oro. |
+| Jefes | Llevan un contorno brillante del color de su facción (rojo para Sir Hueco, violeta para la Corona). |
+| Transparencias | Los personajes semitransparentes (fantasmas, siluetas) se dibujan primero en una textura y después se les aplica el alfa a la figura completa. |
+| Texto | Narración y carteles en una caja oscura entre los números de Poder y las cabezas. El diálogo va abajo, con la frase clave en naranja. |
+
+### 5.2 Cómo agregar contenido (escalabilidad)
+
+| Quiero agregar… | Dónde |
+|---|---|
+| Un enemigo | Datos en `src/data/enemies.ts` y dibujo en `src/gfx/textures.ts` (`enemy()` o `humanoid()`). Para un comportamiento nuevo, un `case` en `BattleScene.updateEnemies`. |
+| Un capítulo | `src/data/chapters.ts` (pool de enemigos, mini-jefe, jefe, fondo y música), un fondo en `gfx/backgrounds.ts` y sus escenas en `data/story.ts`. |
+| Un personaje de historia | Un `CharId` en `data/story.ts` y su `Look` en `gfx/characters.ts`. |
+| Un arma | `src/data/weapons.ts`, su ícono en `textures.ts` y el dibujo en mano en `drawWeapon()`. |
+| Una armadura | `src/data/armor.ts` y sus piezas en `drawStickman()` según el `tier`. |
+| Una carta o habilidad | `src/data/cards.ts` y su efecto en `BattleScene` (`applyCard` / `castSkill`). |
+
+**Revisión visual**: `?scene=gallery:0` muestra todos los personajes, armaduras y armas, y
+`?scene=gallery:1` todos los enemigos. Conviene revisar ahí cada pieza nueva antes de publicarla.
 
 ## 6. Arquitectura técnica
 

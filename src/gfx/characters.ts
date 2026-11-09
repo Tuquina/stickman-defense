@@ -1,17 +1,20 @@
 import type { Actor, CharId, PoseId } from '../data/story';
 import { drawStickman, POSES, type Look, type Pose } from './stickman';
 
-export function charLook(a: Pick<Actor, 'id' | 'eyes' | 'mouth'>, heroTier: number): Look {
+export function charLook(a: Pick<Actor, 'id' | 'eyes' | 'mouth' | 'pose'>, heroTier: number): Look {
   const base: Record<CharId, Look> = {
     linoKid: { kid: true, scarf: 0x2ad4c4, eyes: 'determined' },
-    danteKid: { kid: true, headband: 0xe2552c, eyes: 'happy', mouth: 'grin' },
+    danteKid: { kid: true, collar: 0xe2552c, eyes: 'happy', mouth: 'grin' },
     lino: { tier: heroTier, eyes: 'determined' },
-    dante: { corrupt: true, crown: true, outline: 0xb060ff, capeColor: 0x5a1a2a, eyes: 'smug' },
+    // Dante keeps a faded version of his red-orange scarf: the only thing left of the kid he was.
+    dante: { corrupt: true, crown: true, outline: 0xb060ff, capeColor: 0x6a1e1e, scarf: 0xa8442a, eyes: 'smug' },
     clip: { sunglasses: true, clip: true, chain: true, eyes: 'cool', mouth: 'grin' },
     hueco: { helm: 'hollow', tier: 2, capeColor: 0x7a1e22, body: 0x15151a, weapon: 'sword', scarf: null },
-    eco: { corrupt: true, crown: true, outline: 0x8a3ae0, capeColor: 0x3a1a5a, eyes: 'glow', body: 0x120a1a },
+    // The Echo is a hollow shadow of Dante: no cape, no scarf, violet ink body.
+    eco: { corrupt: true, crown: true, outline: 0x8a3ae0, capeColor: null, eyes: 'glow', body: 0x2a1048 },
   };
   const l = { ...base[a.id] };
+  if (a.id === 'hueco' && (a as Actor).pose === 'kneel') l.weapon = null;
   if (a.eyes) l.eyes = a.eyes;
   if (a.mouth) l.mouth = a.mouth;
   return l;

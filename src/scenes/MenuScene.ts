@@ -6,7 +6,7 @@ import { armorUnlocked, power } from '../core/stats';
 import { ARMORS } from '../data/armor';
 import { drawCharacter } from '../gfx/characters';
 import { drawStickman, POSES } from '../gfx/stickman';
-import { button, drawPanel, fadeIn, go, goldLabel } from '../ui/widgets';
+import { button, drawPanel, fadeIn, go, goldLabel, onUpdate } from '../ui/widgets';
 
 export class MenuScene extends Phaser.Scene {
   private t = 0;
@@ -49,7 +49,9 @@ export class MenuScene extends Phaser.Scene {
 
     // hero + goal silhouette
     const p = power(d);
-    const goal = this.add.graphics({ x: 560, y: 820 }).setAlpha(0.35);
+    // the goal silhouette is baked into a render texture so its alpha applies to the whole figure
+    const goalPen = this.make.graphics({}, false);
+    const goal = this.add.renderTexture(560, 820, 400, 520).setOrigin(0.5, 460 / 520).setAlpha(0.4);
     const hero = this.add.graphics({ x: 280, y: 860 });
     this.add.text(280, 330, fmt(p), txt(96, p >= 100000 ? '#d050ff' : '#e8f040', 14)).setOrigin(0.5);
     this.add.text(280, 400, 'PODER', txt(26, '#ffffff', 6)).setOrigin(0.5);
@@ -65,10 +67,11 @@ export class MenuScene extends Phaser.Scene {
     this.add.text(GAME_W / 2, 893, `Camino a los 100.000 · ${(prog * 100).toFixed(1).replace('.', ',')}%`, txt(18, '#ffffff', 4)).setOrigin(0.5);
     this.add.text(280, 920, ARMORS[d.armorEquipped].name, txt(22, '#bfe9ff', 5)).setOrigin(0.5);
 
-    this.events.on('update', (_t: number, dt: number) => {
+    onUpdate(this, (_t: number, dt: number) => {
       this.t += dt / 1000;
       drawStickman(hero.clear(), 0, 0, 2.6, POSES.idle(this.t), { tier: d.armorEquipped, eyes: 'determined', weapon: d.lastWeapon }, 1, this.t);
-      drawCharacter(goal, { id: 'dante', eyes: 'smug', pose: 'cross' }, 0, 2.0, -1, this.t);
+      drawCharacter(goalPen, { id: 'dante', eyes: 'smug', pose: 'cross' }, 0, 2.0, -1, this.t);
+      goal.clear().draw(goalPen, 200, 460);
     });
 
     // buttons

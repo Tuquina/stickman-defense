@@ -7,6 +7,7 @@ import type { WeaponId } from '../data/weapons';
 import { generateBackgrounds } from '../gfx/backgrounds';
 import { drawCharacter } from '../gfx/characters';
 import { generateTextures } from '../gfx/textures';
+import { onUpdate } from '../ui/widgets';
 
 export class BootScene extends Phaser.Scene {
   constructor() {
@@ -18,7 +19,7 @@ export class BootScene extends Phaser.Scene {
     generateBackgrounds(this);
     this.makeDamageFont();
 
-    if (DEBUG.meta !== null || DEBUG.armor !== null) {
+    if (DEBUG.meta !== null || DEBUG.armor !== null || DEBUG.unlock) {
       const d = Save.fresh();
       const m = DEBUG.meta ?? 0;
       for (const k of Object.keys(d.upgrades)) (d.upgrades as Record<string, number>)[k] = m;
@@ -28,6 +29,11 @@ export class BootScene extends Phaser.Scene {
       d.storySeen = ['prologo1', 'prologo2', 'c1_intro', 'c2_intro', 'c3_intro'];
       d.settings.music = false;
       d.settings.sfx = false;
+      if (DEBUG.unlock) {
+        for (const c of Object.values(d.chapters)) { c.cleared = true; c.bestWave = 20; }
+        d.storySeen = ['prologo1', 'prologo2', 'c1_intro', 'c1_outro', 'c2_intro', 'c2_outro', 'c3_intro', 'c3_outro'];
+        d.gold = 12345;
+      }
       Save.override(d);
     }
 
@@ -37,8 +43,8 @@ export class BootScene extends Phaser.Scene {
     }
     if (DEBUG.scene) {
       const [s, arg] = DEBUG.scene.split(':');
-      const map: Record<string, string> = { menu: 'Menu', workshop: 'Workshop', chapters: 'Chapters', story: 'Story', weapons: 'WeaponSelect', settings: 'Settings' };
-      this.scene.start(map[s] ?? 'Menu', s === 'story' ? { id: arg ?? 'prologo2', next: { scene: 'Menu' } } : { chapter: 'c1' });
+      const map: Record<string, string> = { menu: 'Menu', workshop: 'Workshop', chapters: 'Chapters', story: 'Story', weapons: 'WeaponSelect', settings: 'Settings', gallery: 'Gallery' };
+      this.scene.start(map[s] ?? 'Menu', s === 'story' ? { id: arg ?? 'prologo2', next: { scene: 'Menu' } } : s === 'gallery' ? { page: Number(arg ?? 0) } : { chapter: 'c1' });
       return;
     }
     this.titleScreen();
@@ -83,7 +89,7 @@ export class BootScene extends Phaser.Scene {
     this.tweens.add({ targets: tap, alpha: 0.35, duration: 700, yoyo: true, repeat: -1 });
     this.add.text(GAME_W / 2, 1240, 'v0.1 · MVP', txt(20, '#8899aa', 4)).setOrigin(0.5);
 
-    this.events.on('update', (time: number) => {
+    onUpdate(this, (time: number) => {
       const t = time / 1000;
       drawCharacter(lino, { id: 'lino', eyes: 'angry', pose: 'fist' }, Save.d.armorEquipped, 2.3, 1, t);
       drawCharacter(dante, { id: 'dante', eyes: 'smug', pose: 'cross' }, 0, 2.3, -1, t);

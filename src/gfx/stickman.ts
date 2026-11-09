@@ -23,7 +23,7 @@ export type Eyes = 'angry' | 'happy' | 'sad' | 'smug' | 'determined' | 'glow' | 
 export interface Look {
   tier?: number; // hero armor tier 0..4, undefined = none
   scarf?: number | null;
-  headband?: number | null;
+  collar?: number | null;
   eyes?: Eyes;
   eyeColor?: number;
   mouth?: 'none' | 'grin' | 'open' | 'frown';
@@ -58,7 +58,7 @@ export const POSES = {
     return { lean: 0.04, head: 0.05, armB: [0.9 + b, 0.9], armF: [armAngle, 0], legB: [-0.3, 0.05], legF: [0.32, 0.02], crouch: 0.08 };
   },
   point: (t = 0): Pose => ({ ...POSES.idle(t), armF: [1.6, 0.05] }),
-  fist: (t = 0): Pose => ({ ...POSES.idle(t), armF: [2.7, 0.4], lean: 0.1 }),
+  fist: (t = 0): Pose => ({ ...POSES.idle(t), armF: [1.7, 1.0], lean: 0.1 }),
   laugh: (t = 0): Pose => ({ ...POSES.idle(t), lean: -0.18 + Math.sin(t * 14) * 0.03, head: -0.25, armB: [-0.6, 1.4], armF: [0.6, 1.4] }),
   cross: (t = 0): Pose => ({ ...POSES.idle(t), armB: [0.9, 1.9], armF: [0.7, 2.0], lean: -0.05, head: -0.1 }),
   kneel: (t = 0): Pose => ({ lean: 0.35 + Math.sin(t * 2) * 0.02, head: 0.3, armB: [0.2, 0.3], armF: [0.6, 0.6], legB: [-1.5, 1.6], legF: [1.3, -1.3], crouch: 0.45 }),
@@ -195,8 +195,8 @@ export function drawStickman(g: G, x: number, y: number, s: number, pose: Pose, 
     const bootC = look.corrupt ? 0x5a2f9a : tier >= 3 ? 0xe8b84a : tier === 2 ? 0xb8c2cc : 0x7a3f2c;
     seg(g, sk.kneeF, sk.footF, 0.35, 0.95, w * 1.35, bootC);
     seg(g, sk.kneeB, sk.footB, 0.35, 0.95, w * 1.35, Phaser.Display.Color.ValueToColor(bootC).darken(20).color);
-    if (tier >= 2 || look.corrupt) {
-      g.fillStyle(look.corrupt ? 0xe8a040 : 0xffffff, look.corrupt ? 1 : 0.35);
+    if (tier >= 2 && !look.corrupt) {
+      g.fillStyle(0xffffff, 0.35);
       g.fillCircle(sk.kneeF.x, sk.kneeF.y, w * 0.8);
     }
   }
@@ -219,7 +219,7 @@ export function drawStickman(g: G, x: number, y: number, s: number, pose: Pose, 
 
   // ---------------- scarf / collar
   const scarf = look.scarf !== undefined ? look.scarf : tier === 0 ? 0x2ad4c4 : tier === 4 ? 0xffe9a8 : tier >= 2 ? 0x2a7fd6 : null;
-  if (scarf !== null && scarf !== undefined && !look.corrupt) {
+  if (scarf !== null && scarf !== undefined && (!look.corrupt || look.scarf !== undefined)) {
     const n = sk.neck;
     poly(g, n, s, f, [[-11, -3], [11, -3], [12, 6], [-12, 6]], scarf);
     // trailing tail
@@ -227,12 +227,12 @@ export function drawStickman(g: G, x: number, y: number, s: number, pose: Pose, 
     poly(g, n, s, f, [[-8, 0], [-26 * tl, 4 + wave * 4], [-40 * tl, 10 + wave * 7], [-36 * tl, 16 + wave * 6], [-22 * tl, 10 + wave * 3], [-8, 7]], scarf);
     poly(g, n, s, f, [[-26 * tl, 4 + wave * 4], [-40 * tl, 10 + wave * 7], [-36 * tl, 16 + wave * 6]], Phaser.Display.Color.ValueToColor(scarf).darken(18).color);
   }
-  if (look.headband) {
+  if (look.collar) {
     // kid Dante: red collar like a cape-collar
     const n = sk.neck;
-    poly(g, n, s, f, [[-13, -6], [13, -6], [10, 6], [-10, 6]], look.headband);
-    poly(g, n, s, f, [[-13, -6], [-17, -12], [-6, -4]], look.headband);
-    poly(g, n, s, f, [[13, -6], [17, -12], [6, -4]], look.headband);
+    poly(g, n, s, f, [[-13, -6], [13, -6], [10, 6], [-10, 6]], look.collar);
+    poly(g, n, s, f, [[-13, -6], [-17, -12], [-6, -4]], look.collar);
+    poly(g, n, s, f, [[13, -6], [17, -12], [6, -4]], look.collar);
   }
   if (tier === 1) {
     // fur collar
@@ -331,8 +331,9 @@ function drawHead(g: G, sk: Skeleton, s: number, f: number, look: Look, tier: nu
     g.fillCircle(h.x, h.y - 2 * s, r * 1.12);
     poly(g, h, s, f, [[-18, -2], [-17, 16], [-4, 18], [-6, 2]], hc);
     // face opening
-    poly(g, h, s, f, [[-2, -6], [19, -6], [19, 13], [2, 13]], INK);
-    poly(g, h, s, f, [[-2, -9], [19, -9], [19, -5], [-2, -5]], dark);
+    poly(g, h, s, f, [[-9, -6], [17, -6], [17, 5], [-9, 5]], INK);
+    poly(g, h, s, f, [[3, 5], [10, 5], [10, 13], [3, 13]], INK);
+    poly(g, h, s, f, [[-9, -9], [17, -9], [17, -6], [-9, -6]], dark);
     if (tier === 2) {
       poly(g, h, s, f, [[-6, -16], [6, -20], [-16, -34], [-12, -22]], 0xe8b84a);
     } else {
@@ -345,10 +346,17 @@ function drawHead(g: G, sk: Skeleton, s: number, f: number, look: Look, tier: nu
     // horned helm
     g.fillStyle(0x4a2a7a, 1);
     g.fillCircle(h.x, h.y - 2 * s, r * 1.12);
-    poly(g, h, s, f, [[-2, -5], [19, -5], [19, 12], [2, 12]], INK);
-    poly(g, h, s, f, [[-10, -12], [-26, -34], [-30, -50], [-16, -26], [-4, -16]], 0x7a4fc0);
-    poly(g, h, s, f, [[6, -14], [16, -34], [14, -50], [24, -30], [12, -10]], 0x7a4fc0);
-    poly(g, h, s, f, [[-4, -16], [2, -32], [8, -16]], 0xe8a040);
+    poly(g, h, s, f, [[-9, -5], [17, -5], [17, 6], [-9, 6]], INK);
+    poly(g, h, s, f, [[3, 6], [10, 6], [10, 13], [3, 13]], INK);
+    if (look.crown) {
+      // small swept-back horns so the floating crown stays readable
+      poly(g, h, s, f, [[-12, -10], [-30, -18], [-38, -12], [-24, -6], [-14, -4]], 0x7a4fc0);
+      poly(g, h, s, f, [[-4, -18], [-14, -30], [-20, -28], [-10, -14]], 0x7a4fc0);
+    } else {
+      poly(g, h, s, f, [[-10, -12], [-26, -34], [-30, -50], [-16, -26], [-4, -16]], 0x7a4fc0);
+      poly(g, h, s, f, [[6, -14], [16, -34], [14, -50], [24, -30], [12, -10]], 0x7a4fc0);
+      poly(g, h, s, f, [[-4, -16], [2, -32], [8, -16]], 0xe8a040);
+    }
   }
   if (tier >= 3 && !look.corrupt) {
     g.lineStyle(3 * s, tier === 4 ? 0xfff2b0 : 0x9fe8ff, 0.8);
@@ -442,10 +450,10 @@ function drawHead(g: G, sk: Skeleton, s: number, f: number, look: Look, tier: nu
   }
 
   if (look.crown) {
-    const cy = h.y - r * 3.7 + Math.sin(t * 2.5) * 3 * s;
-    const c = { x: h.x - 2 * s * f, y: cy };
-    g.fillStyle(0xa040ff, 0.25);
-    g.fillCircle(c.x, c.y, 22 * s);
+    const cy = h.y - r * 2.15 + Math.sin(t * 2.5) * 2 * s;
+    const c = { x: h.x + 1 * s * f, y: cy };
+    g.fillStyle(0xd27bff, 0.18);
+    g.fillEllipse(c.x, c.y + 2 * s, 46 * s, 16 * s);
     // broken crown: two halves with a void gap
     poly(g, c, s, f, [[-18, 6], [-20, -8], [-13, -2], [-9, -14], [-4, -2], [-3, 6]], 0x6a2fc0);
     poly(g, c, s, f, [[4, 6], [5, -3], [10, -15], [14, -2], [20, -9], [18, 6]], 0x6a2fc0);

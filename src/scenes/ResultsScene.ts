@@ -8,7 +8,7 @@ import { CHAPTERS, type ChapterId } from '../data/chapters';
 import { DEFEAT_QUIPS, VICTORY_QUIPS } from '../data/story';
 import { WEAPONS, type WeaponId } from '../data/weapons';
 import { drawCharacter } from '../gfx/characters';
-import { button, drawPanel, fadeIn, go } from '../ui/widgets';
+import { button, drawPanel, fadeIn, go, onUpdate } from '../ui/widgets';
 
 interface Result {
   chapter: ChapterId; victory: boolean; wave: number; kills: number; gold: number; rankXp: number;
@@ -80,7 +80,7 @@ export class ResultsScene extends Phaser.Scene {
     drawPanel(bubble, 180, 930, 500, 120, 0xf2efe6, 0x05070a, 18);
     bubble.fillStyle(0xf2efe6, 1).fillTriangle(180, 1010, 150, 1030, 190, 1040);
     this.add.text(430, 990, quip, { ...txt(26, '#1a1a1a', 0), wordWrap: { width: 470 } }).setOrigin(0.5);
-    this.events.on('update', (_a: number, dt: number) => {
+    onUpdate(this, (_a: number, dt: number) => {
       this.t += dt / 1000;
       drawCharacter(clipG, { id: 'clip', eyes: 'cool', mouth: r.victory ? 'grin' : 'frown', pose: r.victory ? 'point' : 'cross' }, 0, 1.4, 1, this.t);
     });
