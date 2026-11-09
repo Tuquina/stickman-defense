@@ -9,7 +9,10 @@ import { button } from '../ui/widgets';
 
 interface Next { scene: string; data?: object }
 interface Slot {
-  g: Phaser.GameObjects.Graphics;
+  /** Displayed view. Characters are baked into a render texture each frame so that
+   *  transparency, scale and rotation apply to the whole figure (no overlapping joints). */
+  g: Phaser.GameObjects.RenderTexture;
+  pen: Phaser.GameObjects.Graphics;
   power: Phaser.GameObjects.Text;
   actor: Actor | null;
   baseX: number;
@@ -18,6 +21,10 @@ interface Slot {
 
 const GROUND = 1000;
 const SCALE = 2.7;
+const RT_W = 600;
+const RT_H = 760;
+const FEET_X = 300;
+const FEET_Y = 700;
 
 export class StoryScene extends Phaser.Scene {
   private def!: StoryDef;
@@ -31,6 +38,7 @@ export class StoryScene extends Phaser.Scene {
   private line!: Phaser.GameObjects.Text;
   private hl!: Phaser.GameObjects.Text;
   private caption!: Phaser.GameObjects.Text;
+  private narr!: Phaser.GameObjects.Graphics;
   private full = '';
   private shown = 0;
   private typing = false;
@@ -61,7 +69,8 @@ export class StoryScene extends Phaser.Scene {
     }
 
     const mk = (x: number, facing: number): Slot => ({
-      g: this.add.graphics({ x, y: GROUND }).setDepth(3),
+      g: this.add.renderTexture(x, GROUND, RT_W, RT_H).setOrigin(FEET_X / RT_W, FEET_Y / RT_H).setDepth(3),
+      pen: this.make.graphics({}, false),
       power: this.add.text(x, 330, '', txt(110, '#5fc8ff', 14)).setOrigin(0.5).setDepth(4),
       actor: null,
       baseX: x,
@@ -72,7 +81,9 @@ export class StoryScene extends Phaser.Scene {
     this.nameTag = this.add.text(40, 1040, '', txt(30, '#ffd34d', 6)).setOrigin(0, 0.5).setDepth(10);
     this.line = this.add.text(GAME_W / 2, 1110, '', { ...txt(44, '#ffffff', 10), wordWrap: { width: 660 } }).setOrigin(0.5).setDepth(10);
     this.hl = this.add.text(GAME_W / 2, 1190, '', { ...txt(48, '#ffa62b', 10), wordWrap: { width: 680 } }).setOrigin(0.5).setDepth(10);
-    this.caption = this.add.text(GAME_W / 2, 640, '', { ...txt(68, '#ffffff', 12), wordWrap: { width: 660 } }).setOrigin(0.5).setDepth(10);
+    // narrator/caption box sits between the power numbers and the characters' heads
+    this.narr = this.add.graphics().setDepth(9);
+    this.caption = this.add.text(GAME_W / 2, 570, '', { ...txt(68, '#ffffff', 12), wordWrap: { width: 660 } }).setOrigin(0.5).setDepth(10);
     this.add.text(GAME_W / 2, 1256, 'toca para continuar', txt(18, '#9aa8b8', 4)).setOrigin(0.5).setDepth(10).setAlpha(0.7);
 
     button(this, GAME_W - 90, 50, 140, 54, 'SALTAR', () => this.finish(), { size: 24, color: 0x3a4a5e }).setDepth(20);
@@ -154,11 +165,12 @@ export class StoryScene extends Phaser.Scene {
       Sound.play('roar');
     }
     if (fx.includes('pushL')) {
+      // knocked down: the body lies towards the left, so anchor the feet further right
       const s = this.slots.L;
-      s.g.x = s.baseX + 40;
-      this.tweens.add({ targets: s.g, x: s.baseX - 40, duration: 260, ease: 'Cubic.easeOut' });
+      s.g.x = 380;
+      this.tweens.add({ targets: s.g, x: 320, duration: 260, ease: 'Cubic.easeOut' });
     } else {
-      this.slots.L.g.x = this.slots.L.baseX;
+      this.slots.L.g.x = this.slots.L.actor?.pose === 'fallen' ? 320 : this.slots.L.baseX;
     }
     if (fx.includes('exitR')) {
       Sound.play('whoosh');
@@ -174,6 +186,12 @@ export class StoryScene extends Phaser.Scene {
     this.line.setText('');
     this.hl.setText('');
     this.nameTag.setText('');
+    this.narr.clear();
+    if (b.who === 'C' || b.who === 'N') {
+      const h = b.who === 'C' ? 200 : b.hl ? 230 : 170;
+      this.narr.fillStyle(0x05070a, 0.72).fillRoundedRect(24, 570 - h / 2, GAME_W - 48, h, 22);
+      this.narr.lineStyle(3, 0xffffff, 0.15).strokeRoundedRect(24, 570 - h / 2, GAME_W - 48, h, 22);
+    }
     if (b.who === 'C') {
       this.caption.setText(b.text).setAlpha(0).setScale(0.9);
       this.tweens.add({ targets: this.caption, alpha: 1, scale: 1, duration: 500 });
@@ -190,11 +208,13 @@ export class StoryScene extends Phaser.Scene {
     this.shown = 0;
     this.typing = true;
     this.hl.setData('text', b.hl ?? '');
+    const hlLen = (b.hl ?? '').length;
+    this.hl.setFontSize(hlLen > 30 ? 34 : hlLen > 22 ? 40 : 48);
     if (b.who === 'N') {
-      this.line.setY(b.hl ? 600 : 640).setFontSize(46);
-      this.hl.setY(b.hl ? 700 : 760);
+      this.line.setY(b.hl ? 530 : 570).setFontSize(b.text.length > 40 ? 38 : 44);
+      this.hl.setY(625);
     } else {
-      this.line.setY(b.hl ? 1100 : 1130).setFontSize(42);
+      this.line.setY(b.hl ? 1100 : 1130).setFontSize(b.text.length > 36 ? 38 : 42);
       this.hl.setY(1185);
     }
   }
@@ -205,7 +225,9 @@ export class StoryScene extends Phaser.Scene {
       const s = this.slots[k];
       if (!s.actor) continue;
       const tier = Save.d.armorEquipped;
-      drawCharacter(s.g, s.actor, s.actor.id === 'lino' ? tier : 0, s.actor.id.endsWith('Kid') ? SCALE * 0.95 : SCALE, s.facing, s.actor.pose === 'fallen' ? 0 : this.t);
+      drawCharacter(s.pen, s.actor, s.actor.id === 'lino' ? tier : 0, s.actor.id.endsWith('Kid') ? SCALE * 0.95 : SCALE, s.facing, s.actor.pose === 'fallen' ? 0 : this.t);
+      s.g.clear();
+      s.g.draw(s.pen, FEET_X, FEET_Y);
       s.power.y = 330 + Math.sin(this.t * 2 + (k === 'L' ? 0 : 1)) * 6;
       if (s.actor.pose === 'fallen') s.power.setVisible(false);
     }

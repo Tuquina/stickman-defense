@@ -8,7 +8,7 @@ import { UPGRADES, upgradeCost } from '../data/upgrades';
 import { WEAPON_MAX_LV, WEAPON_ORDER, WEAPONS, weaponLvCost } from '../data/weapons';
 import { drawCharacter } from '../gfx/characters';
 import { drawStickman, POSES } from '../gfx/stickman';
-import { button, drawPanel, fadeIn, go, goldLabel, iconBox } from '../ui/widgets';
+import { button, drawPanel, fadeIn, go, goldLabel, iconBox, onUpdate } from '../ui/widgets';
 
 type Tab = 'mejoras' | 'armas' | 'armaduras';
 
@@ -32,7 +32,7 @@ export class WorkshopScene extends Phaser.Scene {
     this.add.rectangle(GAME_W / 2, GAME_H / 2, GAME_W, GAME_H, 0x05070a, 0.7);
     this.add.text(GAME_W / 2, 60, 'TALLER DEL TÍO CLIP', txt(46, '#ffffff', 9)).setOrigin(0.5);
     const clip = this.add.graphics({ x: 640, y: 150 }).setScale(0.8);
-    this.events.on('update', (_a: number, dt: number) => {
+    onUpdate(this, (_a: number, dt: number) => {
       this.t += dt / 1000;
       drawCharacter(clip, { id: 'clip', eyes: 'cool', mouth: 'grin', pose: 'point' }, 0, 0.9, -1, this.t);
       if (this.preview) {

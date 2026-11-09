@@ -296,7 +296,7 @@ export class BattleScene extends Phaser.Scene {
     this.game.events.on('hidden', this.onHidden, this);
     this.events.once('shutdown', () => this.game.events.off('hidden', this.onHidden, this));
 
-    this.time.delayedCall(400, () => this.startWave(1));
+    this.time.delayedCall(400, () => this.startWave(Math.max(1, DEBUG.wave)));
   }
 
   private onHidden(): void {
@@ -359,8 +359,7 @@ export class BattleScene extends Phaser.Scene {
     const waveText = this.add.text(588, 66, '', txt(34, '#ffffff', 6)).setOrigin(0.5).setDepth(D + 2);
     const pauseBtn = button(this, 672, 52, 64, 64, '', () => this.openPause(), { color: 0x3a4a5e, radius: 14 }).setDepth(D + 3);
     pauseBtn.add(this.add.image(0, 0, 'pause').setScale(0.7));
-    const speedBtn = button(this, 610, 118, 90, 46, `x${this.speed > 2 ? this.speed : this.speed}`, () => this.toggleSpeed(), { color: 0x3a4a5e, size: 24, radius: 12 }).setDepth(D + 3);
-    this.add.image(672, 118, 'chest').setDepth(D + 2).setScale(0.8);
+    const speedBtn = button(this, 650, 118, 90, 46, `x${this.speed > 2 ? this.speed : this.speed}`, () => this.toggleSpeed(), { color: 0x3a4a5e, size: 24, radius: 12 }).setDepth(D + 3);
 
     // milestone bar labels
     for (const m of MILESTONES) {
@@ -864,7 +863,7 @@ export class BattleScene extends Phaser.Scene {
     amt *= 1 - armor;
     e.hp -= amt;
     e.flashT = 0.07;
-    if (!opts.silent) this.dmgText(e.x + Phaser.Math.Between(-14, 14), e.y - e.hitY * 1.6, amt, crit);
+    if (!opts.silent) this.dmgText(e.x + Phaser.Math.Between(-22, 22), e.y - e.hitY * 1.6 + Phaser.Math.Between(-12, 8), amt, crit);
     if (crit) Sound.play('crit', 70);
     else Sound.play('hit', 50);
     if (this.legends.has('ejecutor') && !e.boss && e.hp > 0 && e.hp < e.maxHp * 0.12) {
@@ -1794,7 +1793,7 @@ export class BattleScene extends Phaser.Scene {
     let d = this.dmgTexts.find((q) => !q.active);
     if (!d) {
       if (this.dmgTexts.length >= 45) return;
-      d = { bt: this.add.bitmapText(0, 0, 'dmg', '').setOrigin(0.5).setDepth(3000).setLetterSpacing(-14), t: 0, vy: 0, active: false };
+      d = { bt: this.add.bitmapText(0, 0, 'dmg', '').setOrigin(0.5).setDepth(3000).setLetterSpacing(-19), t: 0, vy: 0, active: false };
       this.dmgTexts.push(d);
     }
     const label = prefix === 'LENTO' ? '' : prefix === '!!' ? '!!' : `${prefix}${fmtShort(amount)}${crit && !prefix ? '!' : ''}`;

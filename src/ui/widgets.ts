@@ -125,3 +125,12 @@ export function go(scene: Phaser.Scene, key: string, data?: object): void {
 }
 
 export const FONT_FAMILY = FONT;
+
+/**
+ * Per-frame callback bound to the scene's lifetime. Scene event emitters survive restarts,
+ * so a raw `scene.events.on('update')` would keep firing with stale objects after re-entry.
+ */
+export function onUpdate(scene: Phaser.Scene, fn: (time: number, delta: number) => void): void {
+  scene.events.on('update', fn);
+  scene.events.once('shutdown', () => scene.events.off('update', fn));
+}
