@@ -33,11 +33,11 @@ export const PASSIVES: Record<PassiveId, PassiveDef> = {
 
 export const SKILLS: Record<SkillId, SkillDef> = {
   lluvia: { id: 'lluvia', name: 'Lluvia de Flechas', desc: '12 flechas caen sobre el grupo más denso', cd: 10, color: 0xc98a4b },
-  rayo: { id: 'rayo', name: 'Cadena de Rayos', desc: 'Un rayo salta entre 6 enemigos', cd: 7, color: 0x6fd8ff },
+  rayo: { id: 'rayo', name: 'Cadena de Rayos', desc: 'Salta entre 6 enemigos · ×2 a marcados', cd: 7, color: 0x6fd8ff },
   bomba: { id: 'bomba', name: 'Bomba de Borrón', desc: 'Gran explosión que empuja', cd: 12, color: 0x9a5cff },
   muro: { id: 'muro', name: 'Muro de Tinta', desc: 'Cura 15% la barricada y empuja a todos', cd: 15, color: 0x2ad4c4 },
-  hielo: { id: 'hielo', name: 'Escarcha de Grafito', desc: 'Congela a todos 2,5 s', cd: 18, color: 0xbfe9ff },
-  tornado: { id: 'tornado', name: 'Tornado de Papel', desc: 'Cruza el campo arrastrando enemigos', cd: 12, color: 0xf0f0f0 },
+  hielo: { id: 'hielo', name: 'Escarcha de Grafito', desc: 'Congela a todos 2,5 s · congelados reciben +25% daño', cd: 18, color: 0xbfe9ff },
+  tornado: { id: 'tornado', name: 'Tornado de Papel', desc: 'Arrastra y agrupa enemigos (combo ideal para bombas)', cd: 12, color: 0xf0f0f0 },
 };
 
 export const LEGENDS: Record<LegendId, LegendDef> = {

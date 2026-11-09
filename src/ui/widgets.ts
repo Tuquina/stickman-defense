@@ -23,6 +23,8 @@ export function drawPanel(g: Phaser.GameObjects.Graphics, x: number, y: number, 
   g.fillRoundedRect(x, y, w, h, r);
   g.fillStyle(0xffffff, 0.07);
   g.fillRoundedRect(x + 4, y + 4, w - 8, Math.min(h * 0.42, 40), { tl: r - 4, tr: r - 4, bl: 4, br: 4 });
+  g.lineStyle(2, 0xffffff, 0.09);
+  g.strokeRoundedRect(x + 5, y + 5, w - 10, h - 10, Math.max(4, r - 5));
 }
 
 export function button(scene: Phaser.Scene, x: number, y: number, w: number, h: number, text: string, onClick: () => void, o: ButtonOpts = {}): Button {

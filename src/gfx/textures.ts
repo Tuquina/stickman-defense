@@ -1,3 +1,4 @@
+import { canvasTexture, stickerize } from './canvas';
 import { drawStickman, POSES, type Look } from './stickman';
 
 type G = Phaser.GameObjects.Graphics;
@@ -121,6 +122,25 @@ export function generateTextures(scene: Phaser.Scene): void {
     g.fillStyle(0x8a4a24, 1); g.fillRoundedRect(2, 4, 44, 16, { tl: 12, tr: 12, bl: 2, br: 2 });
     g.fillStyle(0xffc93c, 1); g.fillRect(2, 18, 44, 5); g.fillRect(20, 14, 8, 14);
     g.fillStyle(0xfff0a0, 1); g.fillRect(22, 18, 4, 6);
+  });
+  bake(scene, 'splat', 120, 120, (g) => {
+    g.fillStyle(0xffffff, 1);
+    g.fillCircle(60, 60, 34);
+    const r = [0.9, 0.3, 1.7, 2.4, 3.3, 4.1, 5.0, 5.8];
+    r.forEach((a, i) => {
+      const d = 36 + (i % 3) * 10;
+      g.fillCircle(60 + Math.cos(a) * d, 60 + Math.sin(a) * d, 8 + (i % 2) * 6);
+      g.fillCircle(60 + Math.cos(a) * (d - 14), 60 + Math.sin(a) * (d - 14), 12);
+    });
+  });
+  // white glove pointer (tutorial)
+  bake(scene, 'hand', 70, 90, (g) => {
+    const outline = (fn: (o: number) => void) => { g.fillStyle(0x0b0b0e, 1); fn(4); g.fillStyle(0xffffff, 1); fn(0); };
+    outline((o) => g.fillRoundedRect(14 - o, 4 - o, 18 + o * 2, 50 + o * 2, 9));
+    outline((o) => g.fillRoundedRect(10 - o, 38 - o, 50 + o * 2, 44 + o * 2, 16));
+    outline((o) => g.fillRoundedRect(30 - o, 34 - o, 14 + o * 2, 24 + o * 2, 7));
+    outline((o) => g.fillRoundedRect(44 - o, 38 - o, 14 + o * 2, 22 + o * 2, 7));
+    g.fillStyle(0xd8dee6, 1); g.fillRoundedRect(16, 62, 40, 6, 3);
   });
   bake(scene, 'gear', 48, 48, (g) => {
     g.fillStyle(0xffffff, 1);
@@ -319,6 +339,116 @@ export function generateTextures(scene: Phaser.Scene): void {
 
   // ------------------------------------------------------------ icons
   generateIcons(scene);
+  generatePassiveIcons(scene);
+
+  // ------------------------------------------------------------ finish: outline + shading on every sprite
+  const PAD = 3;
+  for (const id of Object.keys(ENEMY_TEX)) {
+    for (let f = 0; f < 2; f++) stickerize(scene, `e_${id}_${f}`, { pad: PAD });
+    ENEMY_TEX[id].w += PAD * 2;
+    ENEMY_TEX[id].h += PAD * 2;
+  }
+  for (const k of ['p_arrow', 'p_arrowGold', 'p_bullet', 'p_pellet', 'p_star', 'p_starGold', 'p_turret', 'p_earrow', 'p_bomb', 'p_fall', 'turret', 'coin', 'xp', 'stake', 'rock', 'chest', 'lock']) {
+    stickerize(scene, k, { pad: 2 });
+  }
+
+  // ink splash behind the logo
+  canvasTexture(scene, 'inksplash', 680, 340, (ctx, w, h) => {
+    const r = (seed: number) => () => { seed = (seed * 16807) % 2147483647; return seed / 2147483647; };
+    const rnd = r(42);
+    ctx.fillStyle = 'rgba(8,10,14,0.82)';
+    ctx.beginPath();
+    ctx.ellipse(w / 2, h / 2, w * 0.44, h * 0.34, 0, 0, Math.PI * 2);
+    ctx.fill();
+    for (let i = 0; i < 26; i++) {
+      const a = rnd() * Math.PI * 2;
+      const d = 0.8 + rnd() * 0.35;
+      ctx.beginPath();
+      ctx.arc(w / 2 + Math.cos(a) * w * 0.44 * d, h / 2 + Math.sin(a) * h * 0.34 * d, 8 + rnd() * 26, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    for (let i = 0; i < 7; i++) {
+      const x = w * 0.2 + rnd() * w * 0.6;
+      const len = 30 + rnd() * 80;
+      ctx.fillRect(x - 5, h * 0.6, 10, len + h * 0.15);
+      ctx.beginPath();
+      ctx.arc(x, h * 0.75 + len, 9, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  });
+
+  // radial vignette (battle mood + danger pulse)
+  canvasTexture(scene, 'vignette', 360, 640, (ctx, w, h) => {
+    const g = ctx.createRadialGradient(w / 2, h / 2, h * 0.28, w / 2, h / 2, h * 0.62);
+    g.addColorStop(0, 'rgba(0,0,0,0)');
+    g.addColorStop(1, 'rgba(0,0,0,0.85)');
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, w, h);
+  });
+}
+
+/** Drawn icons for passives and permanent upgrades (shared visual language). */
+function generatePassiveIcons(scene: Phaser.Scene): void {
+  const W = 0xffffff;
+  const D = 0x0b0b0e;
+  const icon = (key: string, color: number, draw: (g: G) => void) => bake(scene, key, 72, 72, (g) => { iconBg(g, color); draw(g); });
+  icon('pi_filo', 0xc8402e, (g) => {
+    g.fillStyle(D, 1); g.fillPoints(pts([[50, 8], [62, 10], [26, 50], [20, 44]]), true);
+    g.fillStyle(0xe8eef4, 1); g.fillPoints(pts([[51, 11], [59, 12], [26, 46], [23, 43]]), true);
+    g.fillStyle(0xffc93c, 1); g.fillRect(12, 46, 22, 7); g.fillRect(17, 50, 7, 16);
+    g.fillStyle(D, 1); g.fillCircle(20, 66, 4);
+  });
+  icon('pi_prisa', 0x1f9ab0, (g) => {
+    g.lineStyle(5, W, 1);
+    for (let i = 0; i < 3; i++) g.lineBetween(10, 22 + i * 14, 34 - i * 4, 22 + i * 14);
+    g.fillStyle(W, 1); g.fillPoints(pts([[36, 14], [62, 36], [36, 58], [44, 36]]), true);
+  });
+  icon('pi_critico', 0xd89a1c, (g) => {
+    g.lineStyle(5, W, 1); g.strokeCircle(36, 38, 20); g.strokeCircle(36, 38, 9);
+    g.lineBetween(36, 10, 36, 22); g.lineBetween(36, 54, 36, 66); g.lineBetween(8, 38, 20, 38); g.lineBetween(52, 38, 64, 38);
+    g.fillStyle(0xff3b3b, 1); g.fillCircle(36, 38, 5);
+  });
+  icon('pi_combo', 0xd8641c, (g) => {
+    for (const y of [26, 46]) {
+      g.lineStyle(4, W, 1); g.lineBetween(10, y, 52, y);
+      g.fillStyle(W, 1); g.fillPoints(pts([[50, y - 8], [64, y], [50, y + 8]]), true);
+    }
+  });
+  icon('pi_estacas', 0x7a4a2a, (g) => {
+    for (const x of [18, 36, 54]) {
+      g.fillStyle(0x3a2116, 1); g.fillPoints(pts([[x - 7, 64], [x - 7, 22], [x, 10], [x + 7, 22], [x + 7, 64]]), true);
+      g.fillStyle(0xb07a50, 1); g.fillPoints(pts([[x - 4, 62], [x - 4, 24], [x, 15], [x + 4, 24], [x + 4, 62]]), true);
+    }
+    g.fillStyle(0xd8dee6, 1); g.fillRect(8, 36, 56, 6);
+  });
+  icon('pi_savia', 0x2e8a4a, (g) => {
+    g.fillStyle(0x9aff9a, 1); g.fillPoints(pts([[14, 60], [20, 26], [52, 12], [46, 46]]), true);
+    g.lineStyle(3, 0x1e5a2e, 1); g.lineBetween(16, 58, 46, 22);
+    g.fillStyle(W, 1); g.fillRect(48, 44, 16, 6); g.fillRect(53, 39, 6, 16);
+  });
+  icon('pi_mente', 0x5a5cd8, (g) => {
+    g.fillStyle(W, 1); g.fillRect(18, 10, 36, 6); g.fillRect(18, 58, 36, 6);
+    g.fillPoints(pts([[22, 16], [50, 16], [38, 37], [50, 58], [22, 58], [34, 37]]), true);
+    g.fillStyle(0xffd34d, 1); g.fillPoints(pts([[28, 22], [44, 22], [36, 34]]), true); g.fillPoints(pts([[36, 44], [46, 56], [26, 56]]), true);
+  });
+  icon('pi_perforacion', 0x6a7480, (g) => {
+    g.fillStyle(0x3a4048, 1); g.fillCircle(30, 36, 11); g.fillCircle(50, 36, 11);
+    g.lineStyle(4, W, 1); g.lineBetween(6, 36, 60, 36);
+    g.fillStyle(W, 1); g.fillPoints(pts([[58, 28], [68, 36], [58, 44]]), true);
+  });
+  icon('pi_sabiduria', 0x1f8a80, (g) => {
+    g.fillStyle(W, 1); g.fillPoints(pts([[8, 20], [35, 26], [35, 62], [8, 56]]), true); g.fillPoints(pts([[64, 20], [37, 26], [37, 62], [64, 56]]), true);
+    g.lineStyle(2, 0x1f8a80, 1); for (let i = 0; i < 3; i++) { g.lineBetween(13, 32 + i * 8, 30, 36 + i * 8); g.lineBetween(42, 36 + i * 8, 59, 32 + i * 8); }
+  });
+  icon('pi_bolsillos', 0xb88a14, (g) => {
+    g.fillStyle(0x6a4a24, 1); g.fillCircle(36, 44, 22); g.fillPoints(pts([[26, 22], [46, 22], [40, 28], [32, 28]]), true);
+    g.fillStyle(0xffd34d, 1); g.fillCircle(36, 46, 11);
+    g.fillStyle(0x6a4a24, 1); g.fillRect(34, 39, 4, 14);
+  });
+  icon('pi_furia', 0xc8243e, (g) => {
+    g.fillStyle(0xffb340, 1); g.fillPoints(pts([[36, 6], [56, 34], [52, 60], [36, 68], [20, 60], [16, 36], [26, 44], [28, 22]]), true);
+    g.fillStyle(0xfff0a0, 1); g.fillPoints(pts([[36, 30], [46, 48], [36, 62], [26, 48]]), true);
+  });
 }
 
 function iconBg(g: G, color: number): void {

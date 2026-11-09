@@ -69,7 +69,8 @@ export class MenuScene extends Phaser.Scene {
 
     onUpdate(this, (_t: number, dt: number) => {
       this.t += dt / 1000;
-      drawStickman(hero.clear(), 0, 0, 2.6, POSES.idle(this.t), { tier: d.armorEquipped, eyes: 'determined', weapon: d.lastWeapon }, 1, this.t);
+      hero.clear().fillStyle(0x000000, 0.3).fillEllipse(0, 4, 110, 26);
+      drawStickman(hero, 0, 0, 2.6, POSES.idle(this.t), { tier: d.armorEquipped, eyes: 'determined', weapon: d.lastWeapon }, 1, this.t);
       drawCharacter(goalPen, { id: 'dante', eyes: 'smug', pose: 'cross' }, 0, 2.0, -1, this.t);
       goal.clear().draw(goalPen, 200, 460);
     });

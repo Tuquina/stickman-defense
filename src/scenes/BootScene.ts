@@ -82,6 +82,7 @@ export class BootScene extends Phaser.Scene {
     this.add.rectangle(GAME_W / 2, GAME_H / 2, GAME_W, GAME_H, 0x000000, 0.35);
     const lino = this.add.graphics({ x: 230, y: 1010 });
     const dante = this.add.graphics({ x: 500, y: 1010 });
+    this.add.image(GAME_W / 2, 270, 'inksplash');
     const title = this.add.text(GAME_W / 2, 250, 'JURAMENTO\nDE TINTA', { ...txt(96, '#ffffff', 14), lineSpacing: -10 }).setOrigin(0.5);
     title.setShadow(0, 6, '#2ad4c4', 0, true, false);
     this.add.text(GAME_W / 2, 420, 'Hermanos de trazo. Enemigos de poder.', txt(28, '#bfe9ff', 6)).setOrigin(0.5);

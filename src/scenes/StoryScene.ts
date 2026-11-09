@@ -6,6 +6,7 @@ import { power } from '../core/stats';
 import { CHAR_NAMES, STORY, type Actor, type Beat, type StoryScene as StoryDef } from '../data/story';
 import { drawCharacter } from '../gfx/characters';
 import { button } from '../ui/widgets';
+import { ensureBackground } from '../gfx/backgrounds';
 
 interface Next { scene: string; data?: object }
 interface Slot {
@@ -58,6 +59,7 @@ export class StoryScene extends Phaser.Scene {
   create(): void {
     this.cameras.main.fadeIn(300, 0, 0, 0);
     Sound.music(this.def.music);
+    for (const b of [this.def.bg, ...this.def.beats.map((x) => x.bg)]) if (b) ensureBackground(this, b);
     this.bg = this.add.image(GAME_W / 2, GAME_H / 2, this.def.bg);
     this.shade = this.add.rectangle(GAME_W / 2, GAME_H / 2, GAME_W, GAME_H, 0x000000, 0).setDepth(5);
     this.tint = this.add.rectangle(GAME_W / 2, GAME_H / 2, GAME_W, GAME_H, 0xa040ff, 0).setDepth(6);

@@ -9,9 +9,10 @@ import { DEFEAT_QUIPS, VICTORY_QUIPS } from '../data/story';
 import { WEAPONS, type WeaponId } from '../data/weapons';
 import { drawCharacter } from '../gfx/characters';
 import { button, drawPanel, fadeIn, go, onUpdate } from '../ui/widgets';
+import { ensureBackground } from '../gfx/backgrounds';
 
 interface Result {
-  chapter: ChapterId; victory: boolean; wave: number; kills: number; gold: number; rankXp: number;
+  chapter: ChapterId; victory: boolean; wave: number; kills: number; bestCombo?: number; gold: number; rankXp: number;
   level: number; firstClear: boolean; rankBefore: number; weapon: WeaponId;
 }
 
@@ -35,6 +36,7 @@ export class ResultsScene extends Phaser.Scene {
     Save.write();
     Sound.music(r.victory ? 'menu' : 'sad');
 
+    ensureBackground(this, ch.bg);
     this.add.image(GAME_W / 2, GAME_H / 2, ch.bg);
     this.add.rectangle(GAME_W / 2, GAME_H / 2, GAME_W, GAME_H, 0x05070a, 0.75);
     const title = this.add.text(GAME_W / 2, 120, r.victory ? '¡VICTORIA!' : 'DERROTA', txt(92, r.victory ? '#ffd34d' : '#ff4a6a', 14)).setOrigin(0.5).setScale(0.5);
@@ -42,16 +44,17 @@ export class ResultsScene extends Phaser.Scene {
     this.add.text(GAME_W / 2, 200, `${ch.num} · ${ch.name}`, txt(28, '#bfe9ff', 6)).setOrigin(0.5);
 
     const g = this.add.graphics();
-    drawPanel(g, 60, 250, 600, 420, 0x1c2a44, 0x05070a, 20);
+    drawPanel(g, 60, 250, 600, 480, 0x1c2a44, 0x05070a, 20);
     const rows: [string, string, string][] = [
       ['Oleada alcanzada', ch.waves === Infinity ? `${r.wave}` : `${r.wave}/${ch.waves}`, '#ffffff'],
       ['Nivel en batalla', `Lv.${r.level}`, '#5fe0d2'],
       ['Enemigos eliminados', fmt(r.kills), '#ffffff'],
+      ['Mejor combo', `×${r.bestCombo ?? 0}`, '#ffb340'],
       ['XP de Rango', `+${fmt(r.rankXp)}`, '#5fe0d2'],
       ['Oro ganado', `+${fmt(r.gold)}`, '#ffd34d'],
     ];
     rows.forEach(([k, v, c], i) => {
-      const y = 300 + i * 72;
+      const y = 290 + i * 70;
       this.add.text(100, y, k, txt(30, '#bfc8d4', 5)).setOrigin(0, 0);
       const vt = this.add.text(620, y, v, txt(36, c, 6)).setOrigin(1, 0).setAlpha(0);
       this.tweens.add({ targets: vt, alpha: 1, x: { from: 660, to: 620 }, delay: 250 + i * 160, duration: 220, onStart: () => Sound.play('coin', 0) });
@@ -69,7 +72,7 @@ export class ResultsScene extends Phaser.Scene {
       if (i > d.armorSeen && armorUnlocked(d, i)) unlocks.push(`Armadura: ${a.name}`);
     });
     unlocks.forEach((u, i) => {
-      const t = this.add.text(GAME_W / 2, 715 + i * 44, u, txt(30, '#6aff8a', 6)).setOrigin(0.5).setAlpha(0);
+      const t = this.add.text(GAME_W / 2, 770 + i * 40, u, txt(30, '#6aff8a', 6)).setOrigin(0.5).setAlpha(0);
       this.tweens.add({ targets: t, alpha: 1, delay: 1100 + i * 200, duration: 300, onStart: () => Sound.play('legend', 0) });
     });
 

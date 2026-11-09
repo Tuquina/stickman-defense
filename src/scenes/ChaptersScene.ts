@@ -3,6 +3,7 @@ import { Sound } from '../core/audio';
 import { Save } from '../core/save';
 import { CHAPTER_ORDER, CHAPTERS, type ChapterId } from '../data/chapters';
 import { button, drawPanel, fadeIn, go } from '../ui/widgets';
+import { ensureBackground } from '../gfx/backgrounds';
 
 export class ChaptersScene extends Phaser.Scene {
   constructor() {
@@ -12,6 +13,7 @@ export class ChaptersScene extends Phaser.Scene {
   create(): void {
     fadeIn(this);
     Sound.music('menu');
+    for (const id of CHAPTER_ORDER) ensureBackground(this, CHAPTERS[id].bg);
     this.add.image(GAME_W / 2, GAME_H / 2, 'bg_dusk');
     this.add.rectangle(GAME_W / 2, GAME_H / 2, GAME_W, GAME_H, 0x05070a, 0.6);
     this.add.text(GAME_W / 2, 90, 'ELIGE TU BATALLA', txt(52, '#ffffff', 10)).setOrigin(0.5);

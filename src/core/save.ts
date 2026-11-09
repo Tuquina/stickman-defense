@@ -19,7 +19,8 @@ export interface SaveData {
   armorSeen: number; // highest armor tier the player has been notified about
   chapters: Record<ChapterId, ChapterProgress>;
   storySeen: string[];
-  settings: { music: boolean; sfx: boolean; vibrate: boolean; speed2: boolean };
+  settings: { music: boolean; sfx: boolean; vibrate: boolean; speed2: boolean; lowFx: boolean };
+  tutorial: { mark: boolean; skill: boolean; fury: boolean };
   stats: { runs: number; kills: number; bossKills: number; goldEarned: number };
 }
 
@@ -41,7 +42,8 @@ function fresh(): SaveData {
       abismo: { cleared: false, bestWave: 0 },
     },
     storySeen: [],
-    settings: { music: true, sfx: true, vibrate: true, speed2: false },
+    settings: { music: true, sfx: true, vibrate: true, speed2: false, lowFx: false },
+    tutorial: { mark: false, skill: false, fury: false },
     stats: { runs: 0, kills: 0, bossKills: 0, goldEarned: 0 },
   };
 }

@@ -50,11 +50,13 @@ export class SettingsScene extends Phaser.Scene {
       }, { size: 34, color: get() ? 0x2a9d8f : 0x5a3a3a });
     };
     toggle(230, 'MÚSICA', () => s.music, (v) => { s.music = v; });
-    toggle(340, 'EFECTOS', () => s.sfx, (v) => { s.sfx = v; });
+    toggle(340, 'SONIDOS', () => s.sfx, (v) => { s.sfx = v; });
     toggle(450, 'VIBRACIÓN', () => s.vibrate, (v) => { s.vibrate = v; });
+    toggle(560, 'EFECTOS VISUALES', () => !s.lowFx, (v) => { s.lowFx = !v; });
+    this.add.text(GAME_W / 2, 618, 'Desactívalos si tu celular va lento', txt(20, '#9aa8b8', 4)).setOrigin(0.5);
 
     let step = 0;
-    const reset = button(this, GAME_W / 2, 600, 520, 90, 'BORRAR PROGRESO', () => {
+    const reset = button(this, GAME_W / 2, 700, 520, 90, 'BORRAR PROGRESO', () => {
       step++;
       if (step === 1) {
         reset.label.setText('¿SEGURO? TOCA OTRA VEZ');
@@ -66,9 +68,9 @@ export class SettingsScene extends Phaser.Scene {
     }, { size: 30, color: 0xb83a3a });
 
     const g = this.add.graphics();
-    drawPanel(g, 60, 700, 600, 420, 0x1c2a44, 0x05070a, 18);
-    this.add.text(GAME_W / 2, 740, 'CRÉDITOS', txt(34, '#ffc93c', 6)).setOrigin(0.5);
-    this.add.text(GAME_W / 2, 910, [
+    drawPanel(g, 60, 790, 600, 340, 0x1c2a44, 0x05070a, 18);
+    this.add.text(GAME_W / 2, 830, 'CRÉDITOS', txt(34, '#ffc93c', 6)).setOrigin(0.5);
+    this.add.text(GAME_W / 2, 975, [
       'Juramento de Tinta · v0.1 (MVP)',
       'Diseño, código, arte y música: generados',
       'por código (Phaser 3 + WebAudio).',
