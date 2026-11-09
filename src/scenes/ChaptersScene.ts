@@ -1,4 +1,4 @@
-import { GAME_H, GAME_W, txt } from '../config';
+import { GAME_H, GAME_W, ttl, txt } from '../config';
 import { Sound } from '../core/audio';
 import { Save } from '../core/save';
 import { CHAPTER_ORDER, CHAPTERS, type ChapterId } from '../data/chapters';
@@ -16,7 +16,7 @@ export class ChaptersScene extends Phaser.Scene {
     for (const id of CHAPTER_ORDER) ensureBackground(this, CHAPTERS[id].bg);
     this.add.image(GAME_W / 2, GAME_H / 2, 'bg_dusk');
     this.add.rectangle(GAME_W / 2, GAME_H / 2, GAME_W, GAME_H, 0x05070a, 0.6);
-    this.add.text(GAME_W / 2, 90, 'ELIGE TU BATALLA', txt(52, '#ffffff', 10)).setOrigin(0.5);
+    this.add.text(GAME_W / 2, 90, 'ELIGE TU BATALLA', ttl(50, '#ffffff', 10)).setOrigin(0.5);
     const line = this.add.graphics();
     line.lineStyle(2, 0x6a8aa8, 1).lineBetween(180, 140, 540, 140);
     line.fillStyle(0xbfe9ff, 1).fillPoints([new Phaser.Math.Vector2(360, 132), new Phaser.Math.Vector2(368, 140), new Phaser.Math.Vector2(360, 148), new Phaser.Math.Vector2(352, 140)], true);

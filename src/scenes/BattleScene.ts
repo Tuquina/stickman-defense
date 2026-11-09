@@ -1,4 +1,4 @@
-import { COLORS, FIELD, GAME_H, GAME_W, txt } from '../config';
+import { COLORS, FIELD, GAME_H, GAME_W, ttl, txt } from '../config';
 import { Sound } from '../core/audio';
 import { DEBUG } from '../core/debug';
 import { clamp, fmt, fmtShort, pick, shuffle } from '../core/format';
@@ -661,7 +661,8 @@ export class BattleScene extends Phaser.Scene {
       const id = endless ? ABISMO_BOSSES[Math.floor(n / 10 - 1) % ABISMO_BOSSES.length] : this.ch.boss;
       this.bossId = id;
       this.spawnQ.push({ t: 1.5, id, y: (FIELD.top + FIELD.bottom) / 2 + 20 });
-      Sound.music(id === 'dante' ? 'final' : 'boss');
+      // each act has its own boss theme; Dante has the final duel theme
+      Sound.music(id === 'dante' ? 'final' : ['c4', 'c5', 'c6', 'abismo'].includes(this.ch.id) ? 'boss2' : 'boss');
     }
     this.spawnQ.sort((a, b) => a.t - b.t);
     this.banner(isBoss ? '¡JEFE!' : isMini ? `OLEADA ${n} · MINI-JEFE` : `OLEADA ${n}`, isBoss ? '#ff4a6a' : '#ffffff');
@@ -1684,7 +1685,7 @@ export class BattleScene extends Phaser.Scene {
     this.modalLayer = L;
     const dim = this.add.rectangle(GAME_W / 2, GAME_H / 2, GAME_W, GAME_H, 0x000000, 0.72).setInteractive();
     L.add(dim);
-    const tt = this.add.text(GAME_W / 2, 300, title, txt(legend ? 46 : 52, legend ? '#e0a0ff' : '#ffffff', 10)).setOrigin(0.5);
+    const tt = this.add.text(GAME_W / 2, 300, title, ttl(legend ? 44 : 50, legend ? '#e0a0ff' : '#ffffff', 10)).setOrigin(0.5);
     L.add(tt);
     L.add(this.add.text(GAME_W / 2, 356, subtitle ?? (legend ? 'Elige un poder legendario' : `Nivel ${this.level}`), txt(26, '#bfe9ff', 5)).setOrigin(0.5));
     const lockUntil = this.time.now + 350;
@@ -1697,10 +1698,10 @@ export class BattleScene extends Phaser.Scene {
       drawPanel(g, -335, -95, 670, 190, legend ? 0x2a1a44 : 0x1c2a44, edge, 16);
       cc.add(g);
       cc.add(iconBox(this, -250, 0, 120, info.icon, info.glyph, info.color));
-      cc.add(this.add.text(-170, -66, info.name, txt(36, '#ffc93c', 7)).setOrigin(0, 0));
+      cc.add(this.add.text(-170, -74, info.name, txt(34, '#ffc93c', 7)).setOrigin(0, 0));
       cc.add(this.add.text(310, -50, info.tag, txt(22, legend ? '#e0a0ff' : '#ffc93c', 5)).setOrigin(1, 0.5));
-      cc.add(this.add.text(-170, -14, info.desc, { ...txt(25, '#ffffff', 5), wordWrap: { width: 470 }, align: 'left' }).setOrigin(0, 0));
-      if (info.max > 0) cc.add(stars(this, -160, 66, Math.min(info.lv, info.max), info.max, 24));
+      cc.add(this.add.text(-170, -28, info.desc, { ...txt(23, '#ffffff', 5), wordWrap: { width: 480 }, align: 'left', lineSpacing: -2 }).setOrigin(0, 0));
+      if (info.max > 0) cc.add(stars(this, -160, 72, Math.min(info.lv, info.max), info.max, 22));
       const z = this.add.zone(0, 0, 670, 190).setInteractive({ useHandCursor: true });
       cc.add(z);
       z.on('pointerdown', () => {
@@ -2214,7 +2215,7 @@ export class BattleScene extends Phaser.Scene {
     const D = 7000;
     const top = this.add.rectangle(GAME_W / 2, -70, GAME_W, 140, 0x000000).setDepth(D);
     const bot = this.add.rectangle(GAME_W / 2, GAME_H + 70, GAME_W, 140, 0x000000).setDepth(D);
-    const name = this.add.text(GAME_W / 2, 560, def.name.toUpperCase(), txt(64, '#ffffff', 12)).setOrigin(0.5).setDepth(D).setAlpha(0).setScale(1.4);
+    const name = this.add.text(GAME_W / 2, 560, def.name.toUpperCase(), ttl(60, '#ffffff', 12)).setOrigin(0.5).setDepth(D).setAlpha(0).setScale(1.4);
     name.setShadow(0, 0, '#d050ff', 20, true, true);
     const st = this.add.text(GAME_W / 2, 625, sub[def.id] ?? 'Jefe', txt(28, '#d8b0ff', 6)).setOrigin(0.5).setDepth(D).setAlpha(0);
     const qt = this.add.text(GAME_W / 2, 680, quote[def.id] ?? '', { ...txt(26, '#ffffff', 6), wordWrap: { width: 640 } }).setOrigin(0.5).setDepth(D).setAlpha(0);
@@ -2420,7 +2421,7 @@ export class BattleScene extends Phaser.Scene {
   }
 
   private banner(text: string, color: string, y = 330, size = 64): void {
-    const t = this.add.text(GAME_W / 2, y, text, { ...txt(size, color, 12), wordWrap: { width: 680 } }).setOrigin(0.5).setDepth(4000).setScale(0.4).setAlpha(0);
+    const t = this.add.text(GAME_W / 2, y, text, { ...ttl(size, color, 12), wordWrap: { width: 680 } }).setOrigin(0.5).setDepth(4000).setScale(0.4).setAlpha(0);
     this.tweens.add({ targets: t, scale: 1, alpha: 1, duration: 260, ease: 'Back.easeOut' });
     this.tweens.add({ targets: t, alpha: 0, y: y - 40, delay: 1300, duration: 400, onComplete: () => t.destroy() });
   }
@@ -2435,7 +2436,7 @@ export class BattleScene extends Phaser.Scene {
     const g = this.add.graphics();
     drawPanel(g, 80, 250, 560, 800, 0x1c2a44, 0x05070a, 22);
     L.add(g);
-    L.add(this.add.text(GAME_W / 2, 310, 'PAUSA', txt(60, '#ffffff', 10)).setOrigin(0.5));
+    L.add(this.add.text(GAME_W / 2, 310, 'PAUSA', ttl(60, '#ffffff', 10)).setOrigin(0.5));
     // run summary
     const waves = this.ch.waves === Infinity ? `${this.wave}` : `${this.wave}/${this.ch.waves}`;
     L.add(this.add.text(GAME_W / 2, 368, `${this.ch.num} · ${this.ch.name}`, txt(24, '#ffd34d', 5)).setOrigin(0.5));

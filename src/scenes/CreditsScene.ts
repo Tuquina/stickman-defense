@@ -1,4 +1,4 @@
-import { GAME_H, GAME_W, txt } from '../config';
+import { GAME_H, GAME_W, ttl, txt } from '../config';
 import { Sound } from '../core/audio';
 import { Save } from '../core/save';
 import { drawCharacter } from '../gfx/characters';
@@ -55,7 +55,7 @@ export class CreditsScene extends Phaser.Scene {
     const c = this.add.container(0, GAME_H);
     let y = 0;
     for (const [text, size, color] of lines) {
-      c.add(this.add.text(GAME_W / 2, y, text, txt(size, color, 7)).setOrigin(0.5));
+      c.add(this.add.text(GAME_W / 2, y, text, size >= 40 ? ttl(size, color, 9) : txt(size, color, 7)).setOrigin(0.5));
       y += size + 26;
     }
     const total = y + GAME_H * 0.55;
