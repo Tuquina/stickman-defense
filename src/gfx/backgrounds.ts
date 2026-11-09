@@ -459,10 +459,210 @@ function courtyard(ctx: Ctx, dusk: boolean): void {
   grain(ctx, W, H, 9000, dusk ? 5 : 3);
 }
 
+
+// ------------------------------------------------------------------ chapter 4: Marisma de Tinta
+function marsh(ctx: Ctx): void {
+  const r = rng(41);
+  vgrad(ctx, 0, 0, W, 440, [[0, '#0a1a22'], [0.55, '#1d3d44'], [1, '#3e6a62']]);
+  // moon behind mist
+  glow(ctx, 170, 270, 200, 'rgba(210,240,230,0.55)');
+  blob(ctx, 170, 270, 46, 46, '#e8f6ee');
+  blob(ctx, 186, 260, 40, 40, 'rgba(10,26,34,0.25)');
+  for (let i = 0; i < 6; i++) cloud(ctx, r() * W, 80 + r() * 200, 0.9 + r() * 0.6, 'rgba(120,170,160,0.25)', 'rgba(30,60,60,0.25)');
+  // dead trees silhouettes
+  const deadTree = (x: number, base: number, h: number, color: string) => {
+    ctx.strokeStyle = color;
+    ctx.lineCap = 'round';
+    ctx.lineWidth = 14;
+    ctx.beginPath(); ctx.moveTo(x, base); ctx.quadraticCurveTo(x + 10, base - h * 0.5, x - 6, base - h); ctx.stroke();
+    ctx.lineWidth = 6;
+    for (let i = 0; i < 4; i++) {
+      const y = base - h * (0.45 + i * 0.13);
+      const dir = i % 2 ? 1 : -1;
+      ctx.beginPath(); ctx.moveTo(x, y); ctx.quadraticCurveTo(x + dir * 30, y - 20, x + dir * (50 + r() * 30), y - 40 - r() * 20); ctx.stroke();
+    }
+  };
+  for (let i = 0; i < 6; i++) deadTree(30 + i * 130 + r() * 40, 430, 220 + r() * 120, 'rgba(22,44,46,0.9)');
+  for (const x of [80, 560]) deadTree(x, 440, 380, '#0b1a1e');
+  vgrad(ctx, 0, 300, W, 140, [[0, 'rgba(160,210,200,0)'], [1, 'rgba(160,210,200,0.35)']]);
+  // water + mud ground
+  vgrad(ctx, 0, 405, W, 525, [[0, '#28504c'], [0.3, '#1e403c'], [1, '#10261f']]);
+  for (let i = 0; i < 12; i++) {
+    const x = r() * W;
+    const y = 440 + r() * 460;
+    const g = ctx.createRadialGradient(x, y, 0, x, y, 110);
+    g.addColorStop(0, 'rgba(30,70,80,0.55)');
+    g.addColorStop(1, 'rgba(30,70,80,0)');
+    ctx.fillStyle = g;
+    ctx.beginPath(); ctx.ellipse(x, y, 130, 26, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.strokeStyle = 'rgba(200,240,230,0.12)';
+    ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.ellipse(x, y, 60, 9, 0, Math.PI * 1.1, Math.PI * 1.9); ctx.stroke();
+  }
+  // reeds
+  for (let i = 0; i < 30; i++) {
+    const x = r() * W;
+    const y = 420 + r() * 490;
+    ctx.strokeStyle = r() < 0.5 ? '#2a5a3e' : '#3e7a52';
+    ctx.lineWidth = 3;
+    for (let k = 0; k < 3; k++) {
+      ctx.beginPath(); ctx.moveTo(x + k * 5, y); ctx.quadraticCurveTo(x + k * 5 + 4, y - 20, x + k * 7 - 4, y - 36 - r() * 16); ctx.stroke();
+    }
+    if (r() < 0.4) blob(ctx, x + 5, y - 40, 3, 9, '#5a3a22');
+  }
+  // will-o-wisps
+  for (let i = 0; i < 14; i++) {
+    const x = r() * W;
+    const y = 160 + r() * 740;
+    glow(ctx, x, y, 16, 'rgba(120,255,220,0.6)');
+    blob(ctx, x, y, 2.5, 2.5, '#e8fff8');
+  }
+  vgrad(ctx, 0, 398, W, 60, [[0, 'rgba(180,230,220,0.35)'], [1, 'rgba(180,230,220,0)']]);
+  lowerArea(ctx, '#0c1c18', '#040a08');
+  grain(ctx, W, H, 9000, 41);
+}
+
+// ------------------------------------------------------------------ chapter 5: Torre del Olvido
+function tower(ctx: Ctx): void {
+  const r = rng(53);
+  vgrad(ctx, 0, 0, W, 440, [[0, '#1a1838'], [0.6, '#2e2c5a'], [1, '#4a4478']]);
+  // tall bookshelves
+  const spines = ['#7a2a2a', '#2a4a7a', '#2a6a4a', '#7a5a2a', '#5a2a6a', '#2a5a5a', '#8a7a5a'];
+  for (const [x0, w] of [[0, 170], [550, 170]]) {
+    vgrad(ctx, x0, 0, w, 440, [[0, '#2a1e18'], [1, '#3e2c22']]);
+    for (let row = 0; row < 8; row++) {
+      const y = 20 + row * 52;
+      ctx.fillStyle = '#1a120e';
+      ctx.fillRect(x0, y + 44, w, 8);
+      let x = x0 + 8;
+      while (x < x0 + w - 12) {
+        const bw = 8 + r() * 10;
+        const bh = 30 + r() * 12;
+        ctx.fillStyle = spines[Math.floor(r() * spines.length)];
+        ctx.fillRect(x, y + 44 - bh, bw, bh);
+        ctx.fillStyle = 'rgba(255,255,255,0.15)';
+        ctx.fillRect(x + 1, y + 44 - bh, 2, bh);
+        x += bw + 1;
+      }
+    }
+    ctx.fillStyle = 'rgba(0,0,0,0.35)';
+    ctx.fillRect(x0 === 0 ? w - 20 : x0, 0, 20, 440);
+  }
+  // central arched window with purple light
+  ctx.fillStyle = '#0c0a1e';
+  ctx.beginPath(); ctx.moveTo(250, 420); ctx.lineTo(250, 170); ctx.arc(360, 170, 110, Math.PI, 0); ctx.lineTo(470, 420); ctx.fill();
+  glow(ctx, 360, 210, 190, 'rgba(160,100,255,0.55)');
+  ctx.strokeStyle = '#3a2c22';
+  ctx.lineWidth = 8;
+  ctx.beginPath(); ctx.moveTo(360, 60); ctx.lineTo(360, 420); ctx.moveTo(250, 250); ctx.lineTo(470, 250); ctx.stroke();
+  // floating pages
+  for (let i = 0; i < 18; i++) {
+    const x = 180 + r() * 360;
+    const y = 60 + r() * 330;
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.rotate((r() - 0.5) * 1.2);
+    ctx.fillStyle = 'rgba(240,234,214,0.85)';
+    ctx.fillRect(-9, -12, 18, 24);
+    ctx.fillStyle = 'rgba(120,110,90,0.6)';
+    for (let k = 0; k < 4; k++) ctx.fillRect(-6, -8 + k * 5, 12, 1.5);
+    ctx.restore();
+  }
+  // paper floor with ink stains
+  vgrad(ctx, 0, 405, W, 525, [[0, '#cfc6ae'], [0.4, '#b0a68c'], [1, '#6e6656']]);
+  ctx.strokeStyle = 'rgba(80,70,50,0.25)';
+  ctx.lineWidth = 2;
+  for (let y = 430; y < 930; y += 34) { ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke(); }
+  for (let i = 0; i < 12; i++) blob(ctx, r() * W, 440 + r() * 460, 30 + r() * 50, 8 + r() * 10, 'rgba(30,24,60,0.35)');
+  for (let i = 0; i < 10; i++) {
+    const x = r() * W;
+    const y = 440 + r() * 450;
+    ctx.save(); ctx.translate(x, y); ctx.rotate((r() - 0.5) * 2);
+    ctx.fillStyle = '#eee6cc'; ctx.fillRect(-12, -8, 24, 16);
+    ctx.restore();
+  }
+  // purple light falling on the floor
+  const lg = ctx.createRadialGradient(360, 470, 10, 360, 470, 340);
+  lg.addColorStop(0, 'rgba(170,110,255,0.35)');
+  lg.addColorStop(1, 'rgba(170,110,255,0)');
+  ctx.fillStyle = lg;
+  ctx.fillRect(0, 400, W, 530);
+  lowerArea(ctx, '#2a2620', '#0c0a08');
+  grain(ctx, W, H, 9000, 53);
+}
+
+// ------------------------------------------------------------------ chapter 6: Trono de la Corona
+function throne(ctx: Ctx): void {
+  const r = rng(67);
+  vgrad(ctx, 0, 0, W, 440, [[0, '#06020c'], [0.5, '#2a0a3a'], [1, '#5a1a4a']]);
+  for (let i = 0; i < 60; i++) blob(ctx, r() * W, r() * 300, 1.1, 1.1, 'rgba(255,220,255,0.7)');
+  // the giant broken crown hanging in the void (below the battle HUD)
+  ctx.save();
+  ctx.translate(0, 150);
+  glow(ctx, 360, 170, 260, 'rgba(176,70,255,0.55)');
+  const crownHalf = (dx: number, dir: number) => {
+    ctx.fillStyle = '#3a1460';
+    ctx.beginPath();
+    ctx.moveTo(360 + dx, 250);
+    ctx.lineTo(360 + dx + dir * 150, 250);
+    ctx.lineTo(360 + dx + dir * 170, 120);
+    ctx.lineTo(360 + dx + dir * 120, 180);
+    ctx.lineTo(360 + dx + dir * 90, 80);
+    ctx.lineTo(360 + dx + dir * 50, 170);
+    ctx.lineTo(360 + dx + dir * 10, 110);
+    ctx.closePath();
+    ctx.fill();
+    glow(ctx, 360 + dx + dir * 90, 90, 18, 'rgba(255,140,220,0.9)');
+  };
+  crownHalf(18, 1);
+  crownHalf(-18, -1);
+  // void crack between the halves
+  ctx.save();
+  ctx.shadowColor = '#d27bff';
+  ctx.shadowBlur = 20;
+  ctx.strokeStyle = '#f0c8ff';
+  ctx.lineWidth = 3;
+  ctx.beginPath(); ctx.moveTo(360, 90); ctx.lineTo(352, 150); ctx.lineTo(366, 200); ctx.lineTo(356, 252); ctx.stroke();
+  ctx.restore();
+  ctx.restore();
+  // throne pillars
+  for (const x of [40, 640]) {
+    vgrad(ctx, x - 26, 120, 52, 300, [[0, '#2a1438'], [1, '#14081c']]);
+    ctx.fillStyle = 'rgba(232,160,64,0.8)';
+    ctx.fillRect(x - 26, 120, 52, 6);
+    ctx.fillRect(x - 26, 260, 52, 4);
+    glow(ctx, x, 110, 30, 'rgba(255,170,80,0.6)');
+  }
+  // obsidian floor with gold veins
+  vgrad(ctx, 0, 405, W, 525, [[0, '#2e1838'], [0.4, '#1e0e28'], [1, '#0e0614']]);
+  ctx.save();
+  ctx.shadowColor = '#e8a040';
+  ctx.shadowBlur = 8;
+  ctx.strokeStyle = 'rgba(232,170,80,0.7)';
+  ctx.lineWidth = 2;
+  for (let i = 0; i < 10; i++) {
+    let x = r() * W;
+    let y = 420 + r() * 460;
+    ctx.beginPath(); ctx.moveTo(x, y);
+    for (let j = 0; j < 4; j++) { x += (r() - 0.5) * 110; y += r() * 24; ctx.lineTo(x, y); }
+    ctx.stroke();
+  }
+  ctx.restore();
+  // red carpet towards the throne (perspective)
+  ctx.fillStyle = 'rgba(120,20,40,0.55)';
+  ctx.beginPath(); ctx.moveTo(320, 405); ctx.lineTo(400, 405); ctx.lineTo(520, 930); ctx.lineTo(200, 930); ctx.fill();
+  vgrad(ctx, 0, 395, W, 50, [[0, 'rgba(200,100,255,0.35)'], [1, 'rgba(200,100,255,0)']]);
+  lowerArea(ctx, '#0c0612', '#030106');
+  grain(ctx, W, H, 9000, 67);
+}
+
 const PAINTERS: Record<string, (ctx: Ctx) => void> = {
   bg_c1: forest,
   bg_c2: ruins,
   bg_c3: ash,
+  bg_c4: marsh,
+  bg_c5: tower,
+  bg_c6: throne,
   bg_abismo: abyss,
   bg_day: (ctx) => courtyard(ctx, false),
   bg_dusk: (ctx) => courtyard(ctx, true),

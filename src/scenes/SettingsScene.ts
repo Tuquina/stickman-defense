@@ -2,7 +2,7 @@ import { GAME_H, GAME_W, txt } from '../config';
 import { Sound } from '../core/audio';
 import { Save } from '../core/save';
 import { STORY, STORY_ORDER } from '../data/story';
-import { button, drawPanel, fadeIn, go } from '../ui/widgets';
+import { button, drawPanel, fadeIn, go, scrollList } from '../ui/widgets';
 
 export class SettingsScene extends Phaser.Scene {
   private tab: 'settings' | 'story' = 'settings';
@@ -27,13 +27,22 @@ export class SettingsScene extends Phaser.Scene {
     this.add.text(GAME_W / 2, 90, 'HISTORIA', txt(56, '#ffffff', 10)).setOrigin(0.5);
     this.add.text(GAME_W / 2, 150, 'Vuelve a ver las escenas desbloqueadas', txt(24, '#bfe9ff', 5)).setOrigin(0.5);
     const seen = Save.d.storySeen;
+    const list = scrollList(this, 190, 1140, STORY_ORDER.length * 100);
     STORY_ORDER.forEach((id, i) => {
-      const s = STORY[id];
+      const st = STORY[id];
       const ok = seen.includes(id);
-      const y = 230 + i * 112;
-      button(this, GAME_W / 2, y, 600, 92, ok ? s.title : '???', () => {
-        if (ok) go(this, 'Story', { id, next: { scene: 'Settings', data: { tab: 'story' } } });
-      }, { size: 28, color: ok ? 0x6a4ac0 : 0x2a2e36, disabled: !ok });
+      const b = button(this, GAME_W / 2, 50 + i * 100, 600, 84, ok ? st.title : '???', () => {}, { size: 27, color: ok ? 0x6a4ac0 : 0x2a2e36, disabled: !ok });
+      // scroll-safe tap: ignore drags and taps outside the visible area
+      const z = b.list[b.list.length - 1] as Phaser.GameObjects.Zone;
+      z.removeAllListeners('pointerdown');
+      z.on('pointerup', (p: Phaser.Input.Pointer) => {
+        if (!list.isTap(p)) return;
+        Sound.unlock();
+        if (!ok) return Sound.play('error');
+        Sound.play('click');
+        go(this, 'Story', { id, next: { scene: 'Settings', data: { tab: 'story' } } });
+      });
+      list.add(b);
     });
   }
 

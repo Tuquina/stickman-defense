@@ -45,6 +45,7 @@ export class StoryScene extends Phaser.Scene {
   private typing = false;
   private t = 0;
   private lock = 0;
+  private choosing = false;
 
   constructor() {
     super('Story');
@@ -54,6 +55,7 @@ export class StoryScene extends Phaser.Scene {
     this.def = STORY[data.id] ?? STORY.prologo1;
     this.next = data.next ?? { scene: 'Menu' };
     this.idx = -1;
+    this.choosing = false;
   }
 
   create(): void {
@@ -93,7 +95,7 @@ export class StoryScene extends Phaser.Scene {
     this.input.on('pointerdown', (p: Phaser.Input.Pointer) => {
       if (p.y < 90 && p.x > GAME_W - 180) return;
       Sound.unlock();
-      if (this.time.now < this.lock) return;
+      if (this.choosing || this.time.now < this.lock) return;
       if (this.typing) {
         this.shown = this.full.length;
         return;
@@ -209,6 +211,7 @@ export class StoryScene extends Phaser.Scene {
     this.full = b.text;
     this.shown = 0;
     this.typing = true;
+    if (b.choice) this.showChoice(b.choice);
     this.hl.setData('text', b.hl ?? '');
     const hlLen = (b.hl ?? '').length;
     this.hl.setFontSize(hlLen > 30 ? 34 : hlLen > 22 ? 40 : 48);
@@ -251,7 +254,37 @@ export class StoryScene extends Phaser.Scene {
     void time;
   }
 
+  /** Branching point (ending choice): two big buttons instead of tap-to-advance. */
+  private showChoice(options: NonNullable<Beat['choice']>): void {
+    this.choosing = true;
+    options.forEach((o, i) => {
+      const y = 800 + i * 170;
+      const b = button(this, GAME_W / 2, y, 600, 140, '', () => this.pick(o), { color: o.color, radius: 22 }).setDepth(30).setAlpha(0);
+      b.add(this.add.text(0, -24, o.label, txt(48, '#ffffff', 9)).setOrigin(0.5));
+      b.add(this.add.text(0, 30, o.desc, txt(24, '#ffffff', 5)).setOrigin(0.5));
+      this.tweens.add({ targets: b, alpha: 1, delay: 600 + i * 200, duration: 300 });
+    });
+  }
+
+  private pick(o: NonNullable<Beat['choice']>[number]): void {
+    Save.d.finale = o.finale;
+    if (!Save.d.storySeen.includes(this.def.id)) Save.d.storySeen.push(this.def.id);
+    Save.write();
+    Sound.play(o.finale === 'venganza' ? 'roar' : 'legend');
+    this.input.removeAllListeners();
+    this.cameras.main.fadeOut(400, 0, 0, 0);
+    this.cameras.main.once('camerafadeoutcomplete', () => this.scene.start('Story', { id: o.next, next: { scene: 'Credits', data: { finale: o.finale } } }));
+  }
+
   private finish(): void {
+    if (this.choosing) return;
+    // "skip" never skips a decision: jump to the choice beat instead
+    const ci = this.def.beats.findIndex((b) => b.choice);
+    if (ci >= 0 && this.idx < ci) {
+      this.idx = ci - 1;
+      this.advance();
+      return;
+    }
     if (!Save.d.storySeen.includes(this.def.id)) {
       Save.d.storySeen.push(this.def.id);
       Save.write();

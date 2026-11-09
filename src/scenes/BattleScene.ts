@@ -353,7 +353,7 @@ export class BattleScene extends Phaser.Scene {
       crit: b.crit + 0.06 * p.critico + (L.has('tormenta') ? 0.1 : 0),
       critMult: L.has('tormenta') ? 3 : 2,
       combo: w.combo + 0.06 * p.combo + (w.id === 'pistola' ? 0.05 * (this.stars - 1) : 0),
-      pierce: w.pierce + p.perforacion + (w.id === 'arco' ? (this.stars >= 3 ? 1 : 0) + (this.stars >= 5 ? 1 : 0) : 0),
+      pierce: w.pierce + p.perforacion + (w.id === 'arco' ? (this.stars >= 3 ? 1 : 0) + (this.stars >= 5 ? 1 : 0) : 0) + (w.id === 'lanza' ? (this.stars >= 3 ? 1 : 0) + (this.stars >= 5 ? 1 : 0) : 0),
       pellets: (w.pellets ?? 0) + (w.id === 'escopeta' ? this.stars - 1 : 0),
       bounce: this.evolved && w.id === 'shuriken' ? 6 : (w.bounce ?? 0) + (w.id === 'shuriken' ? this.stars - 1 : 0),
       aoe: (w.aoe ?? 0) + (w.id === 'baston' ? 12 * (this.stars - 1) : 0),
@@ -586,7 +586,7 @@ export class BattleScene extends Phaser.Scene {
       const id = endless ? ABISMO_BOSSES[Math.floor(n / 10 - 1) % ABISMO_BOSSES.length] : this.ch.boss;
       this.bossId = id;
       this.spawnQ.push({ t: 1.5, id, y: (FIELD.top + FIELD.bottom) / 2 + 20 });
-      Sound.music('boss');
+      Sound.music(id === 'dante' ? 'final' : 'boss');
     }
     this.spawnQ.sort((a, b) => a.t - b.t);
     this.banner(isBoss ? '¡JEFE!' : isMini ? `OLEADA ${n} · MINI-JEFE` : `OLEADA ${n}`, isBoss ? '#ff4a6a' : '#ffffff');
@@ -611,7 +611,7 @@ export class BattleScene extends Phaser.Scene {
     const img = this.add.image(x, y, `e_${id}_0`).setOrigin(0.5, 1);
     const tex = ENEMY_TEX[id];
     const e: Enemy = {
-      def, img, x, y, hp, maxHp: hp, r: def.radius, hitY: (tex?.h ?? 60) * 0.45,
+      def, img, x, y, hp, maxHp: hp, r: def.radius, hitY: Math.min((tex?.h ?? 60) * 0.45, def.radius * 1.5 + 24),
       speed: def.speed * (0.9 + Math.random() * 0.2), dps: def.dps * sc.dmg, alive: true, boss,
       frameT: Math.random(), frame: 0, flashT: 0, frozenT: 0, slowT: 0, atWall: false,
       t: Math.random() * 2, t2: 0, lift: 0, dashT: 0, shieldT: 0, phase: 0, kb: 0, tornadoTick: 0,
@@ -624,7 +624,7 @@ export class BattleScene extends Phaser.Scene {
       Sound.play('roar');
       Sound.vibrate([60, 40, 120]);
       this.bossIntro(def);
-    } else if (def.rank === 'mini') {
+    } else if (def.rank === 'mini' || (def.rank === 'boss' && !this.bossWave)) {
       this.bossQuote(id);
       Sound.play('roar');
       this.cameras.main.shake(300, 0.006);
@@ -637,6 +637,9 @@ export class BattleScene extends Phaser.Scene {
       aranaMadre: '¡Más arañitas!',
       gargola: '¡KRAAAH!',
       guardian: 'La Corona no se toca.',
+      hidra: '¡Glub! ¡Glub! ¡GLUB!',
+      golemLibros: 'SILENCIO EN LA BIBLIOTECA.',
+      ecoDante: 'Otra vez tú… Él te espera arriba.',
     };
     if (q[id]) this.banner(q[id], '#d8b0ff', 300, 30);
   }
@@ -818,6 +821,7 @@ export class BattleScene extends Phaser.Scene {
       switch (w.kind) {
         case 'arrow':
         case 'bullet':
+        case 'lance':
           this.shootAngle(w.kind, HAND.x, HAND.y, base + off, dmg, this.st.pierce);
           break;
         case 'orb': {
@@ -835,7 +839,7 @@ export class BattleScene extends Phaser.Scene {
           break;
       }
     }
-    const sfx: Record<ProjKind, Parameters<typeof Sound.play>[0]> = { arrow: 'arrow', bullet: 'bullet', orb: 'orb', pellet: 'pellet', star: 'star' };
+    const sfx: Record<ProjKind, Parameters<typeof Sound.play>[0]> = { arrow: 'arrow', bullet: 'bullet', orb: 'orb', pellet: 'pellet', star: 'star', lance: 'whoosh' };
     Sound.play(sfx[w.kind], 60);
   }
 
@@ -848,6 +852,7 @@ export class BattleScene extends Phaser.Scene {
       case 'orb': return evo ? 'p_orbGold' : 'p_orb';
       case 'pellet': return 'p_pellet';
       case 'star': return evo ? 'p_starGold' : 'p_star';
+      case 'lance': return evo ? 'p_lanzaGold' : 'p_lanza';
       case 'turret': return 'p_turret';
     }
   }
@@ -1092,7 +1097,7 @@ export class BattleScene extends Phaser.Scene {
           e.t2 += dt;
           if (e.t2 > 3.5) {
             e.t2 = 0;
-            for (let i = 0; i < 2; i++) this.spawn('arana', e.x + 10, clamp(e.y + Phaser.Math.Between(-60, 60), FIELD.top, FIELD.bottom));
+            for (let i = 0; i < 2; i++) this.spawn(e.def.spawn ?? 'arana', e.x + 10, clamp(e.y + Phaser.Math.Between(-60, 60), FIELD.top, FIELD.bottom));
           }
           break;
         case 'shield':
@@ -1144,6 +1149,76 @@ export class BattleScene extends Phaser.Scene {
       }
       if (e.t2 < 0) e.t2 = Math.min(0, e.t2 + dt);
       if (e.t % 7 < dt) for (let i = 0; i < 3; i++) this.spawn('esqueleto', e.x + 20, clamp(e.y + Phaser.Math.Between(-100, 100), FIELD.top, FIELD.bottom));
+    } else if (id === 'kraken') {
+      // the creature that attacked the village: tentacle slams, ink blasts and blinding ink
+      if (e.t % 3.6 < dt) for (let i = 0; i < 2; i++) this.spawn('sanguijuela', e.x, clamp(e.y + Phaser.Math.Between(-110, 110), FIELD.top, FIELD.bottom));
+      if (e.t % 4.5 < dt && e.t > 1) this.enemyShoot('orb', e.x - 60, e.y - e.hitY, FIELD.barricadeX + 10, e.y - 40, this.st.maxHp * 0.035);
+      if (e.t % 6.5 < dt && e.t > 3) {
+        this.hp -= this.st.maxHp * 0.025;
+        this.cameras.main.shake(350, 0.012);
+        Sound.play('thud');
+        this.emitters.ink.explode(26, FIELD.barricadeX + 20, (FIELD.top + FIELD.bottom) / 2);
+      }
+      if (e.phase === 0 && e.hp / e.maxHp < 0.5) {
+        e.phase = 1;
+        this.heroSlowT = 3.5;
+        this.banner('¡TINTA CIEGA!', '#6fe3d6', 330, 52);
+        this.cameras.main.flash(300, 10, 10, 14);
+        Sound.play('roar');
+      }
+      if (e.phase === 1 && e.t % 9 < dt) this.heroSlowT = 2;
+    } else if (id === 'recuerdo') {
+      // a corrupted memory of kid Dante: teleports and throws the pages of the past
+      if (e.t % 4.5 < dt && e.t > 1) {
+        this.emitters.purple.explode(18, e.x, e.y - e.hitY);
+        e.y = Phaser.Math.Between(FIELD.top + 40, FIELD.bottom - 20);
+        e.x = Math.min(GAME_W - 70, e.x + 40);
+        this.emitters.purple.explode(18, e.x, e.y - e.hitY);
+        Sound.play('whoosh');
+      }
+      if (e.t % 2.6 < dt) this.enemyShoot('orb', e.x - 30, e.y - e.hitY, FIELD.barricadeX + 10, e.y - 40, this.st.maxHp * 0.03);
+      const k = e.hp / e.maxHp;
+      if ((e.phase === 0 && k < 0.66) || (e.phase === 1 && k < 0.33)) {
+        e.phase++;
+        for (let i = 0; i < 6; i++) this.spawn('pagina', e.x + 20, clamp(FIELD.top + 40 + i * 75, FIELD.top, FIELD.bottom));
+        this.banner(e.phase === 1 ? '"¡Nadie te toca… excepto yo!"' : '"¡Nunca más voy a ser débil!"', '#ffb0c8', 330, 36);
+        this.cameras.main.flash(250, 200, 120, 255);
+        Sound.play('roar');
+      }
+    } else if (id === 'dante') {
+      // final boss: three phases
+      const k = e.hp / e.maxHp;
+      const rage = e.phase >= 2 ? 1.8 : 1;
+      if (e.t % (5 / rage) < dt && e.t > 2) {
+        e.t2 = -0.5; // charge
+        this.cameras.main.shake(300, 0.01);
+        Sound.play('thud');
+      }
+      if (e.t2 < 0) e.t2 = Math.min(0, e.t2 + dt);
+      if (e.t % (3 / rage) < dt) {
+        for (const dy of [-90, 0, 90]) this.enemyShoot('orb', e.x - 40, e.y - e.hitY, FIELD.barricadeX + 10, clamp(e.y - 40 + dy, FIELD.top, FIELD.bottom), this.st.maxHp * 0.022);
+      }
+      if (e.phase >= 1 && e.t % 8 < dt) {
+        e.shieldT = 2.5;
+        this.emitters.purple.explode(20, e.x, e.y - e.hitY);
+      }
+      if ((e.phase === 0 && k < 0.66) || (e.phase === 1 && k < 0.33)) {
+        e.phase++;
+        this.slowmo = 1.2;
+        if (e.phase === 1) {
+          this.banner('LA CORONA DESPIERTA', '#d050ff', 330, 50);
+          for (let i = 0; i < 5; i++) this.spawn('coronado', e.x + 20, clamp(FIELD.top + 40 + i * 90, FIELD.top, FIELD.bottom));
+        } else {
+          this.banner('¡CIEN MIL!', '#ff4a6a', 330, 70);
+          e.speed *= 1.4;
+          this.hp -= this.st.maxHp * 0.08;
+          for (let i = 0; i < 4; i++) this.spawn('guardiaCorona', e.x + 30, clamp(FIELD.top + 60 + i * 110, FIELD.top, FIELD.bottom));
+        }
+        this.cameras.main.shake(600, 0.018);
+        this.cameras.main.flash(300, 160, 64, 255);
+        Sound.play('roar');
+        Sound.vibrate([80, 40, 160]);
+      }
     } else if (id === 'ecoDante') {
       if (e.t % 5 < dt && e.t > 1) {
         // teleport
@@ -1262,6 +1337,7 @@ export class BattleScene extends Phaser.Scene {
       default:
         this.damage(e, p.dmg);
         if (p.kind === 'pellet' && evo) this.aoe(p.x, p.y, 45, p.dmg * 0.5, { color: 'purple' });
+        if (p.kind === 'lance' && evo) this.aoe(p.x, p.y, 60, p.dmg * 0.4, { color: 'purple' });
         if (p.kind === 'arrow' && evo) {
           for (const off of [-0.35, 0.35]) {
             const a = Math.atan2(p.vy, p.vx) + off;
@@ -1801,6 +1877,9 @@ export class BattleScene extends Phaser.Scene {
       c1: { tint: 0xe8ff8a, speedX: { min: -12, max: 12 }, speedY: { min: -14, max: 6 }, scale: { start: 0.45, end: 0.15 } },
       c2: { tint: 0xfff0d0, speedX: { min: 6, max: 22 }, speedY: { min: -4, max: 6 }, scale: { start: 0.3, end: 0.1 } },
       c3: { tint: 0xff9a50, speedX: { min: -8, max: 8 }, speedY: { min: -45, max: -20 }, scale: { start: 0.4, end: 0.05 } },
+      c4: { tint: 0x8affe0, speedX: { min: -10, max: 10 }, speedY: { min: -10, max: 8 }, scale: { start: 0.5, end: 0.15 } },
+      c5: { tint: 0xe8d8ff, speedX: { min: -6, max: 6 }, speedY: { min: 8, max: 22 }, scale: { start: 0.35, end: 0.12 } },
+      c6: { tint: 0xffc070, speedX: { min: -6, max: 6 }, speedY: { min: -40, max: -18 }, scale: { start: 0.4, end: 0.05 } },
       abismo: { tint: 0xb060ff, speedX: { min: -4, max: 4 }, speedY: { min: 20, max: 45 }, scale: { start: 0.45, end: 0.2 } },
     };
     const c = cfg[this.ch.id];
@@ -1857,11 +1936,17 @@ export class BattleScene extends Phaser.Scene {
       reina: 'Madre del Bosque Sombrío',
       sirHueco: 'El primer vaciado por la Corona',
       ecoDante: 'Lo que la Corona dejó de Dante',
+      kraken: 'La bestia que atacó la aldea',
+      recuerdo: 'Dante, a los diez años. Corrompido.',
+      dante: 'Hermano. Poder 100.000.',
     };
     const quote: Record<string, string> = {
       reina: '"¡Mis hijas tienen hambre, palito!"',
       sirHueco: '"Quien busca la Corona… encuentra el vacío."',
       ecoDante: '"¡CIEN MIL! ¡CIEN MIL!"',
+      kraken: '"…" (el pantano entero tiembla)',
+      recuerdo: '"Mientras yo esté… nadie te toca."',
+      dante: '"Hey, hermanito. ¿Todavía no aprendes?"',
     };
     this.slowmo = 1.6;
     const D = 7000;

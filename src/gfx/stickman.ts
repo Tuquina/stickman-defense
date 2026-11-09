@@ -546,6 +546,25 @@ export function drawWeapon(g: G, w: Look['weapon'], elbow: V, hand: V, s: number
       g.fillCircle(c.x, c.y, 2.5 * s);
       break;
     }
+    case 'lanza': {
+      const dx = Math.cos(ang - 1.25 * f);
+      const dy = Math.sin(ang - 1.25 * f);
+      const tip = { x: c.x + dx * 58 * s, y: c.y + dy * 58 * s };
+      const butt = { x: c.x - dx * 30 * s, y: c.y - dy * 30 * s };
+      g.lineStyle(4 * s, 0x1f3a40, 1);
+      g.lineBetween(butt.x, butt.y, tip.x, tip.y);
+      const px = -dy;
+      const py = dx;
+      g.fillStyle(0x6fe3d6, 1);
+      g.fillPoints([
+        new Phaser.Math.Vector2(tip.x + dx * 18 * s, tip.y + dy * 18 * s),
+        new Phaser.Math.Vector2(tip.x + px * 6 * s, tip.y + py * 6 * s),
+        new Phaser.Math.Vector2(tip.x - px * 6 * s, tip.y - py * 6 * s),
+      ], true);
+      g.fillStyle(0x2ad4c4, 1);
+      g.fillCircle(butt.x, butt.y, 3 * s);
+      break;
+    }
     case 'sword': {
       const dx = Math.cos(ang - 1.0 * f);
       const dy = Math.sin(ang - 1.0 * f);

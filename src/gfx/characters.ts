@@ -12,6 +12,10 @@ export function charLook(a: Pick<Actor, 'id' | 'eyes' | 'mouth' | 'pose'>, heroT
     hueco: { helm: 'hollow', tier: 2, capeColor: 0x7a1e22, body: 0x15151a, weapon: 'sword', scarf: null },
     // The Echo is a hollow shadow of Dante: no cape, no scarf, violet ink body.
     eco: { corrupt: true, crown: true, outline: 0x8a3ae0, capeColor: null, eyes: 'glow', body: 0x2a1048 },
+    // a corrupted memory of kid Dante (chapter 5)
+    recuerdo: { kid: true, collar: 0xe2552c, crown: true, outline: 0xb060ff, eyes: 'glow', eyeColor: 0xffb0c8, body: 0x1a0a28 },
+    // Dante freed from the Crown: no armor, his red-orange scarf restored
+    danteLibre: { scarf: 0xe2552c, eyes: 'sad' },
   };
   const l = { ...base[a.id] };
   if (a.id === 'hueco' && (a as Actor).pose === 'kneel') l.weapon = null;

@@ -55,9 +55,13 @@ export class MenuScene extends Phaser.Scene {
     const hero = this.add.graphics({ x: 280, y: 860 });
     this.add.text(280, 330, fmt(p), txt(96, p >= 100000 ? '#d050ff' : '#e8f040', 14)).setOrigin(0.5);
     this.add.text(280, 400, 'PODER', txt(26, '#ffffff', 6)).setOrigin(0.5);
-    const gt = this.add.text(560, 420, '100.000', txt(48, '#d050ff', 10)).setOrigin(0.5).setAlpha(0.7);
+    const fin = d.finale;
+    // after the finale the goal becomes the outcome: brother at your side, or a revenge fulfilled
+    if (fin === 'liberacion') goal.setAlpha(1);
+    if (fin === 'venganza') goal.setAlpha(0.18);
+    const gt = this.add.text(560, 420, fin === 'liberacion' ? 'HERMANO' : fin === 'venganza' ? 'VENGANZA' : '100.000', txt(48, fin === 'liberacion' ? '#6fe3d6' : fin === 'venganza' ? '#ff6a6a' : '#d050ff', 10)).setOrigin(0.5).setAlpha(fin ? 1 : 0.7);
     gt.setShadow(0, 0, '#d050ff', 18, true, true);
-    this.add.text(560, 462, 'META: DANTE', txt(22, '#d8b0ff', 5)).setOrigin(0.5).setAlpha(0.8);
+    this.add.text(560, 462, fin === 'liberacion' ? 'JURAMENTO CUMPLIDO' : fin === 'venganza' ? 'CUMPLIDA' : 'META: DANTE', txt(22, fin === 'liberacion' ? '#bfffee' : '#d8b0ff', 5)).setOrigin(0.5).setAlpha(0.85);
 
     // progress to goal
     const prog = Math.min(1, p / 100000);
@@ -71,7 +75,7 @@ export class MenuScene extends Phaser.Scene {
       this.t += dt / 1000;
       hero.clear().fillStyle(0x000000, 0.3).fillEllipse(0, 4, 110, 26);
       drawStickman(hero, 0, 0, 2.6, POSES.idle(this.t), { tier: d.armorEquipped, eyes: 'determined', weapon: d.lastWeapon }, 1, this.t);
-      drawCharacter(goalPen, { id: 'dante', eyes: 'smug', pose: 'cross' }, 0, 2.0, -1, this.t);
+      drawCharacter(goalPen, fin === 'liberacion' ? { id: 'danteLibre', eyes: 'happy', mouth: 'grin', pose: 'idle' } : { id: 'dante', eyes: 'smug', pose: 'cross' }, 0, 2.0, -1, this.t);
       goal.clear().draw(goalPen, 200, 460);
     });
 

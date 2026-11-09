@@ -70,7 +70,14 @@ MVP): **derrotarlo o liberarlo**.
 | Intro Cap. 1 | Antes de la 1ª partida | Tío Clip aparece: "Ese tipo te dejó en visto emocional. Te vendo poder. Cash. Bueno, oro." |
 | Final Cap. 1 | Al vencer a la Reina Telaraña | Lino encuentra rastros de la Corona. Desbloquea **Capucha de Vigía** y la **Escopeta**. |
 | Intro/Final Cap. 2 | Ruinas del Castillo | Sir Hueco revela que la Corona absorbe trazos y *borra vínculos*. Desbloquea **Armadura de Caballero** y el **Shuriken**. |
-| Intro/Final Cap. 3 | Ciudadela de Ceniza | Duelo contra el Eco de Dante. Al caer: "¿Juramento…? No recuerdo ningún juramento." **Cliffhanger.** Desbloquea el **Abismo** (modo infinito). |
+| Intro/Final Cap. 3 | Ciudadela de Ceniza | Duelo contra el Eco de Dante. Al caer: "¿Juramento…? No recuerdo ningún juramento." Desbloquea el **Abismo** y el Cap. 4. |
+| Intro/Final Cap. 4 | Marisma de Tinta | Lino enfrenta al **Kraken de Borrón**, la bestia que atacó la aldea. Lleva la marca de la Corona desde hace 5 años: **la Corona planeó el ataque** para que Dante se sintiera débil y la buscara. Desbloquea la **Lanza de Tinta**. |
+| Intro/Final Cap. 5 | Torre del Olvido | La biblioteca de los recuerdos borrados. El jefe es **El Recuerdo Roto**: Dante a los 10 años, corrompido ("¿Otra vez te ganó una araña?"). Lino recupera **la página del juramento**. Desbloquea **Heredero del Juramento**. |
+| Intro Cap. 6 | Trono de la Corona | Frente a frente con Dante (100.000). La Corona le susurra: "Bórralo. Es tu último vínculo". |
+| Final Cap. 6 | Tras vencer a Dante | Lino le muestra la página: "Esa letra… es mía". La Corona no lo suelta. **Decisión del jugador:** |
+| Final **Venganza** | Elección | Lino parte la Corona y Dante desaparece con ella; solo queda su bufanda roja. "Gané. ¿Por qué se siente así?" |
+| Final **Liberación** | Elección | Lino arranca la Corona con las manos. Dante, libre y con Poder **10**: "¿Otra vez te ganó una araña?" / "…Era una araña MUY grande." |
+| Créditos | Tras el final | "Fin de la Temporada 1". El menú cambia según el final (Dante a tu lado o "Venganza cumplida"). |
 
 Frases de derrota (Tío Clip, al azar): *"Skill issue, hermano." · "F en el chat." · "La barricada
 era de cartón. Literal." · "Tranqui, todos empezamos siendo basura. Bueno, tú un poquito más."*
@@ -192,6 +199,7 @@ héroe). Hasta 3.
 | **Bastón Oráculo** | Orbe teledirigido que explota en área, +15 % daño de habilidades | +área | **Bastón Supremo**: el orbe encadena 3 rayos |
 | **Escopeta** (se desbloquea en Cap. 1) | 5 perdigones en abanico | +1 perdigón | **Cañón Borrón**: perdigones explosivos |
 | **Shuriken** (se desbloquea en Cap. 2) | Rebota entre 2 enemigos | +1 rebote | **Estrella Infinita**: 6 rebotes, regresa |
+| **Lanza de Tinta** (se desbloquea en Cap. 4) | Lenta, mucho daño, atraviesa 2 | +1 perforación en 3★ y 5★ | **Lanza del Juramento**: cada impacto estalla |
 
 ### 3.6 Enemigos y escenarios
 
@@ -200,6 +208,9 @@ héroe). Hasta 3.
 | **1 · Bosque Sombrío** | Bosque verde azulado, troncos gigantes, rayos de luz y lianas | Araña Carmesí (rápida, enjambre), Escarabajo Acorazado (tanque con armadura), Seta Saltarina (avanza a saltos) | Araña Madre (pone arañitas) | **Reina Telaraña**: telarañas que ralentizan tu ataque e invocaciones |
 | **2 · Ruinas del Castillo** | Murallas de piedra al atardecer, torres rotas | Esqueleto de Tinta, Murciélago (zigzag), Caballero Hueco (armadura 50 %), Arquero (se para y dispara a la barricada) | Gárgola (vuela) | **Sir Hueco**: embiste e invoca esqueletos |
 | **3 · Ciudadela de Ceniza** | Desierto morado-anaranjado, pilares rotos, cristales violetas | Mancha (se divide al morir), Sombra (embestidas veloces), Brujo Vacío (cura a sus aliados), Gólem de Ceniza (tanque) | Guardián de la Corona | **Eco de Dante**: se teletransporta, 3 fases, invoca sombras |
+| **4 · Marisma de Tinta** | Pantano nocturno, luna entre niebla, árboles muertos, fuegos fatuos | Renacuajo de Tinta (a saltos), Sanguijuela (rápida, mucho daño en la barricada), Pescador Hueco (arpones a distancia), Tortuga de Lodo (tanque 45 %) | Hidra de Charco (genera renacuajos) | **Kraken de Borrón**: golpes de tentáculo, tinta a la barricada, "tinta ciega" que ralentiza al héroe |
+| **5 · Torre del Olvido** | Biblioteca infinita, estanterías, ventana violeta, páginas flotando | Página Errante (vuela), Tintero Vivo (dispara), Escriba Hueco (cura), Guardia de la Corona (escudo 50 %) | Gólem de Libros (genera páginas) | **El Recuerdo Roto**: Dante de niño corrompido, se teletransporta, 3 fases |
+| **6 · Trono de la Corona** | Vacío violeta, corona gigante partida, alfombra roja, vetas de oro | Sombra Coronada (embestidas) más élites de capítulos anteriores | **Eco de Dante** | **Dante** (3 fases: embestidas y ráfagas → "La Corona despierta" con escudos y coronados → "¡CIEN MIL!" enfurecido) |
 | **∞ · El Abismo** | Tinta violeta y gotas que caen | Mezcla de todos, escalado infinito | Jefe cada 10 oleadas | Récord de oleada |
 
 **Escalado**: vida = base × (1 + 0,14·(oleada−1)) × multiplicador del capítulo (1 / 2,3 / 4,4).
@@ -221,6 +232,9 @@ más 2·oleada por oleada superada y un bonus de victoria. A partir de la oleada
 | Cap. 3, mejoras nv.15, Caballero | Derrota en la oleada 12 |
 | Cap. 3, mejoras nv.16–22, Caballero | Victoria |
 | Abismo, mejoras nv.14–20, Paladín | Récord en las oleadas 36–40 |
+| Cap. 4 (Bastón), mejoras nv.17 / nv.19 | Derrota ante el Kraken / Victoria |
+| Cap. 5 (Bastón), mejoras nv.20 / nv.23 | Derrota en la oleada 12 / Victoria |
+| Cap. 6 (Bastón), mejoras nv.27 / nv.30 | Derrota ante Dante / Victoria |
 
 Curva buscada: el Cap. 1 se puede ganar en la primera partida jugando bien. Los capítulos 2 y 3 exigen
 varias partidas de grindeo en el Taller, y el Abismo es el techo para el récord.
@@ -260,7 +274,7 @@ varias partidas de grindeo en el Taller, y el Abismo es el techo para el récord
 | 1 | Capucha de Vigía | Vencer el Cap. 1 | +10 % daño, +15 % vida | Capucha azul, cuello de piel, brazaletes de cuero |
 | 2 | Armadura de Caballero | Vencer el Cap. 2 | +25 % daño, +30 % vida | Yelmo plateado con visera, hombreras con filo dorado, capa azul |
 | 3 | Paladín de Tinta | Vencer el Cap. 3 + Rango 10 | +45 % daño, +50 % vida | Armadura dorada, cresta con alas, aura celeste |
-| 4 | Heredero del Juramento | Llegar a la oleada 25 del Abismo | +80 % daño, +80 % vida | Blanco y oro, bufanda luminosa, aura intensa |
+| 4 | Heredero del Juramento | Vencer el Cap. 5 (u oleada 25 del Abismo) | +80 % daño, +80 % vida | Blanco y oro, bufanda luminosa, aura intensa |
 
 ---
 
@@ -383,7 +397,7 @@ implementación vacía en web y AdMob/IAP mediante plugins de Capacitor.
 - [x] Ajustes (música, efectos, vibración) y borrado de progreso
 
 ### Próximas versiones
-1. **Cap. 4–6** y el duelo final contra Dante (Poder 100.000) con decisión: venganza o liberación.
+1. ~~Cap. 4–6 y el duelo final contra Dante con decisión~~ ✅ (v0.3). Próximo: Temporada 2 (¿qué hay más allá de La Mancha?).
 2. Misiones diarias y logros.
 3. Arte refinado (sprites o Spine) y música compuesta.
 4. Build de Capacitor publicado en Play Store.

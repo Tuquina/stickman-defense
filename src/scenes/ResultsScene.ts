@@ -66,7 +66,10 @@ export class ResultsScene extends Phaser.Scene {
     if (r.firstClear) {
       if (r.chapter === 'c1') unlocks.push(`Nueva arma: ${WEAPONS.escopeta.name}`, 'Capítulo 2 desbloqueado');
       if (r.chapter === 'c2') unlocks.push(`Nueva arma: ${WEAPONS.shuriken.name}`, 'Capítulo 3 desbloqueado');
-      if (r.chapter === 'c3') unlocks.push('¡EL ABISMO desbloqueado!');
+      if (r.chapter === 'c3') unlocks.push('¡EL ABISMO desbloqueado!', 'Capítulo 4 desbloqueado');
+      if (r.chapter === 'c4') unlocks.push(`Nueva arma: ${WEAPONS.lanza.name}`, 'Capítulo 5 desbloqueado');
+      if (r.chapter === 'c5') unlocks.push('Capítulo 6 desbloqueado');
+      if (r.chapter === 'c6') unlocks.push('¡Venciste a Dante! Se viene tu decisión…');
     }
     ARMORS.forEach((a, i) => {
       if (i > d.armorSeen && armorUnlocked(d, i)) unlocks.push(`Armadura: ${a.name}`);

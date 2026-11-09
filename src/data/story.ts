@@ -1,6 +1,6 @@
 import type { Eyes } from '../gfx/stickman';
 
-export type CharId = 'linoKid' | 'danteKid' | 'lino' | 'dante' | 'clip' | 'hueco' | 'eco';
+export type CharId = 'linoKid' | 'danteKid' | 'lino' | 'dante' | 'clip' | 'hueco' | 'eco' | 'recuerdo' | 'danteLibre';
 export type PoseId = 'idle' | 'point' | 'fist' | 'laugh' | 'cross' | 'kneel' | 'fallen' | 'hands';
 
 export interface Actor {
@@ -23,6 +23,8 @@ export interface Beat {
   right?: Actor | null;
   bg?: string;
   fx?: ('shake' | 'flash' | 'purple' | 'dark' | 'light' | 'pushL' | 'exitR' | 'pulse')[];
+  /** branching beat: shows buttons instead of advancing on tap */
+  choice?: { label: string; desc: string; next: string; finale: 'venganza' | 'liberacion'; color: number }[];
   music?: 'story' | 'sad' | 'boss' | 'menu';
 }
 
@@ -36,6 +38,7 @@ export interface StoryScene {
 
 export const CHAR_NAMES: Record<CharId, string> = {
   linoKid: 'Lino', lino: 'Lino', danteKid: 'Dante', dante: 'Dante', clip: 'Tío Clip', hueco: 'Sir Hueco', eco: 'Eco de Dante',
+  recuerdo: 'El Recuerdo Roto', danteLibre: 'Dante',
 };
 
 const BLUE = '#5fc8ff';
@@ -49,6 +52,8 @@ const dante = (o: Partial<Actor> = {}): Actor => ({ id: 'dante', power: '100.000
 const clip = (o: Partial<Actor> = {}): Actor => ({ id: 'clip', power: '¿?', powerColor: '#ffc93c', ...o });
 const eco = (o: Partial<Actor> = {}): Actor => ({ id: 'eco', power: '100.000', powerColor: PURPLE, glow: true, ...o });
 const hueco = (o: Partial<Actor> = {}): Actor => ({ id: 'hueco', power: '20.000', powerColor: '#ff6a6a', ...o });
+const recuerdo = (o: Partial<Actor> = {}): Actor => ({ id: 'recuerdo', power: '10', powerColor: PURPLE, glow: true, ...o });
+const libre = (o: Partial<Actor> = {}): Actor => ({ id: 'danteLibre', power: '10', powerColor: BLUE, ...o });
 
 export const STORY: Record<string, StoryScene> = {
   prologo1: {
@@ -154,13 +159,116 @@ export const STORY: Record<string, StoryScene> = {
       { who: 'L', text: '…', left: lino({ eyes: 'sad', pose: 'hands' }), right: null },
       { who: 'L', text: 'Entonces voy a hacer que lo recuerdes.', hl: 'Aunque tenga que llegar a cien mil.', left: lino({ eyes: 'determined', pose: 'fist' }), music: 'boss' },
       { who: 'N', text: 'Dante (a lo lejos): "Interesante…', hl: '…hermanito."', fx: ['purple', 'shake'] },
-      { who: 'R', text: 'Bueno… se viene temporada 2.', hl: 'Mientras, el ABISMO te espera.', right: clip({ eyes: 'cool', mouth: 'grin', pose: 'point' }), music: 'menu' },
-      { who: 'N', text: '¡Desbloqueaste EL ABISMO!\nOleada 25 = set HEREDERO DEL JURAMENTO.', fx: ['flash'] },
+      { who: 'R', text: 'La Mancha nació en la Marisma de Tinta.', hl: 'Si quieres respuestas, empieza ahí.', right: clip({ eyes: 'cool', mouth: 'none', pose: 'point' }), music: 'menu' },
+      { who: 'N', text: '¡Desbloqueaste el CAPÍTULO 4\ny EL ABISMO (modo infinito)!', fx: ['flash'] },
+    ],
+  },
+
+  c4_intro: {
+    id: 'c4_intro', title: 'Cap. 4 · La Marisma', bg: 'bg_c4', music: 'story',
+    beats: [
+      { who: 'L', text: 'La Marisma de Tinta… de aquí', hl: 'salió La Mancha aquella noche.', left: lino({ eyes: 'determined' }), right: clip({ eyes: 'cool' }) },
+      { who: 'R', text: 'Huele a calcetín mojado', hl: 'y a trauma no resuelto.', right: clip({ eyes: 'cool', mouth: 'frown', pose: 'cross' }) },
+      { who: 'L', text: 'La criatura que atacó la aldea…', hl: 'sigue aquí. La siento.', left: lino({ eyes: 'sad', pose: 'hands' }) },
+      { who: 'N', text: 'Algo enorme se mueve bajo el agua.', fx: ['dark', 'shake'] },
+      { who: 'L', text: 'Esta vez no me voy a esconder.', hl: 'Esta vez, yo protejo.', left: lino({ eyes: 'angry', pose: 'fist' }), fx: ['light'] },
+    ],
+  },
+  c4_outro: {
+    id: 'c4_outro', title: 'Cap. 4 · La marca', bg: 'bg_c4', music: 'sad',
+    beats: [
+      { who: 'N', text: 'El Kraken se hunde. En su frente', hl: 'brilla una marca violeta.', left: lino({ eyes: 'shock' }), right: clip({ eyes: 'cool' }), fx: ['purple'] },
+      { who: 'L', text: 'Esa marca… es la de la Corona.', left: lino({ eyes: 'shock' }) },
+      { who: 'R', text: 'Espera. Si la bestia ya tenía la marca', hl: 'hace cinco años…', right: clip({ eyes: 'cool', mouth: 'frown', pose: 'hands' }) },
+      { who: 'L', text: 'Entonces el ataque no fue un accidente.', hl: 'La Corona lo planeó.', left: lino({ eyes: 'sad', pose: 'hands' }) },
+      { who: 'L', text: 'Necesitaba que Dante se sintiera débil…', hl: '…para que fuera a buscarla.', left: lino({ eyes: 'angry', pose: 'fist' }), fx: ['shake'] },
+      { who: 'R', text: 'Wow. Manipulación', hl: 'nivel villano de telenovela.', right: clip({ eyes: 'cool', mouth: 'open', pose: 'cross' }) },
+      { who: 'R', text: 'Encontré esto en el lodo: la Lanza de Tinta.', hl: 'Lavada. Casi.', right: clip({ eyes: 'cool', mouth: 'grin', pose: 'point' }), music: 'menu' },
+      { who: 'N', text: '¡Desbloqueaste la LANZA DE TINTA\ny el CAPÍTULO 5!', fx: ['flash'] },
+    ],
+  },
+  c5_intro: {
+    id: 'c5_intro', title: 'Cap. 5 · La Torre', bg: 'bg_c5', music: 'story',
+    beats: [
+      { who: 'L', text: 'La Torre del Olvido. Aquí la Corona', hl: 'guarda todo lo que borra.', left: lino({ eyes: 'determined' }), right: clip({ eyes: 'cool' }) },
+      { who: 'R', text: 'Una biblioteca. Por fin silencio.', hl: 'Ah, no: las páginas tienen dientes.', right: clip({ eyes: 'cool', mouth: 'frown', pose: 'cross' }) },
+      { who: 'N', text: 'Miles de páginas flotan.', hl: 'En cada una, un recuerdo robado.', fx: ['purple'] },
+      { who: 'L', text: 'Si los recuerdos de Dante están aquí…', hl: '…voy a recuperarlos.', left: lino({ eyes: 'angry', pose: 'fist' }) },
+      { who: 'R', text: 'Hey, hermanito.', hl: '¿Otra vez te ganó una araña?', right: recuerdo({ eyes: 'glow', mouth: 'grin' }), fx: ['purple', 'shake'], music: 'boss' },
+      { who: 'L', text: '…¿Dante? ¿Eres tú… de niño?', left: lino({ eyes: 'shock' }) },
+      { who: 'R', text: 'Soy lo que él quiso olvidar.', hl: 'Y tú me vas a olvidar también.', right: recuerdo({ eyes: 'glow', pose: 'point' }) },
+    ],
+  },
+  c5_outro: {
+    id: 'c5_outro', title: 'Cap. 5 · La página', bg: 'bg_c5', music: 'sad',
+    beats: [
+      { who: 'R', text: 'Mientras yo esté…', hl: '…nadie te toca…', left: lino({ eyes: 'sad' }), right: recuerdo({ eyes: 'closed', pose: 'kneel', alpha: 0.6 }) },
+      { who: 'L', text: 'Lo sé. Siempre lo cumpliste.', left: lino({ eyes: 'sad', pose: 'hands' }) },
+      { who: 'N', text: 'El recuerdo se deshace.', hl: 'Entre la tinta queda una página.', right: null },
+      { who: 'N', text: 'Escrita con letra de niño:', hl: '"Nunca nos vamos a abandonar. — L y D"', fx: ['light'] },
+      { who: 'L', text: 'El juramento. La Corona lo guardaba aquí.', hl: 'Ahora se lo voy a devolver.', left: lino({ eyes: 'determined', pose: 'fist' }), music: 'story' },
+      { who: 'R', text: 'Te hice algo con mis ahorros:', hl: 'el set Heredero del Juramento.', right: clip({ eyes: 'cool', mouth: 'grin', pose: 'hands' }), music: 'menu' },
+      { who: 'N', text: '¡Desbloqueaste la armadura HEREDERO\nDEL JURAMENTO y el CAPÍTULO 6!', fx: ['flash'] },
+    ],
+  },
+  c6_intro: {
+    id: 'c6_intro', title: 'Cap. 6 · El Trono', bg: 'bg_c6', music: 'boss',
+    beats: [
+      { who: 'C', text: 'EL TRONO DE LA CORONA', left: lino({ eyes: 'determined' }), right: dante({ eyes: 'smug', pose: 'cross' }) },
+      { who: 'R', text: 'Hey, hermanito.', right: dante({ eyes: 'smug', mouth: 'grin', pose: 'cross' }) },
+      { who: 'R', text: 'Llegaste lejos para ser basura.', hl: '¿Cuánto tienes ya? ¿Mil? ¿Diez mil?', right: dante({ eyes: 'smug', mouth: 'grin', pose: 'laugh' }) },
+      { who: 'L', text: 'No vine a ganarte en números.', hl: 'Vine a devolverte algo.', left: lino({ eyes: 'determined', pose: 'point' }) },
+      { who: 'N', text: 'LA CORONA: "Destrúyelo. Bórralo.', hl: 'Es tu último vínculo."', fx: ['purple', 'shake'] },
+      { who: 'R', text: '…Cállate.', hl: '¡Ven, Lino! ¡Termina lo que empezaste!', right: dante({ eyes: 'angry', mouth: 'open', pose: 'fist' }), fx: ['pulse'] },
+    ],
+  },
+  c6_outro: {
+    id: 'c6_outro', title: 'Cap. 6 · La decisión', bg: 'bg_c6', music: 'sad',
+    beats: [
+      { who: 'R', text: 'Imposible…', hl: 'tengo cien mil…', left: lino({ eyes: 'determined' }), right: dante({ eyes: 'shock', pose: 'kneel' }) },
+      { who: 'L', text: 'Y yo tengo esto.', hl: '"Nunca nos vamos a abandonar."', left: lino({ eyes: 'determined', pose: 'point' }), fx: ['light'] },
+      { who: 'R', text: 'Esa letra…', hl: '…es mía.', right: dante({ eyes: 'sad', pose: 'kneel' }) },
+      { who: 'N', text: 'LA CORONA: "¡NO! ¡Es mío!', hl: '¡Su poder es MÍO!"', fx: ['purple', 'shake'] },
+      { who: 'R', text: 'Lino… la Corona no me suelta.', hl: 'Si la rompes… me voy con ella.', right: dante({ eyes: 'sad', pose: 'kneel' }) },
+      {
+        who: 'N', text: '¿Qué hará Lino?',
+        choice: [
+          { label: 'VENGANZA', desc: 'Romper la Corona. Que pague.', next: 'final_venganza', finale: 'venganza', color: 0xb83a3a },
+          { label: 'LIBERACIÓN', desc: 'Arrancársela. Cumplir el juramento.', next: 'final_liberacion', finale: 'liberacion', color: 0x2a9d8f },
+        ],
+      },
+    ],
+  },
+  final_venganza: {
+    id: 'final_venganza', title: 'Final · Venganza', bg: 'bg_c6', music: 'boss',
+    beats: [
+      { who: 'L', text: 'Me llamaste basura.', hl: 'Me dejaste en el suelo.', left: lino({ eyes: 'angry', pose: 'point' }), right: dante({ eyes: 'sad', pose: 'kneel' }) },
+      { who: 'L', text: 'Esto es por esa tarde.', hl: '¡Se acabó, Dante!', left: lino({ eyes: 'angry', pose: 'fist' }), fx: ['shake', 'flash'] },
+      { who: 'N', text: 'Lino parte la Corona en dos.', hl: 'Un grito llena el vacío.', fx: ['purple', 'shake'] },
+      { who: 'N', text: 'Cuando la tinta se disipa, Dante ya no está.', hl: 'Solo queda su bufanda roja.', right: null, music: 'sad' },
+      { who: 'L', text: '…Gané.', left: lino({ eyes: 'sad', pose: 'kneel' }) },
+      { who: 'L', text: 'Entonces…', hl: '¿por qué se siente así?', left: lino({ eyes: 'sad', pose: 'kneel' }) },
+      { who: 'R', text: 'Porque la venganza no devuelve a nadie, chico.', hl: 'Pero te deja seguir. Eso ya es algo.', right: clip({ eyes: 'cool', mouth: 'frown', pose: 'cross' }) },
+      { who: 'C', text: 'FINAL: VENGANZA', right: null },
+    ],
+  },
+  final_liberacion: {
+    id: 'final_liberacion', title: 'Final · Liberación', bg: 'bg_c6', music: 'story',
+    beats: [
+      { who: 'L', text: 'Dijimos que nunca nos íbamos a abandonar.', left: lino({ eyes: 'determined' }), right: dante({ eyes: 'sad', pose: 'kneel' }) },
+      { who: 'L', text: '¡Y yo cumplo mis promesas!', hl: '¡Suéltalo, Corona!', left: lino({ eyes: 'angry', pose: 'fist' }), fx: ['shake', 'light'], music: 'boss' },
+      { who: 'N', text: 'Lino agarra la Corona con las dos manos.', hl: 'La tinta quema. No la suelta.', fx: ['purple', 'shake'] },
+      { who: 'N', text: 'Un crujido. La Corona estalla en mil pedazos…', hl: '…y Dante cae, libre.', fx: ['flash'], bg: 'bg_day', right: libre({ eyes: 'closed', pose: 'kneel' }), music: 'story' },
+      { who: 'R', text: 'Lino… ¿Otra vez', hl: 'te ganó una araña?', right: libre({ eyes: 'happy', mouth: 'grin' }) },
+      { who: 'L', text: '…Era una araña MUY grande.', left: lino({ eyes: 'happy', mouth: 'grin' }) },
+      { who: 'R', text: 'No importa quién tenga más nivel…', hl: 'siempre vamos a ser hermanos.', right: libre({ eyes: 'happy', mouth: 'grin', pose: 'point' }), fx: ['light'] },
+      { who: 'R', text: 'Ok, estoy llorando.', hl: 'Es alergia. A la tinta.', right: clip({ eyes: 'cool', mouth: 'frown', pose: 'hands' }) },
+      { who: 'C', text: 'FINAL: LIBERACIÓN', left: lino({ eyes: 'happy', mouth: 'grin', pose: 'fist' }), right: libre({ eyes: 'happy', mouth: 'grin', pose: 'fist' }) },
     ],
   },
 };
 
-export const STORY_ORDER = ['prologo1', 'prologo2', 'c1_intro', 'c1_outro', 'c2_intro', 'c2_outro', 'c3_intro', 'c3_outro'];
+export const STORY_ORDER = ['prologo1', 'prologo2', 'c1_intro', 'c1_outro', 'c2_intro', 'c2_outro', 'c3_intro', 'c3_outro', 'c4_intro', 'c4_outro', 'c5_intro', 'c5_outro', 'c6_intro', 'c6_outro', 'final_venganza', 'final_liberacion'];
 
 export const DEFEAT_QUIPS = [
   'Skill issue, hermano.',

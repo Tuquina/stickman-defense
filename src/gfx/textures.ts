@@ -1,5 +1,5 @@
 import { canvasTexture, stickerize } from './canvas';
-import { drawStickman, POSES, type Look } from './stickman';
+import { drawStickman, POSES, type Look, type Skeleton } from './stickman';
 
 type G = Phaser.GameObjects.Graphics;
 const INK = 0x0b0b0e;
@@ -72,11 +72,11 @@ function spider(g: G, frame: number, cx: number, cy: number, s: number, body: nu
   }
 }
 
-function humanoid(scene: Phaser.Scene, id: string, w: number, h: number, s: number, look: Look, extra?: (g: G, frame: number) => void): void {
+function humanoid(scene: Phaser.Scene, id: string, w: number, h: number, s: number, look: Look, extra?: (g: G, frame: number, sk: Skeleton) => void): void {
   enemy(scene, id, w, h, (g, frame) => {
     const pose = POSES.walk(frame === 0 ? 0.8 : -0.8);
-    drawStickman(g, w / 2, h - 4, s, pose, look, -1, frame * 0.6);
-    extra?.(g, frame);
+    const sk = drawStickman(g, w / 2, h - 4, s, pose, look, -1, frame * 0.6);
+    extra?.(g, frame, sk);
   });
 }
 
@@ -192,6 +192,15 @@ export function generateTextures(scene: Phaser.Scene): void {
     g.fillStyle(0xc8d2e0, 1); star(g, 15, 15, 15, 5, 4);
     g.fillStyle(0x6a7480, 1); g.fillCircle(15, 15, 4);
   });
+  const lance = (key: string, tip: number, glowC: number | null) => bake(scene, key, 76, 16, (g) => {
+    if (glowC !== null) { g.fillStyle(glowC, 0.35); g.fillEllipse(40, 8, 76, 16); }
+    g.lineStyle(4, 0x1f3a40, 1); g.lineBetween(2, 8, 56, 8);
+    g.fillStyle(tip, 1); g.fillPoints(pts([[54, 2], [74, 8], [54, 14], [58, 8]]), true);
+    g.fillStyle(0xffffff, 0.8); g.fillPoints(pts([[58, 6], [70, 8], [58, 9]]), true);
+    g.fillStyle(0x2ad4c4, 1); g.fillRect(4, 5, 8, 6);
+  });
+  lance('p_lanza', 0x6fe3d6, null);
+  lance('p_lanzaGold', 0xffe27a, 0xffe27a);
   bake(scene, 'p_starGold', 36, 36, (g) => {
     g.fillStyle(0xffe27a, 0.4); g.fillCircle(18, 18, 18);
     g.fillStyle(0xffd86a, 1); star(g, 18, 18, 17, 6, 4);
@@ -335,7 +344,123 @@ export function generateTextures(scene: Phaser.Scene): void {
     g.lineStyle(3, 0xff8a3d, 0.7); g.lineBetween(50, 50, 62, 70); g.lineBetween(62, 70, 56, 86);
   });
   humanoid(scene, 'guardian', 170, 210, 1.55, { corrupt: true, eyes: 'glow', eyeColor: 0xd27bff, capeColor: 0x3a1a5a, weapon: 'sword', outline: 0x8a3ae0 });
-  humanoid(scene, 'ecoDante', 240, 300, 2.1, { corrupt: true, crown: true, eyes: 'glow', eyeColor: 0xffffff, capeColor: 0x5a1a2a, outline: 0xb060ff });
+  // ------------------------------------------------------------ chapter 4: Marisma de Tinta
+  enemy(scene, 'renacuajo', 74, 56, (g, f) => {
+    const w = f === 0 ? 8 : -8;
+    g.fillStyle(0x10262a, 1);
+    g.fillPoints(pts([[36, 30], [56, 22 + w], [72, 28 + w * 1.4], [58, 34 + w], [36, 38]]), true);
+    g.fillStyle(0x0b0b0e, 1); g.fillCircle(28, 32, 18);
+    g.fillStyle(0x2a6a6a, 0.8); g.fillEllipse(22, 24, 14, 7);
+    g.fillStyle(0xffffff, 1);
+    g.fillPoints(pts([[14, 28], [24, 31], [15, 35]]), true); g.fillPoints(pts([[26, 31], [34, 27], [34, 35]]), true);
+  });
+  enemy(scene, 'sanguijuela', 86, 48, (g, f) => {
+    const u = f === 0 ? 4 : -4;
+    for (let i = 0; i < 5; i++) {
+      const x = 22 + i * 12;
+      g.fillStyle(i % 2 ? 0x5a1a22 : 0x6e222a, 1);
+      g.fillEllipse(x, 26 + (i % 2 ? u : -u) * 0.6, 20 - i, 22 - i * 1.5);
+    }
+    g.fillStyle(0x2a0a0e, 1); g.fillCircle(14, 26, 11);
+    g.fillStyle(0xffe0e0, 1);
+    for (let k = 0; k < 6; k++) { const a = (k / 6) * Math.PI * 2; g.fillCircle(14 + Math.cos(a) * 6, 26 + Math.sin(a) * 6, 1.8); }
+    g.fillStyle(0xff8a8a, 0.4); g.fillEllipse(40, 18, 30, 5);
+  });
+  humanoid(scene, 'pescador', 96, 132, 0.84, { eyes: 'glow', eyeColor: 0x6fe3d6, capeColor: 0x2a4a3a, body: 0x101418 }, (g, _f, sk) => {
+    // straw hat + harpoon
+    g.fillStyle(0xc8a050, 1); g.fillEllipse(sk.head.x, sk.head.y - 10, 50, 10);
+    g.fillStyle(0xa8803a, 1); g.fillEllipse(sk.head.x, sk.head.y - 16, 24, 14);
+    g.lineStyle(3, 0x5a3a20, 1); g.lineBetween(sk.handF.x + 10, sk.handF.y + 20, sk.handF.x - 34, sk.handF.y - 26);
+    g.fillStyle(0xc8d2dc, 1); g.fillPoints(pts([[-34, -26], [-44, -38], [-30, -32]], sk.handF.x, sk.handF.y), true);
+  });
+  enemy(scene, 'tortuga', 116, 84, (g, f) => {
+    const st = f === 0 ? 4 : -4;
+    g.fillStyle(0x3a4a2a, 1);
+    g.fillRoundedRect(28 + st, 58, 16, 22, 6); g.fillRoundedRect(76 - st, 58, 16, 22, 6);
+    g.fillStyle(0x4e5e34, 1); g.fillCircle(20, 52, 15);
+    g.fillStyle(0xffffff, 1); g.fillPoints(pts([[10, 48], [20, 51], [11, 55]]), true);
+    g.fillStyle(0x4a3a22, 1); g.fillEllipse(64, 46, 88, 62);
+    g.fillStyle(0x6a5a32, 1); g.fillEllipse(64, 40, 80, 46);
+    g.lineStyle(3, 0x3a2a16, 1);
+    for (const [x, y] of [[50, 32], [72, 30], [62, 48], [86, 44], [40, 46]]) g.strokeCircle(x, y, 9);
+    g.fillStyle(0x7a8a4a, 0.6); g.fillEllipse(56, 26, 30, 8);
+  });
+  enemy(scene, 'hidra', 170, 150, (g, f) => {
+    g.fillStyle(0x0d2226, 1); g.fillEllipse(90, 130, 150, 34);
+    const heads = [[40, 52], [86, 30], [130, 54]];
+    heads.forEach(([hx, hy], i) => {
+      const sway = (f === 0 ? 1 : -1) * (i % 2 ? 6 : -6);
+      g.lineStyle(16, 0x15363a, 1); g.lineBetween(90, 128, hx + sway, hy + 14);
+      g.fillStyle(0x1e4a4e, 1); g.fillCircle(hx + sway, hy, 18);
+      g.fillStyle(0x0b0b0e, 1); g.fillPoints(pts([[-18, 2], [-30, 8], [-16, 10]], hx + sway, hy), true);
+      g.fillStyle(0x6fe3d6, 1); g.fillPoints(pts([[-12, -4], [-3, -1], [-11, 3]], hx + sway, hy), true);
+    });
+  });
+  enemy(scene, 'kraken', 250, 220, (g, f) => {
+    const w = f === 0 ? 1 : -1;
+    for (let i = 0; i < 6; i++) {
+      const bx = 50 + i * 32;
+      g.lineStyle(18 - i, 0x120a1e, 1);
+      g.lineBetween(bx, 160, bx - 20 + w * (i % 2 ? 14 : -14), 214);
+      g.lineBetween(bx - 20 + w * (i % 2 ? 14 : -14), 214, bx - 40, 200);
+    }
+    g.fillStyle(0x1a0f2a, 1); g.fillEllipse(130, 100, 190, 150);
+    g.fillStyle(0x2a1a40, 1); g.fillEllipse(118, 80, 150, 100);
+    g.fillStyle(0x3a2458, 0.6); g.fillEllipse(100, 56, 70, 26);
+    // the Crown's mark on its forehead
+    g.fillStyle(0xa040ff, 0.4); g.fillCircle(130, 50, 22);
+    g.fillStyle(0xd27bff, 1); g.fillPoints(pts([[116, 58], [114, 42], [122, 50], [130, 36], [138, 50], [146, 42], [144, 58]]), true);
+    g.fillStyle(0xffffff, 1);
+    g.fillPoints(pts([[56, 96], [92, 104], [60, 116]]), true); g.fillPoints(pts([[100, 104], [134, 94], [130, 116]]), true);
+    g.fillStyle(0xd27bff, 1); g.fillCircle(70, 106, 3); g.fillCircle(120, 106, 3);
+  });
+
+  // ------------------------------------------------------------ chapter 5: Torre del Olvido
+  enemy(scene, 'pagina', 70, 64, (g, f) => {
+    const bend = f === 0 ? 6 : -6;
+    g.fillStyle(0xe8e2d0, 1);
+    g.fillPoints(pts([[10, 12 + bend], [58, 6], [62, 54], [14, 58 - bend]]), true);
+    g.fillStyle(0xc8c0a8, 1); g.fillPoints(pts([[50, 6], [58, 6], [62, 16]]), true);
+    g.lineStyle(2, 0x9a9080, 1);
+    for (let i = 0; i < 5; i++) g.lineBetween(18, 22 + i * 7, 52, 20 + i * 7);
+    g.fillStyle(0x0b0b0e, 1);
+    g.fillPoints(pts([[20, 28], [32, 32], [21, 36]]), true); g.fillPoints(pts([[36, 32], [48, 27], [47, 36]]), true);
+  });
+  enemy(scene, 'tintero', 70, 84, (g, f) => {
+    const st = f === 0 ? 4 : -4;
+    g.lineStyle(5, 0x0b0b0e, 1); g.lineBetween(26, 66, 22 + st, 82); g.lineBetween(44, 66, 48 - st, 82);
+    g.fillStyle(0x1a2a5a, 1); g.fillRoundedRect(12, 28, 46, 42, 10);
+    g.fillStyle(0x0b0b1a, 1); g.fillRoundedRect(16, 40, 38, 28, 8);
+    g.fillStyle(0x3a4a8a, 1); g.fillRect(24, 16, 22, 14);
+    g.fillStyle(0x0b0b1a, 1); g.fillEllipse(35, 16, 24, 8);
+    g.fillStyle(0xffffff, 0.35); g.fillRect(16, 32, 6, 30);
+    g.fillStyle(0xffffff, 1); g.fillPoints(pts([[22, 48], [32, 52], [23, 56]]), true); g.fillPoints(pts([[36, 52], [46, 48], [46, 56]]), true);
+  });
+  humanoid(scene, 'escriba', 96, 132, 0.85, { eyes: 'glow', eyeColor: 0xbfe9ff, hoodColor: 0x5a5a6a, capeColor: 0x3a3a48 }, (g, _f, sk) => {
+    // quill
+    g.lineStyle(2, 0x2a2a2a, 1); g.lineBetween(sk.handF.x, sk.handF.y, sk.handF.x - 14, sk.handF.y - 30);
+    g.fillStyle(0xf2f2f2, 1); g.fillPoints(pts([[-14, -30], [-24, -48], [-8, -36]], sk.handF.x, sk.handF.y), true);
+  });
+  humanoid(scene, 'guardiaCorona', 110, 140, 0.92, { corrupt: true, shield: true, eyes: 'glow', eyeColor: 0xd27bff, capeColor: 0x3a1a5a });
+  enemy(scene, 'golemLibros', 150, 170, (g, f) => {
+    const st = f === 0 ? 5 : -5;
+    const colors = [0x8a2a2a, 0x2a5a8a, 0x2a7a4a, 0x8a6a2a, 0x5a2a7a, 0x2a6a6a];
+    g.fillStyle(0x3a2a1a, 1); g.fillRect(44 + st, 132, 24, 36); g.fillRect(84 - st, 132, 24, 36);
+    for (let i = 0; i < 6; i++) {
+      g.fillStyle(colors[i], 1); g.fillRoundedRect(32 + (i % 2) * 8, 40 + i * 16, 88, 15, 3);
+      g.fillStyle(0xe8e2d0, 1); g.fillRect(112 + (i % 2) * 8, 42 + i * 16, 6, 11);
+    }
+    g.fillStyle(colors[3], 1); g.fillRoundedRect(6, 50 - st, 26, 70, 6); g.fillRoundedRect(122, 50 + st, 26, 70, 6);
+    g.fillStyle(colors[4], 1); g.fillRoundedRect(50, 6, 56, 36, 6);
+    g.fillStyle(0xffe27a, 1); g.fillPoints(pts([[58, 20], [72, 25], [59, 30]]), true); g.fillPoints(pts([[84, 25], [98, 20], [97, 30]]), true);
+  });
+  humanoid(scene, 'recuerdo', 210, 330, 2.2, { kid: true, collar: 0xe2552c, crown: true, outline: 0xb060ff, eyes: 'glow', eyeColor: 0xffb0c8, body: 0x1a0a28 });
+
+  // ------------------------------------------------------------ chapter 6: Trono de la Corona
+  humanoid(scene, 'coronado', 100, 175, 0.88, { eyes: 'glow', eyeColor: 0xffd86a, body: 0x120a1a, outline: 0x8a3ae0, crown: true });
+  humanoid(scene, 'dante', 270, 420, 2.35, { corrupt: true, crown: true, eyes: 'glow', eyeColor: 0xffffff, capeColor: 0x6a1e1e, scarf: 0xa8442a, weapon: 'sword', outline: 0xb060ff });
+
+  humanoid(scene, 'ecoDante', 240, 380, 2.1, { corrupt: true, crown: true, eyes: 'glow', eyeColor: 0xffffff, capeColor: 0x5a1a2a, outline: 0xb060ff });
 
   // ------------------------------------------------------------ icons
   generateIcons(scene);
@@ -348,7 +473,7 @@ export function generateTextures(scene: Phaser.Scene): void {
     ENEMY_TEX[id].w += PAD * 2;
     ENEMY_TEX[id].h += PAD * 2;
   }
-  for (const k of ['p_arrow', 'p_arrowGold', 'p_bullet', 'p_pellet', 'p_star', 'p_starGold', 'p_turret', 'p_earrow', 'p_bomb', 'p_fall', 'turret', 'coin', 'xp', 'stake', 'rock', 'chest', 'lock']) {
+  for (const k of ['p_lanza', 'p_lanzaGold', 'p_arrow', 'p_arrowGold', 'p_bullet', 'p_pellet', 'p_star', 'p_starGold', 'p_turret', 'p_earrow', 'p_bomb', 'p_fall', 'turret', 'coin', 'xp', 'stake', 'rock', 'chest', 'lock']) {
     stickerize(scene, k, { pad: 2 });
   }
 
@@ -487,6 +612,12 @@ function generateIcons(scene: Phaser.Scene): void {
     g.fillStyle(0x6a7480, 1); star(g, 36, 38, 28, 9, 4, 0.3);
     g.fillStyle(0xd8e0ea, 1); star(g, 36, 36, 26, 8, 4, 0.3);
     g.fillStyle(0x2a2e36, 1); g.fillCircle(36, 36, 6);
+  });
+  weaponIcon('ic_lanza', (g) => {
+    g.lineStyle(6, 0x1f3a40, 1); g.lineBetween(10, 64, 52, 22);
+    g.fillStyle(0x6fe3d6, 1); g.fillPoints(pts([[46, 18], [64, 8], [56, 28], [52, 24]]), true);
+    g.fillStyle(0xffffff, 0.9); g.fillPoints(pts([[52, 18], [62, 10], [56, 22]]), true);
+    g.fillStyle(0x2ad4c4, 1); g.fillCircle(16, 58, 5);
   });
 
   const skillIcon = (key: string, color: number, draw: (g: G) => void) => bake(scene, key, 72, 72, (g) => { iconBg(g, color); draw(g); });
