@@ -473,7 +473,7 @@ export function generateTextures(scene: Phaser.Scene): void {
     ENEMY_TEX[id].w += PAD * 2;
     ENEMY_TEX[id].h += PAD * 2;
   }
-  for (const k of ['p_lanza', 'p_lanzaGold', 'p_arrow', 'p_arrowGold', 'p_bullet', 'p_pellet', 'p_star', 'p_starGold', 'p_turret', 'p_earrow', 'p_bomb', 'p_fall', 'turret', 'coin', 'xp', 'stake', 'rock', 'chest', 'lock']) {
+  for (const k of ['p_earrow', 'turret', 'coin', 'xp', 'stake', 'rock', 'chest', 'lock']) {
     stickerize(scene, k, { pad: 2 });
   }
 

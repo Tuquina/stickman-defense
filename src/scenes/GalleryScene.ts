@@ -24,6 +24,21 @@ export class GalleryScene extends Phaser.Scene {
     this.add.rectangle(GAME_W / 2, GAME_H / 2, GAME_W, GAME_H, 0x8a9aa8);
     const g = this.add.graphics();
     const label = (x: number, y: number, s: string) => this.add.text(x, y, s, txt(18, '#ffffff', 4)).setOrigin(0.5);
+    if (this.page === 9) {
+      // weapons & effects review sheet
+      this.add.rectangle(GAME_W / 2, GAME_H / 2, GAME_W, GAME_H, 0x141c26);
+      const icons = ['ic_arco', 'ic_pistola', 'ic_baston', 'ic_escopeta', 'ic_shuriken', 'ic_lanza', 'ic_lluvia', 'ic_rayo', 'ic_bomba', 'ic_muro', 'ic_hielo', 'ic_tornado', 'ic_evo', 'ic_legend', 'pi_filo', 'pi_furia'];
+      icons.forEach((k, i) => this.add.image(70 + (i % 6) * 116, 80 + Math.floor(i / 6) * 116, k).setDisplaySize(96, 96));
+      const projs = ['p_arrow', 'p_arrowGold', 'p_bullet', 'p_orb', 'p_orbGold', 'p_pellet', 'p_star', 'p_starGold', 'p_lanza', 'p_lanzaGold', 'p_fall', 'p_bomb', 'p_eorb', 'p_web', 'p_turret'];
+      projs.forEach((k, i) => this.add.image(80 + (i % 5) * 140, 470 + Math.floor(i / 5) * 90, k).setScale(1.6));
+      const fx = ['fx_spark', 'fx_ring', 'fx_flash', 'fx_smoke', 'fx_muzzle', 'fx_flame', 'fx_target', 'fx_ice', 'tornado_0', 'fx_inkwave'];
+      fx.forEach((k, i) => {
+        const im = this.add.image(80 + (i % 5) * 140, 820 + Math.floor(i / 5) * 230, k);
+        im.setScale(Math.min(1.2, 120 / im.height, 130 / im.width));
+        if (k.startsWith('fx_') && k !== 'fx_ice' && k !== 'fx_target' && k !== 'fx_inkwave') im.setTint(0x9af0ff);
+      });
+      return;
+    }
     if (this.page === 0) {
       // armor tiers × weapons
       for (let tier = 0; tier < 5; tier++) {

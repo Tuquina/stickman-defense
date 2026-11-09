@@ -7,6 +7,7 @@ import type { WeaponId } from '../data/weapons';
 import { generateBackgrounds } from '../gfx/backgrounds';
 import { drawCharacter } from '../gfx/characters';
 import { generateTextures } from '../gfx/textures';
+import { generateFx } from '../gfx/fx';
 import { onUpdate } from '../ui/widgets';
 import { STORY_ORDER } from '../data/story';
 
@@ -17,6 +18,7 @@ export class BootScene extends Phaser.Scene {
 
   create(): void {
     generateTextures(this);
+    generateFx(this);
     generateBackgrounds(this);
     this.makeDamageFont();
 
