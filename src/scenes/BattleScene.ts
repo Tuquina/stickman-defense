@@ -45,6 +45,8 @@ interface Enemy {
   kb: number;
   tornadoTick: number;
   ice?: Phaser.GameObjects.Image;
+  /** horizontal velocity of the last sim step (for leading shots) */
+  vx: number;
 }
 
 interface Proj {
@@ -63,6 +65,7 @@ interface Proj {
   life: number;
   homing: Enemy | null;
   hits: Set<Enemy>;
+  hitAny: boolean;
 }
 
 interface EProj {
@@ -171,6 +174,10 @@ export class BattleScene extends Phaser.Scene {
   private tutor: { box: Phaser.GameObjects.Container; label: Phaser.GameObjects.Text; dx: number; kind: 'mark' | 'skill' | 'fury' } | null = null;
   private lowFx = false;
   private pendingStart = false;
+  private lastHitstop = -9;
+  /** recycled Images (enemies, xp gems, coins): avoids create/destroy churn in big waves */
+  private imgPool: Phaser.GameObjects.Image[] = [];
+  private portraitT = 0;
   private trailsG!: Phaser.GameObjects.Graphics;
   private muzzles: Phaser.GameObjects.Image[] = [];
   private muzzleIdx = 0;
@@ -267,6 +274,9 @@ export class BattleScene extends Phaser.Scene {
     this.tutor = null;
     this.lowFx = Save.d.settings.lowFx;
     this.pendingStart = false;
+    this.lastHitstop = -9;
+    this.imgPool = [];
+    this.portraitT = 0;
     this.muzzles = [];
     this.muzzleIdx = 0;
     this.modal = false;
@@ -478,6 +488,23 @@ export class BattleScene extends Phaser.Scene {
   }
 
   /** Gold grows with the wave: up to ×3 at wave 20 in chapters; El Abismo keeps growing until wave 60. */
+  private takeImg(key: string, x: number, y: number): Phaser.GameObjects.Image {
+    const img = this.imgPool.pop();
+    if (!img) return this.add.image(x, y, key);
+    return img.setTexture(key).setPosition(x, y).setOrigin(0.5).setScale(1).setAlpha(1).setRotation(0).clearTint().setDepth(0).setVisible(true);
+  }
+
+  private releaseImg(img: Phaser.GameObjects.Image): void {
+    this.tweens.killTweensOf(img);
+    img.setVisible(false);
+    this.imgPool.push(img);
+  }
+
+  /** Visual/hit center of an enemy (includes the lift of flying and hopping enemies). */
+  private cy(e: Enemy): number {
+    return e.y - e.hitY - e.lift;
+  }
+
   private goldWave(): number {
     const cap = this.ch.waves === Infinity ? 60 : 20;
     return 1 + Math.min(this.wave, cap) * 0.1;
@@ -573,11 +600,13 @@ export class BattleScene extends Phaser.Scene {
 
     this.hud.hpText.setText(`BARRICADA ${fmt(this.hp)}/${fmt(this.st.maxHp)}`);
     this.hud.lvText.setText(`Lv.${this.level}`);
-    this.hud.waveText.setText(this.ch.waves === Infinity ? `${this.wave}` : `${this.wave}/${this.ch.waves}`);
+    this.hud.waveText.setText(this.ch.waves === Infinity ? `${Math.max(1, this.wave)}` : `${Math.max(1, this.wave)}/${this.ch.waves}`);
     this.hud.goldText.setText(fmt(this.gold));
     this.hud.killText.setText(`${fmt(this.kills)} bajas`);
 
     // portrait
+    if (this.simTime - this.portraitT < 0.1 && this.portraitT > 0) return;
+    this.portraitT = this.simTime;
     const pg = this.hud.portrait;
     pg.clear();
     drawStickman(pg, -4, 168, 1.6, POSES.idle(this.simTime), { tier: Save.d.armorEquipped, eyes: this.hp / this.st.maxHp < 0.35 ? 'sad' : 'determined' }, 1, this.simTime);
@@ -654,13 +683,13 @@ export class BattleScene extends Phaser.Scene {
     const sc = this.waveScale();
     const boss = !!def.rank;
     const hp = def.hp * (boss ? sc.boss : sc.hp) * hpMult;
-    const img = this.add.image(x, y, `e_${id}_0`).setOrigin(0.5, 1);
+    const img = this.takeImg(`e_${id}_0`, x, y).setOrigin(0.5, 1);
     const tex = ENEMY_TEX[id];
     const e: Enemy = {
       def, img, x, y, hp, maxHp: hp, r: def.radius, hitY: Math.min((tex?.h ?? 60) * 0.45, def.radius * 1.5 + 24),
       speed: def.speed * (0.9 + Math.random() * 0.2), dps: def.dps * sc.dmg, alive: true, boss,
       frameT: Math.random(), frame: 0, flashT: 0, frozenT: 0, slowT: 0, atWall: false,
-      t: Math.random() * 2, t2: 0, lift: 0, dashT: 0, shieldT: 0, phase: 0, kb: 0, tornadoTick: 0,
+      t: Math.random() * 2, t2: 0, lift: 0, dashT: 0, shieldT: 0, phase: 0, kb: 0, tornadoTick: 0, vx: 0,
     };
     this.enemies.push(e);
     if (this.bossWave && id === this.bossId && !this.boss) {
@@ -691,7 +720,13 @@ export class BattleScene extends Phaser.Scene {
   }
 
   // ================================================================= main loop
+  private perfMs = 0;
+  private shotsFired = 0;
+  private shotsMissed = 0;
+  private perfPeak = 0;
+
   update(_time: number, delta: number): void {
+    const frameStart = performance.now();
     if (this.paused || this.modal) {
       this.drawHud();
       this.updateDmgTexts(delta / 1000);
@@ -718,6 +753,13 @@ export class BattleScene extends Phaser.Scene {
     }
     this.render();
     if (DEBUG.bot) this.bot();
+    // frame cost probe for profiling (bot/perf runs only)
+    if (DEBUG.bot || DEBUG.perf) {
+      const ms = performance.now() - frameStart;
+      this.perfMs = this.perfMs * 0.95 + ms * 0.05;
+      this.perfPeak = Math.max(this.perfPeak * 0.995, ms);
+      (window as unknown as { __perf: object }).__perf = { miss: this.shotsFired ? +(this.shotsMissed / this.shotsFired).toFixed(3) : 0, fired: this.shotsFired, ended: this.ended, modal: this.modal, ms: +this.perfMs.toFixed(2), peak: +this.perfPeak.toFixed(1), enemies: this.enemies.length, projs: this.projs.filter((q) => q.active).length, wave: this.wave };
+    }
   }
 
   private sim(dt: number): void {
@@ -822,6 +864,7 @@ export class BattleScene extends Phaser.Scene {
     // cleanup dead enemies
     if (this.enemies.length > 0 && this.simTime % 1 < dt) this.enemies = this.enemies.filter((e) => e.alive);
 
+    if (DEBUG.perf) this.hp = this.st.maxHp; // profiling: the run never ends
     if (this.hp <= 0 && !this.ended) this.endRun(false);
   }
 
@@ -846,7 +889,7 @@ export class BattleScene extends Phaser.Scene {
     for (const e of this.enemies) {
       if (!this.onField(e) || exclude?.has(e)) continue;
       const dx = e.x - x;
-      const dy = e.y - e.hitY - y;
+      const dy = this.cy(e) - y;
       const d = dx * dx + dy * dy;
       if (d < bd) {
         bd = d;
@@ -859,8 +902,12 @@ export class BattleScene extends Phaser.Scene {
   private fire(target: Enemy): void {
     const w = this.wdef;
     const dmg = this.st.dmg;
-    const tx = target.x;
-    const ty = target.y - target.hitY;
+    // lead the target: aim where it will be when a straight shot arrives (knockback/teleports excluded)
+    const sp = this.wdef.kind === 'orb' ? 0 : this.wdef.speed;
+    const lead = sp > 0 ? Math.min(0.6, Math.hypot(target.x - HAND.x, this.cy(target) - HAND.y) / sp) : 0;
+    const vx = target.kb > 0 ? 0 : clamp(target.vx, -700, 0);
+    const tx = target.x + vx * lead;
+    const ty = this.cy(target);
     const base = Math.atan2(ty - HAND.y, tx - HAND.x);
     this.aimAngle = Math.atan2(tx - HAND.x, ty - HAND.y);
     this.recoil = 1;
@@ -910,13 +957,15 @@ export class BattleScene extends Phaser.Scene {
   private getProj(kind: Proj['kind']): Proj {
     let p = this.projs.find((q) => !q.active);
     if (!p) {
-      p = { img: this.add.image(0, 0, 'p_arrow').setDepth(2000), active: false, kind, x: 0, y: 0, vx: 0, vy: 0, speed: 0, dmg: 0, pierce: 0, bounce: 0, aoe: 0, life: 0, homing: null, hits: new Set() };
+      p = { img: this.add.image(0, 0, 'p_arrow').setDepth(2000), active: false, kind, x: 0, y: 0, vx: 0, vy: 0, speed: 0, dmg: 0, pierce: 0, bounce: 0, aoe: 0, life: 0, homing: null, hits: new Set(), hitAny: false };
       this.projs.push(p);
     }
     p.active = true;
     p.kind = kind;
     p.hits.clear();
+    p.hitAny = false;
     p.homing = null;
+    if (kind !== 'split' && kind !== 'turret') this.shotsFired++;
     p.img.setTexture(this.projTexture(kind)).setVisible(true).setScale(this.furyT > 0 && kind !== 'turret' ? 1.25 : 1);
     if (this.furyT > 0 && kind !== 'turret') p.img.setTint(0xb8fff4);
     else p.img.clearTint();
@@ -940,7 +989,7 @@ export class BattleScene extends Phaser.Scene {
   }
 
   private shoot(kind: Proj['kind'], x: number, y: number, target: Enemy, dmg: number, pierce: number): void {
-    const ang = Math.atan2(target.y - target.hitY - y, target.x - x);
+    const ang = Math.atan2(this.cy(target) - y, target.x - x);
     const p = this.shootAngle(kind, x, y, ang, dmg, pierce);
     if (kind === 'orb') {
       p.homing = target;
@@ -971,8 +1020,11 @@ export class BattleScene extends Phaser.Scene {
     if (!opts.silent) this.dmgText(e.x + Phaser.Math.Between(-22, 22), e.y - e.hitY * 1.6 + Phaser.Math.Between(-12, 8), amt, crit);
     if (crit) {
       Sound.play('crit', 70);
-      if (!this.lowFx && !opts.silent) this.flare(e.x, e.y - e.hitY, e.boss ? 120 : 70, 0xfff0a0, 140);
-      if (e.boss) this.hitstop = Math.max(this.hitstop, 0.03);
+      if (!this.lowFx && !opts.silent) this.flare(e.x, this.cy(e), e.boss ? 120 : 70, 0xfff0a0, 140);
+      if (e.boss && this.simTime - this.lastHitstop > 0.6) {
+        this.hitstop = Math.max(this.hitstop, 0.03);
+        this.lastHitstop = this.simTime;
+      }
       else e.kb += 14;
     } else Sound.play('hit', 50);
     if (this.legends.has('ejecutor') && !e.boss && e.hp > 0 && e.hp < e.maxHp * 0.12) {
@@ -987,7 +1039,7 @@ export class BattleScene extends Phaser.Scene {
     for (const e of this.enemies) {
       if (!e.alive) continue;
       const dx = e.x - x;
-      const dy = e.y - e.hitY - y;
+      const dy = this.cy(e) - y;
       if (dx * dx + dy * dy <= r2 + e.r * e.r) {
         this.damage(e, dmg, { skill: opts.skill, silent: opts.silent });
         if (opts.kb && e.alive) e.kb += e.boss ? opts.kb * 0.2 : opts.kb;
@@ -999,25 +1051,26 @@ export class BattleScene extends Phaser.Scene {
   private kill(e: Enemy): void {
     e.alive = false;
     if (e.ice) {
-      if (!this.lowFx) this.emitters.shard.setParticleTint(0xcff0ff).explode(10, e.x, e.y - e.hitY);
+      if (!this.lowFx) this.emitters.shard.setParticleTint(0xcff0ff).explode(10, e.x, this.cy(e));
       e.ice.destroy();
       e.ice = undefined;
     }
     const img = e.img;
-    if (this.lowFx) img.destroy();
+    if (this.lowFx) this.releaseImg(img);
     else {
       img.setTintFill(0xffffff);
-      this.tweens.add({ targets: img, scaleX: 1.3, scaleY: 0.15, alpha: 0, duration: 170, ease: 'Quad.easeIn', onComplete: () => img.destroy() });
+      this.tweens.add({ targets: img, scaleX: 1.3, scaleY: 0.15, alpha: 0, duration: 170, ease: 'Quad.easeIn', onComplete: () => this.releaseImg(img) });
     }
     if (e === this.marked) {
       this.marked = null;
       this.markImg.setVisible(false);
     }
     this.kills++;
-    const cy = e.y - e.hitY;
+    const cy = this.cy(e);
     const color = ['arana', 'aranaMadre', 'reina', 'escarabajo', 'seta'].includes(e.def.id) ? 'red' : ['mancha', 'manchita', 'sombra', 'guardian', 'ecoDante'].includes(e.def.id) ? 'purple' : 'ink';
-    this.emitters[color].explode(e.boss ? 40 : 10, e.x, cy);
-    this.emitters.ink.explode(e.boss ? 20 : 4, e.x, cy);
+    const crowd = this.enemies.length > 60 ? 0.35 : this.enemies.length > 30 ? 0.65 : 1;
+    this.emitters[color].explode(e.boss ? 40 : Math.ceil(10 * crowd), e.x, cy);
+    this.emitters.ink.explode(e.boss ? 20 : Math.ceil(4 * crowd), e.x, cy);
     this.splat(e.x, e.y, color === 'red' ? 0x3a1420 : color === 'purple' ? 0x2a1040 : 0x111116, e.boss ? 2.6 : Math.max(0.6, e.r / 24));
     Sound.play('death', 60);
     this.addCombo();
@@ -1078,12 +1131,16 @@ export class BattleScene extends Phaser.Scene {
     const wallX = FIELD.barricadeX + 34;
     for (const e of this.enemies) {
       if (!e.alive) continue;
+      const x0 = e.x;
       e.frameT += dt * (e.speed / 30);
       if (e.flashT > 0) e.flashT -= dt;
       if (e.shieldT > 0) e.shieldT -= dt;
       if (e.frozenT > 0) {
         e.frozenT -= dt;
-        if (!e.boss) continue;
+        if (!e.boss) {
+          e.vx = 0;
+          continue;
+        }
       }
       let spd = e.speed * (e.slowT > 0 ? 0.5 : 1) * (e.frozenT > 0 ? 0.5 : 1);
       if (e.slowT > 0) e.slowT -= dt;
@@ -1132,7 +1189,7 @@ export class BattleScene extends Phaser.Scene {
             e.t2 += dt;
             if (e.t2 > 2.2) {
               e.t2 = 0;
-              this.enemyShoot('arrow', e.x - 20, e.y - e.hitY - 10, FIELD.barricadeX + 10, e.y - 40, 7 * this.waveScale().dmg);
+              this.enemyShoot('arrow', e.x - 20, this.cy(e) - 10, FIELD.barricadeX + 10, e.y - 40, 7 * this.waveScale().dmg);
             }
           }
           break;
@@ -1145,7 +1202,7 @@ export class BattleScene extends Phaser.Scene {
               if (!o.alive || o === e) continue;
               if (Math.abs(o.x - e.x) < 170 && Math.abs(o.y - e.y) < 170) o.hp = Math.min(o.maxHp, o.hp + o.maxHp * 0.12);
             }
-            this.emitters.green.explode(14, e.x, e.y - e.hitY);
+            this.emitters.green.explode(14, e.x, this.cy(e));
             const ring = this.add.image(e.x, e.y - 30, 'ring').setDepth(2400).setScale(0.2).setTint(0x6aff8a);
             this.tweens.add({ targets: ring, scale: 2.8, alpha: 0, duration: 400, onComplete: () => ring.destroy() });
           }
@@ -1190,6 +1247,7 @@ export class BattleScene extends Phaser.Scene {
           }
         }
       }
+      e.vx = (e.x - x0) / dt;
     }
   }
 
@@ -1197,7 +1255,7 @@ export class BattleScene extends Phaser.Scene {
     const id = e.def.id;
     if (id === 'reina') {
       if (e.t % 3.2 < dt) for (let i = 0; i < 3; i++) this.spawn('arana', e.x, clamp(e.y + Phaser.Math.Between(-90, 90), FIELD.top, FIELD.bottom));
-      if (e.t % 5 < dt && e.t > 1) this.enemyShoot('web', e.x - 60, e.y - e.hitY, FIELD.heroX, FIELD.heroY - 60, 0);
+      if (e.t % 5 < dt && e.t > 1) this.enemyShoot('web', e.x - 60, this.cy(e), FIELD.heroX, FIELD.heroY - 60, 0);
     } else if (id === 'sirHueco') {
       if (e.t % 6 < dt && e.t > 2) {
         e.t2 = -0.45; // charge
@@ -1209,7 +1267,7 @@ export class BattleScene extends Phaser.Scene {
     } else if (id === 'kraken') {
       // the creature that attacked the village: tentacle slams, ink blasts and blinding ink
       if (e.t % 3.6 < dt) for (let i = 0; i < 2; i++) this.spawn('sanguijuela', e.x, clamp(e.y + Phaser.Math.Between(-110, 110), FIELD.top, FIELD.bottom));
-      if (e.t % 4.5 < dt && e.t > 1) this.enemyShoot('orb', e.x - 60, e.y - e.hitY, FIELD.barricadeX + 10, e.y - 40, this.st.maxHp * 0.035);
+      if (e.t % 4.5 < dt && e.t > 1) this.enemyShoot('orb', e.x - 60, this.cy(e), FIELD.barricadeX + 10, e.y - 40, this.st.maxHp * 0.035);
       if (e.t % 6.5 < dt && e.t > 3) {
         this.hp -= this.st.maxHp * 0.025;
         this.cameras.main.shake(350, 0.012);
@@ -1227,13 +1285,13 @@ export class BattleScene extends Phaser.Scene {
     } else if (id === 'recuerdo') {
       // a corrupted memory of kid Dante: teleports and throws the pages of the past
       if (e.t % 4.5 < dt && e.t > 1) {
-        this.emitters.purple.explode(18, e.x, e.y - e.hitY);
+        this.emitters.purple.explode(18, e.x, this.cy(e));
         e.y = Phaser.Math.Between(FIELD.top + 40, FIELD.bottom - 20);
         e.x = Math.min(GAME_W - 70, e.x + 40);
-        this.emitters.purple.explode(18, e.x, e.y - e.hitY);
+        this.emitters.purple.explode(18, e.x, this.cy(e));
         Sound.play('whoosh');
       }
-      if (e.t % 2.6 < dt) this.enemyShoot('orb', e.x - 30, e.y - e.hitY, FIELD.barricadeX + 10, e.y - 40, this.st.maxHp * 0.03);
+      if (e.t % 2.6 < dt) this.enemyShoot('orb', e.x - 30, this.cy(e), FIELD.barricadeX + 10, e.y - 40, this.st.maxHp * 0.03);
       const k = e.hp / e.maxHp;
       if ((e.phase === 0 && k < 0.66) || (e.phase === 1 && k < 0.33)) {
         e.phase++;
@@ -1253,11 +1311,11 @@ export class BattleScene extends Phaser.Scene {
       }
       if (e.t2 < 0) e.t2 = Math.min(0, e.t2 + dt);
       if (e.t % (3 / rage) < dt) {
-        for (const dy of [-90, 0, 90]) this.enemyShoot('orb', e.x - 40, e.y - e.hitY, FIELD.barricadeX + 10, clamp(e.y - 40 + dy, FIELD.top, FIELD.bottom), this.st.maxHp * 0.022);
+        for (const dy of [-90, 0, 90]) this.enemyShoot('orb', e.x - 40, this.cy(e), FIELD.barricadeX + 10, clamp(e.y - 40 + dy, FIELD.top, FIELD.bottom), this.st.maxHp * 0.022);
       }
       if (e.phase >= 1 && e.t % 8 < dt) {
         e.shieldT = 2.5;
-        this.emitters.purple.explode(20, e.x, e.y - e.hitY);
+        this.emitters.purple.explode(20, e.x, this.cy(e));
       }
       if ((e.phase === 0 && k < 0.66) || (e.phase === 1 && k < 0.33)) {
         e.phase++;
@@ -1279,13 +1337,13 @@ export class BattleScene extends Phaser.Scene {
     } else if (id === 'ecoDante') {
       if (e.t % 5 < dt && e.t > 1) {
         // teleport
-        this.emitters.purple.explode(20, e.x, e.y - e.hitY);
+        this.emitters.purple.explode(20, e.x, this.cy(e));
         e.y = Phaser.Math.Between(FIELD.top + 40, FIELD.bottom - 20);
         e.x = Math.min(GAME_W - 70, e.x + 50);
-        this.emitters.purple.explode(20, e.x, e.y - e.hitY);
+        this.emitters.purple.explode(20, e.x, this.cy(e));
         Sound.play('whoosh');
       }
-      if (e.t % 3 < dt) this.enemyShoot('orb', e.x - 40, e.y - e.hitY, FIELD.barricadeX + 10, e.y - 40, this.st.maxHp * 0.03);
+      if (e.t % 3 < dt) this.enemyShoot('orb', e.x - 40, this.cy(e), FIELD.barricadeX + 10, e.y - 40, this.st.maxHp * 0.03);
       const k = e.hp / e.maxHp;
       if ((e.phase === 0 && k < 0.66) || (e.phase === 1 && k < 0.33)) {
         e.phase++;
@@ -1334,7 +1392,7 @@ export class BattleScene extends Phaser.Scene {
       if (!p.active) continue;
       if (p.homing) {
         if (p.homing.alive) {
-          const a = Math.atan2(p.homing.y - p.homing.hitY - p.y, p.homing.x - p.x);
+          const a = Math.atan2(this.cy(p.homing) - p.y, p.homing.x - p.x);
           p.vx = Math.cos(a) * p.speed;
           p.vy = Math.sin(a) * p.speed;
         } else {
@@ -1352,8 +1410,9 @@ export class BattleScene extends Phaser.Scene {
       for (const e of this.enemies) {
         if (!e.alive || p.hits.has(e)) continue;
         const dx = e.x - p.x;
-        const dy = e.y - e.hitY - p.y;
         const rr = e.r + pr;
+        if (dx > rr || dx < -rr) continue; // cheap reject before the full distance check
+        const dy = this.cy(e) - p.y;
         if (dx * dx + dy * dy > rr * rr) continue;
         p.hits.add(e);
         this.onHit(p, e);
@@ -1363,12 +1422,14 @@ export class BattleScene extends Phaser.Scene {
   }
 
   private deactivate(p: Proj): void {
+    if (!p.hitAny && p.kind !== 'split' && p.kind !== 'turret') this.shotsMissed++;
     p.active = false;
     p.img.setVisible(false);
   }
 
   private onHit(p: Proj, e: Enemy): void {
     const evo = this.evolved;
+    p.hitAny = true;
     this.impact(p.kind, p.x, p.y);
     switch (p.kind) {
       case 'orb':
@@ -1383,7 +1444,7 @@ export class BattleScene extends Phaser.Scene {
           p.bounce--;
           const n = this.nearestEnemy(p.x, p.y, 280, p.hits);
           if (n) {
-            const a = Math.atan2(n.y - n.hitY - p.y, n.x - p.x);
+            const a = Math.atan2(this.cy(n) - p.y, n.x - p.x);
             p.vx = Math.cos(a) * p.speed;
             p.vy = Math.sin(a) * p.speed;
             p.life = 1;
@@ -1415,12 +1476,12 @@ export class BattleScene extends Phaser.Scene {
       this.gainXp(value);
       return;
     }
-    const img = this.add.image(x, y, 'xp').setDepth(2100);
+    const img = this.takeImg('xp', x, y).setDepth(2100);
     this.drops.push({ img, kind: 'xp', x, y, vx: Phaser.Math.Between(-80, 80), vy: Phaser.Math.Between(-220, -120), t: 0, value, ground: y + 20, flying: false });
   }
 
   private dropCoin(x: number, y: number, value: number): void {
-    const img = this.add.image(x, y - 30, 'coin').setDepth(2100);
+    const img = this.takeImg('coin', x, y - 30).setDepth(2100);
     this.drops.push({ img, kind: 'coin', x, y: y - 30, vx: Phaser.Math.Between(-90, 90), vy: Phaser.Math.Between(-320, -180), t: 0, value, ground: y, flying: false });
   }
 
@@ -1440,7 +1501,7 @@ export class BattleScene extends Phaser.Scene {
           const sp = 300 + d.t * 1400;
           if (dist < 30) {
             this.gainXp(d.value);
-            d.img.destroy();
+            this.releaseImg(d.img);
             this.drops.splice(i, 1);
             continue;
           }
@@ -1465,7 +1526,7 @@ export class BattleScene extends Phaser.Scene {
           if (dist < 30) {
             this.gold += d.value;
             Sound.play('coin', 70);
-            d.img.destroy();
+            this.releaseImg(d.img);
             this.drops.splice(i, 1);
             continue;
           }
@@ -1489,7 +1550,7 @@ export class BattleScene extends Phaser.Scene {
         this.dmgText(d.x, d.y - 20, d.value * 2, true, '+');
         this.emitters.gold.explode(8, d.x, d.y);
         Sound.play('coin', 30);
-        d.img.destroy();
+        this.releaseImg(d.img);
         this.drops.splice(i, 1);
         got = true;
       }
@@ -1501,7 +1562,7 @@ export class BattleScene extends Phaser.Scene {
     for (const e of this.enemies) {
       if (!this.onField(e)) continue;
       const dx = e.x - x;
-      const dy = e.y - e.hitY - y;
+      const dy = this.cy(e) - y;
       const d = dx * dx + dy * dy - e.r * e.r;
       if (d < bd) {
         bd = d;
@@ -1745,7 +1806,7 @@ export class BattleScene extends Phaser.Scene {
         best = e;
       }
     }
-    return best ? { x: best.x, y: best.y - best.hitY } : null;
+    return best ? { x: best.x, y: this.cy(best) } : null;
   }
 
   private useSkill(i: number): void {
@@ -1953,7 +2014,7 @@ export class BattleScene extends Phaser.Scene {
     for (let i = 0; i < n && next; i++) {
       hit.add(next);
       const tx = next.x;
-      const ty = next.y - next.hitY;
+      const ty = this.cy(next);
       const pts = [{ x: px, y: py }];
       for (let s2 = 1; s2 < 6; s2++) {
         const k2 = s2 / 6;
@@ -2179,7 +2240,7 @@ export class BattleScene extends Phaser.Scene {
         this.tutor = null;
       } else if (k === 'mark') {
         const t = this.getTarget();
-        if (t) this.tutor.box.setPosition(t.x, t.y - t.hitY);
+        if (t) this.tutor.box.setPosition(t.x, this.cy(t));
       }
       this.keepOnScreen();
       return;
@@ -2187,7 +2248,7 @@ export class BattleScene extends Phaser.Scene {
     if (!tut.mark && this.simTime > 4) {
       const t = this.getTarget();
       if (t && t.x < GAME_W - 80) {
-        this.showTutor('mark', t.x, t.y - t.hitY, '¡Tócalo para marcarlo!\n+30% de daño');
+        this.showTutor('mark', t.x, this.cy(t), '¡Tócalo para marcarlo!\n+30% de daño');
         return;
       }
     }
@@ -2277,7 +2338,7 @@ export class BattleScene extends Phaser.Scene {
       }
       if (e.ice) {
         if (e.frozenT <= 0) {
-          if (!this.lowFx) this.emitters.shard.setParticleTint(0xcff0ff).explode(8, e.x, e.y - e.hitY);
+          if (!this.lowFx) this.emitters.shard.setParticleTint(0xcff0ff).explode(8, e.x, this.cy(e));
           e.ice.destroy();
           e.ice = undefined;
         } else e.ice.setPosition(e.x, e.y + 4 - e.lift).setDepth(e.y + 0.5);
@@ -2322,9 +2383,13 @@ export class BattleScene extends Phaser.Scene {
   private dmgText(x: number, y: number, amount: number, crit: boolean, prefix = ''): void {
     let d = this.dmgTexts.find((q) => !q.active);
     if (!d) {
-      if (this.dmgTexts.length >= 45) return;
-      d = { bt: this.add.bitmapText(0, 0, 'dmg', '').setOrigin(0.5).setDepth(3000).setLetterSpacing(-19), t: 0, vy: 0, active: false };
-      this.dmgTexts.push(d);
+      if (this.dmgTexts.length < 60) {
+        d = { bt: this.add.bitmapText(0, 0, 'dmg', '').setOrigin(0.5).setDepth(3000).setLetterSpacing(-19), t: 0, vy: 0, active: false };
+        this.dmgTexts.push(d);
+      } else {
+        // pool full in a huge wave: recycle the oldest number so every new hit still shows feedback
+        d = this.dmgTexts.reduce((a, b) => (b.t > a.t ? b : a));
+      }
     }
     const label = prefix === 'LENTO' ? '' : prefix === '!!' ? '!!' : `${prefix}${fmtShort(amount)}${crit && !prefix ? '!' : ''}`;
     if (!label) {

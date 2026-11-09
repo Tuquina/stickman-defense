@@ -380,7 +380,84 @@ function icons(scene: Phaser.Scene): void {
   });
 }
 
+// ================================================================== logo + UI icons
+function logo(scene: Phaser.Scene): void {
+  paint(scene, 'logo', 680, 300, (ctx, w) => {
+    const font = (px: number) => `${px}px "Lilita One", "Arial Black", sans-serif`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    // brush stroke behind "DE TINTA"
+    ctx.fillStyle = 'rgba(8,10,14,0.9)';
+    ctx.beginPath();
+    ctx.moveTo(110, 196); ctx.quadraticCurveTo(340, 168, 590, 190); ctx.lineTo(600, 262);
+    ctx.quadraticCurveTo(340, 280, 90, 258); ctx.closePath(); ctx.fill();
+    for (const [x, y, r] of [[96, 252, 14], [604, 200, 10], [585, 268, 8], [130, 270, 6]]) { ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fill(); }
+    const word = (text: string, y: number, size: number, top: string, bottom: string, glow: string) => {
+      ctx.font = font(size);
+      ctx.lineJoin = 'round';
+      ctx.shadowColor = glow;
+      ctx.shadowBlur = 24;
+      ctx.lineWidth = 22;
+      ctx.strokeStyle = '#06080c';
+      ctx.strokeText(text, w / 2, y + 6);
+      ctx.shadowBlur = 0;
+      ctx.lineWidth = 16;
+      ctx.strokeText(text, w / 2, y);
+      const g = ctx.createLinearGradient(0, y - size / 2, 0, y + size / 2);
+      g.addColorStop(0, top);
+      g.addColorStop(1, bottom);
+      ctx.fillStyle = g;
+      ctx.fillText(text, w / 2, y);
+      // inner highlight on the upper half
+      ctx.save();
+      ctx.beginPath();
+      ctx.rect(0, y - size / 2, w, size * 0.42);
+      ctx.clip();
+      ctx.fillStyle = 'rgba(255,255,255,0.35)';
+      ctx.fillText(text, w / 2, y);
+      ctx.restore();
+    };
+    word('JURAMENTO', 92, 120, '#ffffff', '#bfe9ff', 'rgba(42,212,196,0.9)');
+    word('DE TINTA', 222, 100, '#6ff6e6', '#1fa89a', 'rgba(160,64,255,0.9)');
+  });
+  paint(scene, 'fx_rays', 512, 512, (ctx) => {
+    ctx.translate(256, 256);
+    for (let i = 0; i < 14; i++) {
+      ctx.rotate((Math.PI * 2) / 14);
+      const g = ctx.createLinearGradient(0, 0, 0, -256);
+      g.addColorStop(0, 'rgba(255,255,255,0.5)');
+      g.addColorStop(1, 'rgba(255,255,255,0)');
+      ctx.fillStyle = g;
+      ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(-22, -256); ctx.lineTo(22, -256); ctx.closePath(); ctx.fill();
+    }
+  });
+  const ui = (key: string, draw: (ctx: Ctx) => void) => paint(scene, key, 64, 64, (ctx) => { ctx.lineJoin = 'round'; ctx.lineCap = 'round'; draw(ctx); });
+  ui('ui_swords', (ctx) => {
+    for (const dir of [1, -1]) {
+      ctx.save(); ctx.translate(32, 32); ctx.rotate(dir * Math.PI / 4);
+      poly(ctx, [[-4, -28], [4, -28], [4, 10], [-4, 10]]); ink(ctx, lin(ctx, -4, 0, 4, 0, [[0, '#ffffff'], [1, '#aeb8c4']]), 3);
+      poly(ctx, [[-11, 10], [11, 10], [11, 15], [-11, 15]]); ink(ctx, '#ffc93c', 3);
+      poly(ctx, [[-3, 15], [3, 15], [3, 27], [-3, 27]]); ink(ctx, '#7a4a24', 2.5);
+      ctx.restore();
+    }
+  });
+  ui('ui_hammer', (ctx) => {
+    ctx.save(); ctx.translate(32, 32); ctx.rotate(-Math.PI / 5);
+    poly(ctx, [[-4, -6], [4, -6], [4, 28], [-4, 28]]); ink(ctx, '#9a6a3c', 3);
+    poly(ctx, [[-20, -24], [20, -24], [20, -6], [-20, -6]]); ink(ctx, lin(ctx, 0, -24, 0, -6, [[0, '#e8eef4'], [1, '#6a7480']]), 3);
+    ctx.restore();
+  });
+  ui('ui_book', (ctx) => {
+    poly(ctx, [[6, 14], [31, 18], [31, 56], [6, 52]]); ink(ctx, '#f2ecd8', 3);
+    poly(ctx, [[58, 14], [33, 18], [33, 56], [58, 52]]); ink(ctx, '#f2ecd8', 3);
+    ctx.strokeStyle = '#8a7a62'; ctx.lineWidth = 2;
+    for (let i = 0; i < 3; i++) { ctx.beginPath(); ctx.moveTo(11, 27 + i * 8); ctx.lineTo(27, 30 + i * 8); ctx.stroke(); ctx.beginPath(); ctx.moveTo(37, 30 + i * 8); ctx.lineTo(53, 27 + i * 8); ctx.stroke(); }
+    ctx.fillStyle = '#a040ff'; ctx.fillRect(28, 10, 8, 14);
+  });
+}
+
 export function generateFx(scene: Phaser.Scene): void {
+  logo(scene);
   vfx(scene);
   projectiles(scene);
   icons(scene);

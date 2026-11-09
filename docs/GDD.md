@@ -309,6 +309,14 @@ Todo pintado con Canvas 2D al arrancar (degradados, brillos, contornos) en `src/
 | Furia | Aura de llamas turquesa sobre el héroe y proyectiles más grandes y teñidos. |
 | Calidad baja | Desactiva estelas, destellos de disparo, chispas, humo y manchas. |
 
+### 5.0.1 Personajes, portada y rendimiento (v0.6)
+
+- **Personajes**: torso ancho que se estrecha en la cintura, extremidades más gruesas en la raíz, puños cuadrados alineados con el antebrazo, botas con talón y un brillo suave en la cabeza. Aplica a todos los personajes y enemigos humanoides.
+- **Portada**: logo pintado (degradado, contorno, brillo y pincelada), rayos de luz girando, Lino y Dante enfrentados con sus números de Poder y un "VS" (tras el final Liberación: "JUNTOS"), un rayo violeta entre ellos, partículas de tinta y un botón "TOCA PARA EMPEZAR" con mano guía.
+- **Menú**: logo, pedestal brillante bajo el héroe, botones con íconos y una pista del siguiente objetivo.
+- **Precisión**: el golpe se calcula donde se dibuja el enemigo (incluida la altura de los que vuelan o saltan), los disparos rectos se adelantan al movimiento del objetivo, los números de daño siempre aparecen (se reciclan los más viejos) y las micro-pausas por crítico tienen un tiempo de espera.
+- **Rendimiento**: reutilización de imágenes (enemigos, gemas y monedas), descarte rápido en colisiones, menos partículas con multitudes y el retrato del HUD a 10 fps. Medido con más de 200 enemigos: unos 0,9 ms de lógica por frame y 58 fps con renderizado por CPU.
+
 ### 5.1 Reglas de consistencia visual
 
 | Elemento | Regla |
