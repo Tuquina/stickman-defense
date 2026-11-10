@@ -407,6 +407,42 @@ Todo pintado con Canvas 2D al arrancar (degradados, brillos, contornos) en `src/
 - **Expresiones nuevas**: lágrimas (Dante y Lino), venda en la cabeza (Lino herido) y el palo de escoba entero y partido.
 - **Rótulos** de lugar y tiempo ("VALTINTA · HACE 5 AÑOS", "CINCO AÑOS DESPUÉS…", "DÍAS DESPUÉS") para que el salto temporal se entienda.
 
+### 5.0.4 Cinemáticas pulidas (v1.0)
+
+- **Dos cámaras en las escenas de historia**:
+  - la cámara del mundo hace zoom, paneos lentos hacia quien habla y temblores;
+  - la de la interfaz deja quietos los textos y botones.
+- **Aldea de noche pintada** (cielo estrellado, luna con halo, montañas, castillo, río) y una **fila de casas en una capa aparte**, para que la bestia salga *detrás* de los techos.
+- **Fuego pintado**: llamas con degradé y núcleo caliente, animadas por cuadros con mezcla aditiva y un brillo que parpadea. Se encienden techo por techo. Hay humo y brasas.
+- **La bestia del ataque**, rediseñada:
+  - manto de tinta con brillo violeta, ojos furiosos que laten, boca con dientes y la marca de la Corona en la frente;
+  - seis **tentáculos animados en vivo** con ventosas;
+  - emerge detrás de las casas mientras la cámara se aleja, y al golpear hay un tentáculo, zoom y una breve congelación.
+- **Casa de la curandera** (fondo nuevo): ventana redonda con la noche y luego el amanecer, estantes con frascos, hierbas colgando, el dibujo de los dos hermanos en la pared, una vela animada y una alfombra. Lino vendado en la cama con un edredón.
+- **Lino despierta**: se sienta en la cama, la cámara recorre el cuarto vacío (la escoba rota en el piso) y aparece la nota de Dante.
+- **En todas las escenas**:
+  - viñeta cinematográfica y partículas de ambiente según el lugar (polvo, luciérnagas, ceniza, chispas violetas);
+  - empujes de cámara en los momentos emotivos;
+  - la narración baja al cuadro inferior cuando la bestia está en escena, para no taparla.
+- **Rendimiento**: todo el arte se pinta una sola vez (Canvas 2D). En el momento más pesado (fuego, horda, bestia y partículas) se mantienen 60 fps con el renderizado por CPU.
+
+### 5.0.5 QA de armas × mejoras (v1.0)
+
+Prueba automática que, para cada una de las 6 armas, aplica todas las cartas al máximo:
+- 5★ y evolución;
+- las 11 pasivas;
+- 3 torretas;
+- las 8 legendarias;
+- las 6 habilidades.
+
+Después juega una batalla real. **102 de 102 controles bien**:
+- el daño, la velocidad, el crítico, el combo, la vida y la recarga suben;
+- la perforación, los rebotes, el área y los perdigones aplican según el arma;
+- las 6 evoluciones tienen efecto;
+- Doble Trazo dispara 2 proyectiles (2 abanicos con la escopeta, 2 orbes con el bastón);
+- las torretas disparan, Vampiro cura y Ejecutor remata;
+- no hay errores.
+
 ### 5.1 Reglas de consistencia visual
 
 | Elemento | Regla |
@@ -497,10 +533,11 @@ implementación vacía en web y AdMob/IAP mediante plugins de Capacitor.
 
 ## 8. Alcance
 
-### MVP (esta versión)
-- [x] Prólogo de dos partes y escenas de intro y final por capítulo
-- [x] 3 capítulos de 20 oleadas con mini-jefe y jefe, más el Abismo infinito
-- [x] 5 armas con evolución, 6 habilidades, 11 pasivas, 8 legendarias y torretas
+### Versión 1.0 (primera versión jugable completa)
+- [x] Prólogo de dos partes con la noche del ataque animada, y escenas de intro y final por capítulo
+- [x] 6 capítulos de 20 oleadas con mini-jefe y jefe, el duelo final contra Dante con dos finales, y el Abismo infinito
+- [x] 6 armas con evolución, 6 habilidades, 11 pasivas, 8 legendarias y torretas (todas verificadas con QA automático)
+- [x] Economía con topes por progreso (sin farmeo temprano) y aliados con radio en batalla
 - [x] Taller: 7 mejoras permanentes, niveles de arma y 5 armaduras visibles
 - [x] Poder, Rango y guardado local
 - [x] Audio y música procedurales

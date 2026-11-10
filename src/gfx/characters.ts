@@ -37,6 +37,7 @@ export function poseFor(p: PoseId | undefined, t: number): Pose {
     case 'cross': return POSES.cross(t);
     case 'kneel': return POSES.kneel(t);
     case 'hands': return POSES.hands(t);
+    case 'sit': return POSES.sit(t);
     case 'fallen': return { ...POSES.idle(0), armB: [-1.2, 0.3], armF: [2.4, 0.2], legB: [-0.3, 0.6], legF: [0.4, 0.1] };
     default: return POSES.idle(t);
   }
