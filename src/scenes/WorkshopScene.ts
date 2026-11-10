@@ -2,7 +2,7 @@ import { GAME_H, GAME_W, ttl, txt } from '../config';
 import { Sound } from '../core/audio';
 import { fmt } from '../core/format';
 import { Save } from '../core/save';
-import { armorUnlocked, power, weaponUnlocked } from '../core/stats';
+import { armorUnlocked, nextCapChapter, power, upgradeCap, weaponCap, weaponUnlocked } from '../core/stats';
 import { ARMORS } from '../data/armor';
 import { UPGRADES, upgradeCost } from '../data/upgrades';
 import { WEAPON_MAX_LV, WEAPON_ORDER, WEAPONS, weaponLvCost } from '../data/weapons';
@@ -99,17 +99,21 @@ export class WorkshopScene extends Phaser.Scene {
 
   private buildUpgrades(): void {
     const d = Save.d;
+    const cap = upgradeCap(d);
+    const nextCh = nextCapChapter(d);
+    if (nextCh) this.content.add(this.add.text(GAME_W / 2, 262, `Tope actual: Nv.${cap} · vence el ${nextCh} para subir más`, txt(20, '#ffb340', 4)).setOrigin(0.5));
     UPGRADES.forEach((u, i) => {
       const y = 280 + i * 125;
       this.row(y, 112);
       const lv = d.upgrades[u.id];
-      const maxed = lv >= u.max;
+      const capped = lv < u.max && lv >= cap;
+      const maxed = lv >= u.max || capped;
       const cost = upgradeCost(u, lv);
       this.content.add(iconBox(this, 90, y + 56, 84, u.tex, u.icon, u.color));
       this.content.add(this.add.text(150, y + 14, `${u.name}  Nv.${lv}`, txt(32, '#ffc93c', 6)).setOrigin(0, 0));
       const now = u.id === 'precision' ? `+${(lv * u.per * 100).toFixed(0)}%` : `+${Math.round(lv * u.per * 100)}%`;
       this.content.add(this.add.text(150, y + 60, `${now} ${u.desc} (+${Math.round(u.per * 100)}%/nv)`, txt(21, '#bfe9ff', 4)).setOrigin(0, 0));
-      const b = button(this, 590, y + 56, 170, 76, maxed ? 'MÁX' : fmt(cost), () => this.buy(cost, () => { d.upgrades[u.id]++; }), {
+      const b = button(this, 590, y + 56, 170, 76, capped ? 'TOPE' : maxed ? 'MÁX' : fmt(cost), () => this.buy(cost, () => { d.upgrades[u.id]++; }), {
         size: 28, color: maxed ? 0x4a5260 : d.gold >= cost ? 0xe2a020 : 0x6a5a3a, disabled: maxed,
       });
       this.content.add(this.priceTag(b, maxed));
@@ -118,13 +122,19 @@ export class WorkshopScene extends Phaser.Scene {
 
   private buildWeapons(): void {
     const d = Save.d;
+    const nextCh = nextCapChapter(d);
+    if (nextCh && weaponCap(d) < WEAPON_MAX_LV) {
+      this.content.add(this.add.text(GAME_W / 2, 256, `Tope de armas: Nv.${weaponCap(d)} · vence el ${nextCh} para subir más`, txt(20, '#ffb340', 4)).setOrigin(0.5));
+    }
     WEAPON_ORDER.forEach((id, i) => {
       const w = WEAPONS[id];
       const y = 272 + i * 148;
       this.row(y, 134);
       const unlocked = weaponUnlocked(d, id);
       const lv = d.weaponLv[id];
-      const maxed = lv >= WEAPON_MAX_LV;
+      const wcap = weaponCap(d);
+      const capped = lv < WEAPON_MAX_LV && lv >= wcap;
+      const maxed = lv >= WEAPON_MAX_LV || capped;
       const cost = weaponLvCost(lv);
       const ic = iconBox(this, 96, y + 67, 100, `ic_${id}`, '', 0xf6a63a);
       if (!unlocked) ic.setAlpha(0.35);
@@ -133,7 +143,7 @@ export class WorkshopScene extends Phaser.Scene {
       if (unlocked) {
         this.content.add(this.add.text(162, y + 52, `Nivel ${lv}/${WEAPON_MAX_LV} · Daño +${(lv - 1) * 10}%`, txt(23, '#bfe9ff', 4)).setOrigin(0, 0));
         this.content.add(this.add.text(162, y + 88, `Evolución: ${w.evoName}`, txt(20, '#ffb340', 4)).setOrigin(0, 0));
-        this.content.add(this.priceTag(button(this, 590, y + 67, 170, 72, maxed ? 'MÁX' : fmt(cost), () => this.buy(cost, () => { d.weaponLv[id]++; }), {
+        this.content.add(this.priceTag(button(this, 590, y + 67, 170, 72, capped ? 'TOPE' : maxed ? 'MÁX' : fmt(cost), () => this.buy(cost, () => { d.weaponLv[id]++; }), {
           size: 28, color: maxed ? 0x4a5260 : d.gold >= cost ? 0xe2a020 : 0x6a5a3a, disabled: maxed,
         }), maxed));
       } else {

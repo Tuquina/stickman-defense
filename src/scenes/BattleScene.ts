@@ -3,7 +3,7 @@ import { Sound } from '../core/audio';
 import { DEBUG } from '../core/debug';
 import { clamp, fmt, fmtShort, pick, shuffle } from '../core/format';
 import { Save } from '../core/save';
-import { baseStats, weaponLvMult } from '../core/stats';
+import { abismoGoldMult, baseStats, weaponLvMult } from '../core/stats';
 import {
   LEGENDS, MAX_PASSIVE, MAX_SKILL, MAX_SKILL_SLOTS, MAX_TURRETS, MILESTONES, PASSIVES, SKILLS,
   type LegendId, type PassiveId, type SkillId,
@@ -394,16 +394,17 @@ export class BattleScene extends Phaser.Scene {
       crit: b.crit + 0.06 * p.critico + (L.has('tormenta') ? 0.1 : 0),
       critMult: L.has('tormenta') ? 3 : 2,
       combo: w.combo + 0.06 * p.combo + (w.id === 'pistola' ? 0.05 * (this.stars - 1) : 0),
-      pierce: w.pierce + p.perforacion + (w.id === 'arco' ? (this.stars >= 3 ? 1 : 0) + (this.stars >= 5 ? 1 : 0) : 0) + (w.id === 'lanza' ? (this.stars >= 3 ? 1 : 0) + (this.stars >= 5 ? 1 : 0) : 0),
+      // "Perforación" adapts to the weapon: star → +1 bounce, orb → +area (they never pierce)
+      pierce: w.pierce + (w.kind === 'star' || w.kind === 'orb' ? 0 : p.perforacion) + (w.id === 'arco' ? (this.stars >= 3 ? 1 : 0) + (this.stars >= 5 ? 1 : 0) : 0) + (w.id === 'lanza' ? (this.stars >= 3 ? 1 : 0) + (this.stars >= 5 ? 1 : 0) : 0),
       pellets: (w.pellets ?? 0) + (w.id === 'escopeta' ? this.stars - 1 : 0),
-      bounce: this.evolved && w.id === 'shuriken' ? 6 : (w.bounce ?? 0) + (w.id === 'shuriken' ? this.stars - 1 : 0),
-      aoe: (w.aoe ?? 0) + (w.id === 'baston' ? 12 * (this.stars - 1) : 0),
+      bounce: w.id === 'shuriken' ? (w.bounce ?? 0) + (this.stars - 1) + p.perforacion + (this.evolved ? 4 : 0) : 0,
+      aoe: (w.aoe ?? 0) + (w.id === 'baston' ? 12 * (this.stars - 1) + 14 * p.perforacion : 0),
       skillMult: 1 + (w.skillDmg ?? 0),
       cdMult: 1 - 0.08 * p.mente,
       maxHp: b.hp * 2 * (1 + 0.2 * p.estacas),
       regen: 0.004 * p.savia,
       xpMult: b.xp * (1 + 0.15 * p.sabiduria),
-      goldMult: b.gold * (1 + 0.2 * p.bolsillos) * this.ch.goldMult,
+      goldMult: b.gold * (1 + 0.2 * p.bolsillos) * (this.ch.waves === Infinity ? abismoGoldMult() : this.ch.goldMult),
       furyMult: b.fury * (1 + 0.2 * p.furia) * (L.has('furiaEterna') ? 1.5 : 1),
       multishot: L.has('dobleTrazo') ? 1 : 0,
     };
@@ -1247,7 +1248,8 @@ export class BattleScene extends Phaser.Scene {
           if (e.t2 > 3) {
             e.t2 = 0;
             for (const o of this.enemies) {
-              if (!o.alive || o === e) continue;
+              // bosses and mini-bosses are never healed: several healers next to a boss made the fight endless
+              if (!o.alive || o === e || o.boss) continue;
               if (Math.abs(o.x - e.x) < 170 && Math.abs(o.y - e.y) < 170) o.hp = Math.min(o.maxHp, o.hp + o.maxHp * 0.12);
             }
             this.emitters.green.explode(14, e.x, this.cy(e));
@@ -1490,7 +1492,9 @@ export class BattleScene extends Phaser.Scene {
         this.damage(e, p.dmg);
         if (p.bounce > 0) {
           p.bounce--;
-          const n = this.nearestEnemy(p.x, p.y, 280, p.hits);
+          // evolved star: longer reach and every bounce hits 15% harder
+          if (evo) p.dmg *= 1.15;
+          const n = this.nearestEnemy(p.x, p.y, evo ? 420 : 280, p.hits);
           if (n) {
             const a = Math.atan2(this.cy(n) - p.y, n.x - p.x);
             p.vx = Math.cos(a) * p.speed;
@@ -1706,7 +1710,10 @@ export class BattleScene extends Phaser.Scene {
         return { name: this.wdef.evoName, tag: 'EVOLUCIÓN', desc: this.wdef.evoDesc, icon: 'ic_evo', glyph: '', color: 0xff5a3a, lv: 0, max: 0 };
       case 'passive': {
         const p = PASSIVES[c.id];
-        return { name: p.name, tag: 'Pasiva', desc: p.desc, icon: `pi_${c.id}`, glyph: p.icon, color: p.color, lv: this.passives[c.id] + 1, max: MAX_PASSIVE };
+        let { name, desc } = p;
+        if (c.id === 'perforacion' && this.wdef.kind === 'star') { name = 'Rebote Extra'; desc = '+1 rebote del shuriken'; }
+        if (c.id === 'perforacion' && this.wdef.kind === 'orb') { name = 'Onda Expansiva'; desc = '+14 de área de explosión'; }
+        return { name, tag: 'Pasiva', desc, icon: `pi_${c.id}`, glyph: p.icon, color: p.color, lv: this.passives[c.id] + 1, max: MAX_PASSIVE };
       }
       case 'skill': {
         const s = SKILLS[c.id];
@@ -2552,7 +2559,8 @@ export class BattleScene extends Phaser.Scene {
     const firstClear = victory && !prog.cleared;
     if (victory) {
       prog.cleared = true;
-      this.gold += Math.round(150 * this.ch.goldMult);
+      // big bonus the first time; replays pay a small one so farming a cleared chapter isn't the best plan
+      this.gold += Math.round((firstClear ? 250 : 60) * this.ch.goldMult);
       this.rankXp += 50;
     }
     prog.bestWave = Math.max(prog.bestWave, waveReached);

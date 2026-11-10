@@ -251,6 +251,20 @@ oleadas (crecimiento exponencial, para que haya un techo de récord).
 
 **Oro (economía proporcional, v0.5)**: cada moneda vale (1 + 0,1·oleada) × multiplicador del capítulo, así que dentro de una partida las oleadas avanzadas pagan hasta ×3. El tope está en la oleada 20 en capítulos y en la 60 en el Abismo. Cada oleada superada da 10 × lo mismo, y la victoria suma un bonus. Los multiplicadores por capítulo son **×1 / ×2,5 / ×3,5 / ×7 / ×20 / ×28** (Abismo ×6, que crece con la oleada) y se ven en la tarjeta de cada capítulo. Las mejoras cuestan base × **1,22**^nivel. Resultado medido con el bot: hacen falta unas **3–5 partidas** por capítulo para conseguir las mejoras del siguiente (antes iban de 5 a más de 100).
 
+### 3.6.1 QA de cartas y mecánicas (v0.10)
+
+- **Perforación se adapta al arma**: con el shuriken se convierte en "Rebote Extra" (+1 rebote) y con el bastón en "Onda Expansiva" (+14 de área), porque esas armas no perforan. Con la lanza, el arco, la pistola y la escopeta suma perforación (la lanza pasa de 2 a 3, 4…).
+- **Combo** ahora se describe como "probabilidad de volver a disparar al instante" y funciona con todas las armas, incluido el shuriken (que vuelve a lanzar una estrella con todos sus rebotes).
+- **Doble Trazo** (+1 proyectil) funciona con todas las armas: con el shuriken lanza dos estrellas y cada una rebota por su cuenta.
+- **Estrella Infinita** (shuriken evolucionado): antes daba los mismos 6 rebotes que el shuriken a 5★. Ahora suma **+4 rebotes**, más alcance de rebote y cada rebote pega un 15 % más fuerte.
+- **Curanderos** (Brujo Vacío, Escriba Hueco) **ya no curan a jefes ni mini-jefes**. Varios escribas junto al Recuerdo Roto lo curaban más rápido de lo que se le podía hacer daño y el combate no terminaba.
+
+Verificado con una prueba automática que juega batallas reales:
+- golpes de la lanza en fila;
+- rebotes reales de cada estrella;
+- disparos con Combo al 100 %;
+- vida del Recuerdo junto a tres escribas.
+
 ### 3.7 Balance verificado (simulaciones con el bot)
 
 | Simulación | Resultado |
@@ -295,6 +309,30 @@ varias partidas de grindeo en el Taller, y el Abismo es el techo para el récord
 | Furia | +5 % carga de Furia | 70 | 20 |
 
 **Armas**: cada arma sube de nivel con oro (hasta 10, +10 % de daño por nivel).
+
+**Topes por progreso (anti-farmeo)**: el Taller de Clip "repone stock" a medida que avanza la historia.
+El nivel máximo que se puede comprar depende de cuántos capítulos venciste, con un margen de 4–6
+niveles sobre lo que pide cada capítulo, para que farmear un capítulo temprano no rompa el resto.
+
+| Capítulos vencidos | 0 | 1 | 2 | 3 | 4 | 5 | 6 |
+|---|---|---|---|---|---|---|---|
+| Tope de mejoras | 6 | 14 | 20 | 25 | 29 | 36 | 50 (máx.) |
+| Tope de armas | 3 | 5 | 7 | 9 | 10 | 10 | 10 |
+| Nivel que pide el siguiente capítulo (bot) | — | ~10 | ~16 | ~19 | ~23 | ~30 | — |
+
+**Fuentes de oro**:
+- monedas de los enemigos;
+- oleadas superadas;
+- jefes;
+- carta de Botín;
+- bono de combo;
+- bono de victoria: **250 × multiplicador del capítulo la primera vez**; las repeticiones pagan solo 60 ×.
+
+En **El Abismo** el oro sigue al progreso: paga **la mitad del multiplicador del mejor capítulo
+vencido** (mínimo ×2). Así no conviene farmearlo apenas se desbloquea, pero sigue siendo útil en todo el juego.
+
+Ritmo esperado (modelo calibrado con el bot): entre 4 y 8 victorias del capítulo anterior para
+juntar las mejoras del siguiente.
 
 ### 4.3 Armaduras (cambian la silueta del personaje)
 
