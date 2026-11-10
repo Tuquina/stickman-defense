@@ -656,6 +656,258 @@ function throne(ctx: Ctx): void {
   grain(ctx, W, H, 9000, 67);
 }
 
+// ------------------------------------------------------------------ prologue: the village at night
+/** Night sky, mountains, castle and the river the beast comes out of. The houses are a separate
+ *  transparent layer (cinema.ts) so the creature can rise *behind* them. */
+function villageNight(ctx: Ctx): void {
+  const r = rng(41);
+  vgrad(ctx, 0, 0, W, 780, [[0, '#04061a'], [0.45, '#121a44'], [0.8, '#2a2a5a'], [1, '#4a3462']]);
+  // stars (a few brighter ones with a cross glint)
+  for (let i = 0; i < 220; i++) {
+    const x = r() * W;
+    const y = r() * 560;
+    const a = 0.25 + r() * 0.7;
+    ctx.fillStyle = `rgba(230,236,255,${a})`;
+    ctx.fillRect(x, y, r() < 0.1 ? 3 : 2, r() < 0.1 ? 3 : 2);
+  }
+  for (let i = 0; i < 9; i++) {
+    const x = 30 + r() * (W - 60);
+    const y = 30 + r() * 380;
+    glow(ctx, x, y, 14, 'rgba(220,230,255,0.7)');
+    ctx.fillStyle = 'rgba(240,244,255,0.9)';
+    ctx.fillRect(x - 7, y - 0.75, 14, 1.5);
+    ctx.fillRect(x - 0.75, y - 7, 1.5, 14);
+  }
+  // moon with halo and a soft cloud passing over it
+  glow(ctx, 560, 200, 220, 'rgba(160,180,255,0.22)');
+  glow(ctx, 560, 200, 110, 'rgba(230,236,255,0.35)');
+  const mg = ctx.createRadialGradient(548, 188, 6, 560, 200, 52);
+  mg.addColorStop(0, '#fffbea');
+  mg.addColorStop(1, '#d8d2bc');
+  ctx.fillStyle = mg;
+  ctx.beginPath();
+  ctx.arc(560, 200, 50, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = 'rgba(160,150,130,0.45)';
+  for (const [x, y, rr] of [[546, 186, 10], [574, 214, 7], [572, 182, 5], [550, 216, 4]]) {
+    ctx.beginPath();
+    ctx.arc(x, y, rr, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  for (const [x, y, s] of [[470, 250, 1.1], [130, 150, 1.4], [300, 330, 1]]) cloud(ctx, x, y, s, 'rgba(70,80,140,0.55)', 'rgba(30,34,80,0.6)');
+  // two mountain ranges
+  for (const [base, amp, col, seed] of [[560, 70, '#1a1f48', 0.011], [640, 50, '#121638', 0.017]] as const) {
+    ctx.fillStyle = col;
+    ctx.beginPath();
+    ctx.moveTo(0, 780);
+    for (let x = 0; x <= W; x += 12) ctx.lineTo(x, base - Math.abs(Math.sin(x * seed + base)) * amp - Math.sin(x * 0.05) * 8);
+    ctx.lineTo(W, 780);
+    ctx.fill();
+  }
+  // castle silhouette on the hill, a few warm windows
+  ctx.fillStyle = '#0c0e26';
+  for (const [x, w, h] of [[40, 70, 230], [104, 120, 150], [218, 56, 260], [270, 90, 120]]) {
+    ctx.fillRect(x, 690 - h, w, h);
+    for (let cx = x; cx < x + w; cx += 18) ctx.fillRect(cx, 690 - h - 14, 10, 14);
+  }
+  for (const [x, y] of [[66, 520], [240, 470], [150, 590], [300, 610]]) {
+    glow(ctx, x, y, 22, 'rgba(255,190,110,0.55)');
+    ctx.fillStyle = '#ffc870';
+    ctx.fillRect(x - 4, y - 7, 8, 14);
+  }
+  // the river (where La Mancha comes from), with the moon's reflection
+  vgrad(ctx, 0, 690, W, 80, [[0, '#18204a'], [1, '#0a0e26']]);
+  ctx.fillStyle = 'rgba(200,210,255,0.35)';
+  for (let i = 0; i < 26; i++) {
+    const y = 700 + r() * 60;
+    const w = 20 + r() * 70;
+    ctx.fillRect(500 + (r() - 0.5) * 120 - w / 2, y, w, 2);
+  }
+  // street: dark grass and moonlit cobbles
+  vgrad(ctx, 0, 770, W, 120, [[0, '#141a2c'], [1, '#0e1220']]);
+  vgrad(ctx, 0, 880, W, H - 880, [[0, '#3a3a52'], [1, '#14141e']]);
+  tiles(ctx, 884, H, [74, 74, 100], r);
+  vgrad(ctx, 0, 884, W, 120, [[0, 'rgba(10,10,20,0.6)'], [1, 'rgba(10,10,20,0)']]);
+  grain(ctx, W, H, 9000, 41);
+}
+
+// ------------------------------------------------------------------ prologue: the healer's house
+function healerRoom(ctx: Ctx): void {
+  const r = rng(77);
+  // plank wall
+  vgrad(ctx, 0, 0, W, 900, [[0, '#2a1810'], [0.5, '#4a2c1c'], [1, '#3a2216']]);
+  for (let x = 0; x < W; x += 72) {
+    ctx.fillStyle = `rgba(0,0,0,${0.18 + r() * 0.12})`;
+    ctx.fillRect(x, 0, 3, 900);
+    ctx.fillStyle = 'rgba(255,200,150,0.05)';
+    ctx.fillRect(x + 4, 0, 2, 900);
+    for (let k = 0; k < 3; k++) {
+      ctx.fillStyle = 'rgba(20,10,6,0.35)';
+      ctx.beginPath();
+      ctx.ellipse(x + 20 + r() * 40, r() * 880, 4, 2.5, 0, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  }
+  // beams
+  for (const y of [120, 700]) {
+    vgrad(ctx, 0, y, W, 34, [[0, '#5a3a24'], [1, '#2a180e']]);
+    ctx.fillStyle = 'rgba(0,0,0,0.4)';
+    ctx.fillRect(0, y + 34, W, 6);
+  }
+  // round window with the night outside
+  const wx = 540;
+  const wy = 400;
+  ctx.save();
+  ctx.beginPath();
+  ctx.arc(wx, wy, 112, 0, Math.PI * 2);
+  ctx.clip();
+  vgrad(ctx, wx - 112, wy - 112, 224, 224, [[0, '#0a1030'], [1, '#2a2a5a']]);
+  for (let i = 0; i < 30; i++) {
+    ctx.fillStyle = `rgba(230,236,255,${0.3 + r() * 0.6})`;
+    ctx.fillRect(wx - 100 + r() * 200, wy - 100 + r() * 120, 2, 2);
+  }
+  glow(ctx, wx + 40, wy - 40, 60, 'rgba(230,236,255,0.4)');
+  ctx.fillStyle = '#f2ecd6';
+  ctx.beginPath();
+  ctx.arc(wx + 40, wy - 40, 22, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = '#0c0e26';
+  ctx.beginPath();
+  ctx.moveTo(wx - 112, wy + 60);
+  for (let x = -112; x <= 112; x += 16) ctx.lineTo(wx + x, wy + 40 - Math.abs(Math.sin(x * 0.05)) * 30);
+  ctx.lineTo(wx + 112, wy + 112);
+  ctx.lineTo(wx - 112, wy + 112);
+  ctx.fill();
+  ctx.restore();
+  ctx.lineWidth = 14;
+  ctx.strokeStyle = '#2a180e';
+  ctx.beginPath();
+  ctx.arc(wx, wy, 112, 0, Math.PI * 2);
+  ctx.stroke();
+  ctx.lineWidth = 8;
+  ctx.beginPath();
+  ctx.moveTo(wx - 112, wy);
+  ctx.lineTo(wx + 112, wy);
+  ctx.moveTo(wx, wy - 112);
+  ctx.lineTo(wx, wy + 112);
+  ctx.stroke();
+  // curtains
+  for (const side of [-1, 1]) {
+    ctx.fillStyle = side < 0 ? '#7a2a2a' : '#6a2424';
+    ctx.beginPath();
+    ctx.moveTo(wx + side * 70, 250);
+    ctx.quadraticCurveTo(wx + side * 150, 400, wx + side * 120, 560);
+    ctx.lineTo(wx + side * 170, 560);
+    ctx.lineTo(wx + side * 170, 250);
+    ctx.fill();
+  }
+  ctx.fillStyle = '#2a180e';
+  ctx.fillRect(wx - 190, 240, 380, 14);
+  // shelf with jars and hanging herbs
+  ctx.fillStyle = '#2a180e';
+  ctx.fillRect(40, 330, 260, 14);
+  for (let i = 0; i < 6; i++) {
+    const x = 60 + i * 40;
+    const h = 30 + r() * 26;
+    const col = ['#4a8a7a', '#8a5a3a', '#6a6aa0', '#a08a4a', '#5a7a4a', '#8a4a6a'][i];
+    ctx.fillStyle = col;
+    ctx.beginPath();
+    ctx.ellipse(x, 330 - h / 2, 14, h / 2, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = 'rgba(255,255,255,0.25)';
+    ctx.fillRect(x - 8, 330 - h + 6, 3, h - 14);
+    ctx.fillStyle = '#3a2416';
+    ctx.fillRect(x - 6, 330 - h - 6, 12, 8);
+  }
+  for (let i = 0; i < 5; i++) {
+    const x = 70 + i * 48;
+    ctx.strokeStyle = '#3a2a1a';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(x, 154);
+    ctx.lineTo(x, 190);
+    ctx.stroke();
+    for (let k = 0; k < 7; k++) {
+      ctx.fillStyle = k % 2 ? '#4a6a3a' : '#5a7a40';
+      ctx.beginPath();
+      ctx.ellipse(x + (r() - 0.5) * 18, 196 + k * 8, 7, 4, r(), 0, Math.PI * 2);
+      ctx.fill();
+    }
+  }
+  // a child's drawing of the two brothers pinned to the wall
+  ctx.save();
+  ctx.translate(230, 520);
+  ctx.rotate(-0.06);
+  ctx.fillStyle = '#efe6cc';
+  ctx.fillRect(-70, -60, 140, 110);
+  ctx.strokeStyle = '#1a1a2a';
+  ctx.lineWidth = 3;
+  for (const [x, c] of [[-28, '#2ad4c4'], [26, '#e2552c']] as const) {
+    ctx.strokeStyle = '#1a1a2a';
+    ctx.beginPath();
+    ctx.arc(x, -26, 11, 0, Math.PI * 2);
+    ctx.moveTo(x, -15);
+    ctx.lineTo(x, 14);
+    ctx.moveTo(x, 14);
+    ctx.lineTo(x - 10, 36);
+    ctx.moveTo(x, 14);
+    ctx.lineTo(x + 10, 36);
+    ctx.moveTo(x - 14, -4);
+    ctx.lineTo(x + 14, -4);
+    ctx.stroke();
+    ctx.strokeStyle = c;
+    ctx.lineWidth = 4;
+    ctx.beginPath();
+    ctx.moveTo(x - 8, -12);
+    ctx.lineTo(x + 8, -12);
+    ctx.stroke();
+    ctx.lineWidth = 3;
+  }
+  ctx.fillStyle = '#c84a4a';
+  ctx.beginPath();
+  ctx.arc(0, -40, 6, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = '#8a8a8a';
+  ctx.fillRect(-3, -64, 6, 6);
+  ctx.restore();
+  // floor
+  vgrad(ctx, 0, 900, W, H - 900, [[0, '#3a2414'], [1, '#1a0e08']]);
+  for (let y = 900; y < H; y += 34) {
+    ctx.fillStyle = 'rgba(0,0,0,0.35)';
+    ctx.fillRect(0, y, W, 2);
+    for (let x = (y / 34) % 2 ? -60 : 0; x < W; x += 180) ctx.fillRect(x, y, 2, 34);
+  }
+  ctx.fillStyle = 'rgba(0,0,0,0.5)';
+  ctx.fillRect(0, 900, W, 8);
+  // round rug
+  ctx.fillStyle = '#5a2a3a';
+  ctx.beginPath();
+  ctx.ellipse(470, 1080, 220, 70, 0, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.strokeStyle = '#c8a050';
+  ctx.lineWidth = 5;
+  ctx.beginPath();
+  ctx.ellipse(470, 1080, 190, 56, 0, 0, Math.PI * 2);
+  ctx.stroke();
+  // night table with the candle (the flame itself is animated by the story scene)
+  ctx.fillStyle = '#3a2214';
+  ctx.fillRect(388, 880, 92, 16);
+  ctx.fillRect(398, 896, 10, 104);
+  ctx.fillRect(460, 896, 10, 104);
+  ctx.fillStyle = '#efe6cc';
+  ctx.fillRect(426, 836, 16, 46);
+  ctx.fillStyle = '#c8a050';
+  ctx.fillRect(418, 878, 32, 6);
+  // warm candle light over everything + darker corners
+  glow(ctx, 434, 820, 520, 'rgba(255,170,80,0.22)');
+  const vg = ctx.createRadialGradient(400, 760, 200, 400, 760, 900);
+  vg.addColorStop(0, 'rgba(0,0,0,0)');
+  vg.addColorStop(1, 'rgba(0,0,0,0.6)');
+  ctx.fillStyle = vg;
+  ctx.fillRect(0, 0, W, H);
+  grain(ctx, W, H, 9000, 77);
+}
+
 const PAINTERS: Record<string, (ctx: Ctx) => void> = {
   bg_c1: forest,
   bg_c2: ruins,
@@ -666,6 +918,8 @@ const PAINTERS: Record<string, (ctx: Ctx) => void> = {
   bg_abismo: abyss,
   bg_day: (ctx) => courtyard(ctx, false),
   bg_dusk: (ctx) => courtyard(ctx, true),
+  bg_village_night: villageNight,
+  bg_room: healerRoom,
 };
 
 /** Bakes the background if it doesn't exist yet. Call it from any scene before using a bg key. */

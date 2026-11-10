@@ -69,6 +69,8 @@ export const POSES = {
   cross: (t = 0): Pose => ({ ...POSES.idle(t), armB: [0.9, 1.9], armF: [0.7, 2.0], lean: -0.05, head: -0.1 }),
   kneel: (t = 0): Pose => ({ lean: 0.35 + Math.sin(t * 2) * 0.02, head: 0.3, armB: [0.2, 0.3], armF: [0.6, 0.6], legB: [-1.5, 1.6], legF: [1.3, -1.3], crouch: 0.45 }),
   hands: (t = 0): Pose => ({ ...POSES.idle(t), armF: [1.1, 0.7], armB: [1.0, 0.8] }),
+  /** sitting with legs stretched forward (Lino in bed): hips at the feet line */
+  sit: (t = 0): Pose => ({ lean: -0.06 + Math.sin(t * 2) * 0.02, head: 0.08, armB: [0.5, 0.9], armF: [0.75, 0.75], legB: [1.5, 0.06], legF: [1.42, 0.12], crouch: 3.15 }),
 };
 
 const INK = 0x0b0b0e;
