@@ -55,8 +55,9 @@ export function armorUnlocked(d: SaveData, tier: number): boolean {
     case 0: return true;
     case 1: return d.chapters.c1.cleared;
     case 2: return d.chapters.c2.cleared;
-    case 3: return d.chapters.c3.cleared && d.rank >= 10;
-    case 4: return d.chapters.c5.cleared || d.chapters.abismo.bestWave >= 25;
+    // one armor per story milestone, always in order (no shortcuts that skip a tier)
+    case 3: return d.chapters.c3.cleared;
+    case 4: return d.chapters.c5.cleared;
     default: return false;
   }
 }

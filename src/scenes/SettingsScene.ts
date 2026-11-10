@@ -51,22 +51,44 @@ export class SettingsScene extends Phaser.Scene {
     this.add.text(GAME_W / 2, 90, 'AJUSTES', ttl(54, '#ffffff', 10)).setOrigin(0.5);
     const s = Save.d.settings;
     const toggle = (y: number, label: string, get: () => boolean, set: (v: boolean) => void) => {
-      const b = button(this, GAME_W / 2, y, 520, 90, `${label}: ${get() ? 'SÍ' : 'NO'}`, () => {
+      const b = button(this, GAME_W / 2, y, 520, 80, `${label}: ${get() ? 'SÍ' : 'NO'}`, () => {
         set(!get());
         Save.write();
         Sound.applySettings();
         b.label.setText(`${label}: ${get() ? 'SÍ' : 'NO'}`);
         b.redraw(get() ? 0x2a9d8f : 0x5a3a3a);
-      }, { size: 34, color: get() ? 0x2a9d8f : 0x5a3a3a });
+      }, { size: 30, color: get() ? 0x2a9d8f : 0x5a3a3a });
     };
-    toggle(230, 'MÚSICA', () => s.music, (v) => { s.music = v; });
-    toggle(340, 'SONIDOS', () => s.sfx, (v) => { s.sfx = v; });
-    toggle(450, 'VIBRACIÓN', () => s.vibrate, (v) => { s.vibrate = v; });
-    toggle(560, 'EFECTOS VISUALES', () => !s.lowFx, (v) => { s.lowFx = !v; });
-    this.add.text(GAME_W / 2, 618, 'Desactívalos si tu celular va lento', txt(20, '#9aa8b8', 4)).setOrigin(0.5);
+    toggle(200, 'MÚSICA', () => s.music, (v) => { s.music = v; });
+    toggle(290, 'SONIDOS', () => s.sfx, (v) => { s.sfx = v; });
+    toggle(380, 'VIBRACIÓN', () => s.vibrate, (v) => { s.vibrate = v; });
+    toggle(470, 'EFECTOS VISUALES', () => !s.lowFx, (v) => { s.lowFx = !v; });
+    this.add.text(GAME_W / 2, 520, 'Desactívalos si tu celular va lento', txt(20, '#9aa8b8', 4)).setOrigin(0.5);
+
+    // level-up cards: when and how they are chosen
+    const modes = ['manual', 'oleada', 'auto'] as const;
+    const modeName = { manual: 'AL INSTANTE', oleada: 'FIN DE OLEADA', auto: 'AUTOMÁTICO' };
+    const modeHelp = {
+      manual: 'Eliges cada mejora apenas subes de nivel.',
+      oleada: 'Las mejoras se juntan y eliges al terminar cada oleada.',
+      auto: 'El juego elige solo según tu prioridad, sin pausas.',
+    };
+    const help = this.add.text(GAME_W / 2, 712, modeHelp[s.cards], { ...txt(20, '#bfe9ff', 4), align: 'center', wordWrap: { width: 600 } }).setOrigin(0.5);
+    const mb = button(this, GAME_W / 2, 580, 520, 80, `MEJORAS: ${modeName[s.cards]}`, () => {
+      s.cards = modes[(modes.indexOf(s.cards) + 1) % 3];
+      Save.write();
+      mb.label.setText(`MEJORAS: ${modeName[s.cards]}`);
+      help.setText(modeHelp[s.cards]);
+    }, { size: 28, color: 0x4a3a7a });
+    const prios = ['equilibrado', 'ataque', 'defensa', 'habilidades'] as const;
+    const pb = button(this, GAME_W / 2, 668, 520, 64, `PRIORIDAD AUTO: ${s.priority.toUpperCase()}`, () => {
+      s.priority = prios[(prios.indexOf(s.priority) + 1) % 4];
+      Save.write();
+      pb.label.setText(`PRIORIDAD AUTO: ${s.priority.toUpperCase()}`);
+    }, { size: 24, color: 0x3a4a5e });
 
     let step = 0;
-    const reset = button(this, GAME_W / 2, 700, 520, 90, 'BORRAR PROGRESO', () => {
+    const reset = button(this, GAME_W / 2, 790, 520, 80, 'BORRAR PROGRESO', () => {
       step++;
       if (step === 1) {
         reset.label.setText('¿SEGURO? TOCA OTRA VEZ');
@@ -75,18 +97,17 @@ export class SettingsScene extends Phaser.Scene {
       Save.reset();
       Sound.play('defeat');
       this.scene.start('Boot');
-    }, { size: 30, color: 0xb83a3a });
+    }, { size: 28, color: 0xb83a3a });
 
     const g = this.add.graphics();
-    drawPanel(g, 60, 790, 600, 340, 0x1c2a44, 0x05070a, 18);
-    this.add.text(GAME_W / 2, 830, 'CRÉDITOS', ttl(34, '#ffc93c', 7)).setOrigin(0.5);
-    this.add.text(GAME_W / 2, 975, [
-      'Juramento de Tinta · v1.0 · Temporada 1',
+    drawPanel(g, 60, 860, 600, 270, 0x1c2a44, 0x05070a, 18);
+    this.add.text(GAME_W / 2, 892, 'CRÉDITOS', ttl(30, '#ffc93c', 7)).setOrigin(0.5);
+    this.add.text(GAME_W / 2, 1010, [
+      'Juramento de Tinta · v1.1 · Temporada 1',
       'Diseño, código, arte y música: generados',
       'por código (Phaser 3 + WebAudio).',
       'Tipografías: Lilita One (OFL) y Luckiest Guy (Apache 2.0).',
-      '',
       'Guardado local en este dispositivo.',
-    ].join('\n'), { ...txt(24, '#ffffff', 4), lineSpacing: 6 }).setOrigin(0.5);
+    ].join('\n'), { ...txt(21, '#ffffff', 4), lineSpacing: 6, align: 'center' }).setOrigin(0.5);
   }
 }

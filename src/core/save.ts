@@ -19,7 +19,13 @@ export interface SaveData {
   armorSeen: number; // highest armor tier the player has been notified about
   chapters: Record<ChapterId, ChapterProgress>;
   storySeen: string[];
-  settings: { music: boolean; sfx: boolean; vibrate: boolean; speed2: boolean; lowFx: boolean };
+  settings: {
+    music: boolean; sfx: boolean; vibrate: boolean; speed2: boolean; lowFx: boolean;
+    /** level-up cards: right away, batched at the end of each wave, or picked automatically */
+    cards: 'manual' | 'oleada' | 'auto';
+    /** what the auto-pick favours */
+    priority: 'equilibrado' | 'ataque' | 'defensa' | 'habilidades';
+  };
   tutorial: { mark: boolean; skill: boolean; fury: boolean };
   /** ending chosen at the end of chapter 6 (season 1) */
   finale: 'venganza' | 'liberacion' | null;
@@ -47,7 +53,7 @@ function fresh(): SaveData {
       abismo: { cleared: false, bestWave: 0 },
     },
     storySeen: [],
-    settings: { music: true, sfx: true, vibrate: true, speed2: false, lowFx: false },
+    settings: { music: true, sfx: true, vibrate: true, speed2: false, lowFx: false, cards: 'oleada', priority: 'equilibrado' },
     tutorial: { mark: false, skill: false, fury: false },
     finale: null,
     stats: { runs: 0, kills: 0, bossKills: 0, goldEarned: 0 },
