@@ -2251,12 +2251,12 @@ export class BattleScene extends Phaser.Scene {
       dante: 'Hermano. Poder 100.000.',
     };
     const quote: Record<string, string> = {
-      reina: '"¡Mis hijas tienen hambre, palito!"',
-      sirHueco: '"Quien busca la Corona… encuentra el vacío."',
-      ecoDante: '"¡CIEN MIL! ¡CIEN MIL!"',
-      kraken: '"…" (el pantano entero tiembla)',
+      reina: '"Mis hijas tienen hambre, palito."',
+      sirHueco: '"Quien viene a buscar la Corona… solo encuentra el vacío."',
+      ecoDante: '"Cien mil… cien mil… cien mil…"',
+      kraken: '(el pantano entero tiembla)',
       recuerdo: '"Mientras yo esté… nadie te toca."',
-      dante: '"Hey, hermanito. ¿Todavía no aprendes?"',
+      dante: '"Hey, hermanito. ¿Todavía no te rindes?"',
     };
     this.slowmo = 1.6;
     const D = 7000;

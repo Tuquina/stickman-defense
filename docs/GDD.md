@@ -47,7 +47,7 @@ criaturas de tinta corrupta que devoran trazos.
 | **Dante** | Hermano mayor. El antagonista. Poder 100.000. | De niño: cuello/pañuelo **rojo-naranja** y sonrisa confiada. Corrupto: yelmo y armadura violeta con cuernos cortos, gema roja en el pecho, capa rojo oscuro, contorno violeta brillante y la **Corona Hueca** (rota en dos mitades) flotando sobre la cabeza. Conserva una **bufanda rojo-naranja desgastada**: lo único que queda del niño que fue. |
 | **Tío Clip** | Mercader y alivio cómico. Dueño del Taller. | Stickman con lentes de sol, un clip doblado como antena y cadena dorada. Habla en memes. |
 | **Reina Telaraña** | Jefa del Capítulo 1 | Araña gigante carmesí con corona de espinas. |
-| **Pluma** | Aliada desde el Cap. 3. Escriba de la Ciudadela, seria y sarcástica: contrapeso de los memes de Clip. Poder **1** ("modo ahorro de batería"). | Stickman con coleta, lentes redondos, cuello azul y una pluma de escribir detrás de la oreja. |
+| **Pluma** | Aliada desde el Cap. 3. Copista de mapas de la Ciudadela: precisa, seca y con su cuaderno siempre a mano. Contrapeso del parloteo de Clip. Poder **1** (la Corona se lo quitó todo). | Stickman con coleta, lentes redondos, cuello azul y una pluma de escribir detrás de la oreja. |
 | **La Corona Hueca** | La verdadera villana. Habla con su propia voz (placa violeta "La Corona Hueca"). | Sin cuerpo: aparece como voz en las escenas y como "radio" en las batallas. |
 | **Sir Hueco** | Jefe del Capítulo 2 | Caballero gigante con el yelmo vacío. Guardián de la Corona y su primera víctima. |
 | **Eco de Dante** | Jefe del Capítulo 3 | **Un disfraz de tinta de la Corona con la cara de Dante**: cuerpo violeta, la misma corona, **sin bufanda** (la pista de que no es él). Adentro está Pluma, poseída. Repite "100.000" como disco rayado. |
@@ -78,23 +78,37 @@ lo borrado termina en la **Torre del Olvido** → la escalera de la Torre sube a
 **página del juramento** ("Lo que se escribe con tinta no se borra") aparece en el Prólogo, se
 recupera en el Cap. 5 y es la llave del final.
 
+### Guía de voz de los personajes
+
+Para que los diálogos suenen humanos y no a fórmula: el humor sale de **quién es cada personaje y
+de la situación**, no de remates armados ("X. Y tú eres X."), refranes ni memes de internet.
+Detalles concretos del mundo (el pan dulce, el palo de escoba, la carreta, el cuaderno) en lugar
+de frases épicas genéricas.
+
+- **Lino**: frases cortas, terco, se avergüenza fácil ("…Siguiente pregunta."). No da discursos.
+- **Dante**: de niño, burlón y protector. Con la Corona, frío y de pocas palabras; se le escapa el niño ("cabía en una cuchara").
+- **Tío Clip**: comerciante ambulante que siempre está vendiendo algo; tacaño, exagerado y cariñoso a su manera.
+- **Pluma**: precisa y seca, corrige a los demás y no suelta su cuaderno; perdió un año de su vida y lo resiente.
+- **Sir Hueco**: solemne y cansado. Habla de lo que perdió con cosas concretas ("la cara de mi esposa").
+- **La Corona**: no grita como villana de manual; habla suave y usa los miedos de Dante ("¿Te acuerdas de esa noche? Del miedo."). Solo pierde la calma al final.
+
 ### 2.4 Estructura narrativa
 
 | Escena | Cuándo | Contenido |
 |---|---|---|
-| **Prólogo I · El Juramento** | Primera vez que abres el juego | Valtinta, hace 5 años. Se presenta el **Trazo**. Lino y Dante niños (Poder **10**): "¿Otra vez te ganó una araña?" / "…Era una araña MUY grande." / "Era del tamaño de una uva." Prometen no abandonarse y lo **firman en una hoja**. Esa noche La Mancha ataca la aldea y Dante no puede proteger a Lino. Al amanecer se va y deja una nota: "Nunca más voy a ser débil." |
+| **Prólogo I · El Juramento** | Primera vez que abres el juego | Valtinta, hace 5 años. Se presenta el **Trazo**. Lino y Dante niños (Poder **10**): "¿Otra vez saliste corriendo por una araña?" / "Era una araña muy grande." / "Lino, cabe en una cuchara." Dante promete "mientras yo esté, nadie te toca". Lino teme que se vaya "como se fue papá" y lo hacen **firmar en una hoja de cuaderno**. Esa noche La Mancha se desborda desde la Marisma; Dante pelea con un palo de escoba y no alcanza. Lino pasa tres días inconsciente y al despertar Dante se fue, dejando una nota: "Nunca más voy a ser débil." |
 | **Prólogo II · Cinco años después** | Sigue al anterior | Lino, orgulloso de sus 500, ve volver a Dante con la Corona (**100.000**). "Los juramentos son para los de nivel bajo." / "Eres basura, Lino." Lo derriba. **La Corona habla por primera vez**: "Tómalo. Bórralo." Dante duda: "…No." y se va. Lino: "Esto… no va a quedar así." |
-| Intro Cap. 1 | Antes de la 1ª partida | Las arañas marchan hacia la aldea ("Tenían que ser arañas"). Aparece el Tío Clip ("¿Tío de quién?" / "De todos. Me lo di yo.") y ofrece su trato. Tutorial. |
+| Intro Cap. 1 | Antes de la 1ª partida | Las arañas marchan hacia la aldea ("Tenían que ser arañas"). Aparece el Tío Clip (comerciante ambulante: "¿Eres tío de alguien?" / "De nadie, que yo sepa. Pero así la gente me compra con más confianza.") y ofrece su trato. Tutorial. |
 | Final Cap. 1 | Al vencer a la Reina Telaraña | Marca violeta en la Reina. Clip explica la Corona Hueca: roba el Trazo y **manda a los monstruos que marca**. Estaba guardada en las Ruinas por un caballero. Desbloquea **Capucha de Vigía** y la **Escopeta**. |
 | Intro/Final Cap. 2 | Ruinas del Castillo | "Dante era el caballero; yo, el dragón. O la princesa." **Sir Hueco**, el guardián: un Dante niño vino llorando a pedirle la Corona "para no volver a ser débil". Fue su primera víctima: la Corona **cobra en recuerdos** y **usa a los vencidos como muñecos**. Lo vio irse a la Ciudadela. Desbloquea **Armadura de Caballero** y el **Shuriken**. |
 | Intro Cap. 3 | Ciudadela de Ceniza | Aparece "Dante", pero **no tiene su bufanda**: es un **Eco**. Clip: "Un Eco es un disfraz de tinta de la Corona. Adentro siempre hay alguien." |
-| Final Cap. 3 | Al vencer al Eco | La tinta se escurre y adentro está **Pluma** (Poder 1: "modo ahorro de batería"). Revela que la Corona le ordenó a Dante borrar a Lino y **no pudo**. Da la ruta: Marisma → Torre → Trono. La Corona habla: "Sube. Te estoy esperando." Pluma se une al equipo. Desbloquea el **Abismo** y el Cap. 4. |
+| Final Cap. 3 | Al vencer al Eco | La tinta se escurre y adentro está **Pluma** (Poder 1, sin saber qué día es ni dónde está su cuaderno). Revela que la Corona le ordenó a Dante borrar a Lino y **no pudo**. Da la ruta: Marisma → Torre → Trono. La Corona habla: "Sube. Te estoy esperando." Pluma se une al equipo. Desbloquea el **Abismo** y el Cap. 4. |
 | Intro/Final Cap. 4 | Marisma de Tinta | Pluma y Clip se pelean el puesto de gracioso. El **Kraken** lleva la marca de la Corona desde hace 5 años: **la Corona planeó el ataque** para que Dante, desesperado, fuera a buscarla. "¡Nos usó a los dos!" Desbloquea la **Lanza de Tinta**. |
-| Intro/Final Cap. 5 | Torre del Olvido | Pluma lee recuerdos robados ("Lino llora por una araña" / "¡Eso es privado!"). **El Recuerdo Roto**: los recuerdos de Dante tomados por la Corona. Al liberarlos queda **la página del juramento**. Clip regala el set **Heredero del Juramento** (gratis: "Tengo una reputación"). |
+| Intro/Final Cap. 5 | Torre del Olvido | Pluma lee recuerdos robados ("Lino llora por una araña" / "¡Eso es privado!"). **El Recuerdo Roto**: los recuerdos de Dante tomados por la Corona. Al liberarlos queda **la página del juramento**. Clip regala el set **Heredero del Juramento** (gratis: "Si se lo cuentas a alguien, te la cobro a ti"). |
 | Intro Cap. 6 | Trono de la Corona | "Llegaste lejos para ser basura." La Corona: "Bórralo y serás completo." Lino: "Sé que peleas con ella." Dante: "¡MENTIRA!" |
-| Final Cap. 6 | Tras vencer a Dante | La página: "Esa letra… es mía." Dante recuerda la araña ("del tamaño de una uva"). La Corona grita "¡Es MÍO!". Dante explica el dilema: si la rompes, me voy con ella; si la arrancas, te quema. **Decisión del jugador:** |
-| Final **Venganza** | Elección | "Lo sé. Hazlo." Lino parte la Corona y Dante desaparece; queda su bufanda roja. Pluma: "No querías ganarle. Querías a tu hermano de vuelta." Gancho: la tinta de la bufanda todavía se mueve. |
-| Final **Liberación** | Elección | Lino arranca la Corona con las manos. La Corona: "¡Un simple nivel bajo!" / Lino: "¡Pero soy SU HERMANO!". Días después, en el patio del juramento, Dante (Poder **10**) pide perdón y repiten el chiste de la araña. |
+| Final Cap. 6 | Tras vencer a Dante | La página: "Esa letra… es mía." Dante recuerda la araña ("cabía en una cuchara"). La Corona grita "¡Es mío! ¡Me costó cinco años!". Dante explica el dilema: si la rompes, me voy con ella; si la arrancas, te quema. **Decisión del jugador:** |
+| Final **Venganza** | Elección | "Lo sé. Hazlo." Lino parte la Corona y Dante desaparece; queda su bufanda roja. Pluma: "No querías ganarle. Querías que volviera." Clip: "Hoy no te cobro el viaje." Gancho: la tinta de la bufanda todavía se mueve. |
+| Final **Liberación** | Elección | Lino arranca la Corona con las manos. La Corona: "¡Eres un nivel bajo!" / Lino: "Seré de nivel bajo… ¡pero soy su hermano!". Días después, en el patio donde lo firmaron, Dante (Poder **10**) pide perdón ("Tú solo llegaste tarde. Cinco años tarde."). Ahora es Lino quien dice "mientras yo esté, nadie te toca". |
 | Créditos | Tras el final | "Fin de la Temporada 1". El menú cambia según el final (Dante a tu lado o "Venganza cumplida"). |
 
 Frases de derrota (Tío Clip, al azar): *"Skill issue, hermano." · "F en el chat." · "La barricada
@@ -350,7 +364,7 @@ Todo pintado con Canvas 2D al arrancar (degradados, brillos, contornos) en `src/
 - **La página del juramento** es un objeto en pantalla (hoja de papel con la frase y las huellas de los dos hermanos) que aparece cuando se firma, cuando se recupera y cuando Lino se la muestra a Dante.
 - **Voces fuera de escena**: la Corona (placa violeta, texto lila) y la voz misteriosa de las Ruinas (placa "???").
 - **Efectos de impacto**: golpe de cámara en las frases fuertes, estallido de tinta cuando alguien se libera o se deshace, y aparición "desde la tinta" (Pluma sale del Eco y Dante queda libre).
-- **Radio en batalla** (estilo Hades): en oleadas fijas de cada capítulo aparece un mensaje corto con retrato de Clip, Pluma, Lino o la Corona ("Plan A: no morir. Plan B: también."). No aparece en oleadas de jefe.
+- **Radio en batalla** (estilo Hades): en oleadas fijas de cada capítulo aparece un mensaje corto con retrato de Clip, Pluma, Lino o la Corona ("Pisa donde hay pasto. Donde no hay, te hundes."). No aparece en oleadas de jefe.
 - **Rótulos** de lugar y tiempo ("VALTINTA · HACE 5 AÑOS", "CINCO AÑOS DESPUÉS…", "DÍAS DESPUÉS") para que el salto temporal se entienda.
 
 ### 5.1 Reglas de consistencia visual
