@@ -3,7 +3,7 @@ import { Sound } from '../core/audio';
 import { fmt } from '../core/format';
 import { Save } from '../core/save';
 import { power } from '../core/stats';
-import { CHAR_COLORS, CHAR_NAMES, STORY, type Actor, type Beat, type StoryScene as StoryDef } from '../data/story';
+import { CHAR_COLORS, CHAR_NAMES, STORY, VOICES, type Actor, type Beat, type StoryScene as StoryDef } from '../data/story';
 import { drawCharacter } from '../gfx/characters';
 import { button } from '../ui/widgets';
 import { ensureBackground } from '../gfx/backgrounds';
@@ -215,6 +215,23 @@ export class StoryScene extends Phaser.Scene {
       Sound.vibrate(80);
     }
     if (fx.includes('flash')) this.cameras.main.flash(300, 255, 255, 255);
+    if (fx.includes('zoom')) {
+      // camera punch on the big lines
+      const cam = this.cameras.main;
+      cam.zoomTo(1.08, 110, 'Quad.easeOut', true);
+      this.time.delayedCall(260, () => cam.zoomTo(1, 380, 'Sine.easeInOut', true));
+    }
+    if (fx.includes('ink')) {
+      // ink burst where the right-hand character stands (dissolving / breaking free)
+      const em = this.add.particles(0, 0, 'fx_smoke', {
+        x: this.slots.R.baseX, y: GROUND - 170, speed: { min: 120, max: 420 }, angle: { min: 0, max: 360 },
+        scale: { start: 0.9, end: 0 }, alpha: { start: 0.95, end: 0 }, tint: [0x2a1048, 0x7a3ad8, 0x0b0b0e, 0xb060ff],
+        lifespan: 750, gravityY: 300, emitting: false,
+      }).setDepth(7);
+      em.explode(32);
+      this.time.delayedCall(1000, () => em.destroy());
+      Sound.play('whoosh');
+    }
     if (fx.includes('pulse')) {
       this.tweens.add({ targets: this.slots.R.power, scale: 1.25, duration: 120, yoyo: true, repeat: 2 });
       Sound.play('roar');
@@ -242,6 +259,14 @@ export class StoryScene extends Phaser.Scene {
       if (!sl.entering || !sl.actor) continue;
       const dir = k === 'L' ? -1 : 1;
       const base = sl.actor.alpha ?? 1;
+      if (fx.includes('reveal')) {
+        // appears in place, out of the ink (someone freed from a possession)
+        sl.g.setX(sl.baseX).setAlpha(0).setScale(0.8);
+        sl.power.setX(sl.baseX).setAlpha(0);
+        this.tweens.add({ targets: sl.g, alpha: base, scale: 1, duration: 650, ease: 'Back.easeOut' });
+        this.tweens.add({ targets: sl.power, alpha: 1, duration: 400, delay: 500 });
+        continue;
+      }
       sl.g.setX(sl.baseX + dir * 260).setAlpha(0);
       sl.power.setX(sl.baseX).setAlpha(0);
       this.tweens.add({ targets: sl.g, x: sl.baseX, alpha: base, duration: 380, ease: 'Cubic.easeOut' });
@@ -269,10 +294,24 @@ export class StoryScene extends Phaser.Scene {
     this.dlg.clear();
     this.arrow.clear();
     this.dialogOn = false;
+    this.line.setColor('#ffffff');
+    this.hl.setColor('#ffa62b');
     if (b.who === 'C' || b.who === 'N') {
       const h = b.who === 'C' ? 200 : b.hl ? 230 : 170;
-      this.narr.fillStyle(0x05070a, 0.72).fillRoundedRect(24, 570 - h / 2, GAME_W - 48, h, 22);
-      this.narr.lineStyle(3, 0xffffff, 0.15).strokeRoundedRect(24, 570 - h / 2, GAME_W - 48, h, 22);
+      const v = b.voice ? VOICES[b.voice] : null;
+      this.narr.fillStyle(v ? 0x0c0414 : 0x05070a, v ? 0.88 : 0.72).fillRoundedRect(24, 570 - h / 2, GAME_W - 48, h, 22);
+      this.narr.lineStyle(v ? 4 : 3, v ? v.color : 0xffffff, v ? 0.95 : 0.15).strokeRoundedRect(24, 570 - h / 2, GAME_W - 48, h, 22);
+      if (v) {
+        // an off-screen voice speaks: plate with its name over the box
+        this.nameTag.setText(v.name);
+        const w = this.nameTag.width + 44;
+        const y = 570 - h / 2 - 22;
+        this.narr.fillStyle(v.color, 1).fillRoundedRect(48, y, w, 44, 14);
+        this.narr.lineStyle(3, 0x05070a, 1).strokeRoundedRect(48, y, w, 44, 14);
+        this.nameTag.setOrigin(0, 0.5).setPosition(70, y + 22);
+        this.line.setColor(v.text);
+        this.hl.setColor('#ff8ae0');
+      }
     }
     if (b.who === 'C') {
       this.caption.setText(b.text).setAlpha(0).setScale(0.9);

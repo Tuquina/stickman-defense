@@ -41,6 +41,7 @@ export class CreditsScene extends Phaser.Scene {
       ['Lino · el hermanito', 28, '#ffffff'],
       ['Dante · el hermano', 28, '#ffffff'],
       ['Tío Clip · mercader y coach', 28, '#ffffff'],
+      ['Pluma · escriba y ex-Eco', 28, '#ffffff'],
       ['Sir Hueco · el primer vaciado', 28, '#ffffff'],
       ['La Corona Hueca · la verdadera villana', 28, '#d8b0ff'],
       ['', 30, '#ffffff'],

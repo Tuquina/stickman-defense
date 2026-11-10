@@ -42,6 +42,8 @@ export interface Look {
   shield?: boolean;
   hoodColor?: number | null;
   capeColor?: number | null;
+  /** Pluma (the scribe): ponytail, round glasses and a quill behind the ear */
+  scribe?: boolean;
 }
 
 export const POSES = {
@@ -362,6 +364,12 @@ function drawHead(g: G, sk: Skeleton, s: number, f: number, look: Look, tier: nu
     return;
   }
 
+  if (look.scribe) {
+    // ponytail swinging behind the head, tied with a blue band
+    const sw = Math.sin(t * 3) * 3;
+    poly(g, h, s, f, [[-8, -12], [-26, -8 + sw], [-36, 8 + sw * 1.5], [-28, 12 + sw], [-20, 2 + sw], [-10, 2]], body);
+    poly(g, h, s, f, [[-14, -10], [-18, -9], [-16, 2], [-12, 1]], 0x5a9cff);
+  }
   g.fillStyle(body, 1);
   g.fillCircle(h.x, h.y, r);
   if (!hood && tier < 2 && !look.corrupt) {
@@ -469,6 +477,24 @@ function drawHead(g: G, sk: Skeleton, s: number, f: number, look: Look, tier: nu
     g.lineStyle(1.5 * s, 0xffffff, 0.9);
     g.lineBetween(e.x - 10 * s * f, e.y - 3 * s, e.x - 6 * s * f, e.y - 3 * s);
     g.lineBetween(e.x + 6 * s * f, e.y - 3 * s, e.x + 10 * s * f, e.y - 3 * s);
+  }
+  if (look.scribe) {
+    // round glasses
+    g.lineStyle(1.8 * s, 0xe8eef8, 1);
+    g.strokeCircle(e.x - 6 * s * f, e.y, 6 * s);
+    g.strokeCircle(e.x + 8 * s * f, e.y, 6 * s);
+    g.lineBetween(e.x - 0 * s * f, e.y - 1 * s, e.x + 2 * s * f, e.y - 1 * s);
+    // quill tucked behind the ear
+    poly(g, h, s, f, [[-4, -10], [0, -24], [-6, -40], [-16, -50], [-24, -40], [-20, -24], [-10, -10]], 0xf4efe2);
+    poly(g, h, s, f, [[-6, -40], [-16, -50], [-24, -40], [-17, -36]], 0x5a9cff);
+    g.lineStyle(1.6 * s, 0x6a6f7a, 1);
+    g.lineBetween(h.x - 7 * s * f, h.y - 8 * s, h.x - 15 * s * f, h.y - 46 * s);
+    for (const k of [0.35, 0.55, 0.75]) {
+      const px = h.x - (7 + 8 * k) * s * f;
+      const py = h.y - (8 + 38 * k) * s;
+      g.lineBetween(px, py, px + 6 * s * f, py - 3 * s);
+      g.lineBetween(px, py, px - 6 * s * f, py - 1 * s);
+    }
   }
   if (look.clip) {
     g.lineStyle(2.5 * s, 0xc8d2e0, 1);
