@@ -186,6 +186,41 @@ era de cartón. Literal." · "Tranqui, todos empezamos siendo basura. Bueno, tú
 La pantalla de cartas tiene además el botón **ELEGIR AUTOMÁTICO**, que resuelve esa elección y todas las
 pendientes de una vez. Cuando ya no queda nada por mejorar (solo Reparación o Botín), se toma solo, sin pausa.
 
+### 3.3.1 Puestos de defensa y Tinta (la decisión en combate, v1.2)
+
+Detrás de la barricada hay **3 puestos** (arriba, centro y abajo). Durante la partida se junta **Tinta**:
+1 por enemigo, 12 por jefe o mini-jefe y 6 por oleada, y se empieza con 40. Al tocar un puesto el tiempo
+se pone lento (15 %) y se elige qué construir. Después, cada puesto se mejora hasta el Nv.3.
+
+| Defensa | Nv.1 / Nv.2 / Nv.3 | Para qué sirve |
+|---|---|---|
+| **Torre** | 30 % / 45 % / 65 % de tu daño, 1,2 disparos/s | Enemigos a distancia (arqueros, Escudados ya rotos, jefes) |
+| **Pinchos** | 0,6 / 1 / 1,5× tu daño por segundo a quien golpea **su carril** | Enjambres que llegan a la barricada (arañas, sanguijuelas) |
+| **Tintero** | Repara 0,2 % / 0,35 % / 0,5 % de la barricada por segundo | Capítulos con mucho daño constante (Marisma, Trono) |
+
+Costos: **50 / 110 / 200** de Tinta (alcanza para dejar los 3 puestos al máximo cerca del final de la
+partida, no antes). La radio de Clip y Pluma da en la oleada 3 de cada capítulo la pista de qué conviene.
+Reemplaza a la antigua carta de Torreta.
+
+### 3.3.2 Enemigos que piden reaccionar (v1.2)
+
+- **Bombita de Tinta**: corre rápido y, si llega a la barricada, quita el **7 %** de su vida. **Tócala** y
+  explota donde está, con daño 3× a los de alrededor. Si la derriban los disparos, revienta más débil y
+  puede encadenar con otras.
+- **Escudado**: una burbuja de tinta **bloquea todo el daño**, incluso habilidades. **Tócalo** (marcarlo) y el
+  escudo se rompe. El héroe prioriza otros objetivos mientras siga cubierto, así que nunca traba la partida.
+
+Aparecen desde el Cap. 1 (Bombita) y el Cap. 2 (Escudado), con más frecuencia en los capítulos finales.
+La primera vez que aparece cada uno, el juego hace una cámara lenta y muestra un tutorial.
+
+### 3.3.3 Animaciones del héroe (v1.2)
+
+- Festeja al terminar cada oleada.
+- Retrocede con los golpes fuertes.
+- Levanta el brazo al lanzar una habilidad.
+- Salta al subir de nivel.
+- Celebra al ganar y cae de rodillas al perder.
+
 ### 3.4 Cartas de subida de nivel
 
 **Mejora de arma** (hasta 5★): +25 % de daño por estrella y un extra según el arma.
@@ -233,6 +268,19 @@ héroe). Hasta 3.
 | Furia Eterna | La Furia dura el doble y carga un 50 % más rápido |
 | Estallido de Tinta | Los enemigos explotan al morir y dañan a los que están cerca |
 | **Evolución** (arma en 5★) | Transforma el arma (ver 3.5) |
+
+### 3.4.1 Juramentos de Tinta (niveles altos, v1.2)
+
+Desde el **Lv.30**, cada subida ofrece al menos un **Juramento**. Hay 3 grupos de 3 y solo puede haber
+**uno activo por grupo** (Nv.1–3). Elegir otro del mismo grupo aparece como **CAMBIAR**: reemplaza al
+actual **conservando el nivel**. Así, el final de la partida es para definir la build y no para apilar más
+de lo mismo.
+
+| Grupo | Opciones (Nv.1 → Nv.3) |
+|---|---|
+| **Tinta** | Ardiente (quema 30→60 % del golpe) · Helada (30→60 % de ralentizar) · Eléctrica (12→24 % de rayo en cadena) |
+| **Barricada** | Espinas (quien golpea se hiere) · Raíces (regenera 0,6→1,4 %/s si no la golpean 2 s) · Muro Vivo (+25→60 % de vida) |
+| **Héroe** | Francotirador (+30→70 % a enemigos lejanos) · Berserker (hasta +40→80 % de velocidad según el daño de la barricada) · Cazador (+40→100 % al marcado) |
 
 ### 3.5 Armas
 
@@ -291,6 +339,19 @@ Verificado con una prueba automática que juega batallas reales:
 | Cap. 4 (Bastón), mejoras nv.17 / nv.19 | Derrota ante el Kraken / Victoria |
 | Cap. 5 (Bastón), mejoras nv.20 / nv.23 | Derrota en la oleada 12 / Victoria |
 | Cap. 6 (Bastón), mejoras nv.27 / nv.30 | Derrota ante Dante / Victoria |
+
+**v1.2 (con puestos, Bombitas, Escudados y Juramentos; bot "perfecto" con el Bastón):**
+
+| Simulación | Resultado |
+|---|---|
+| Cap. 1, sin mejoras | Victoria, barricada intacta |
+| Cap. 3, mejoras nv.16, Caballero | Victoria |
+| Cap. 6, mejoras nv.30, Heredero | Victoria con el 74 % de la barricada |
+
+Para compensar los puestos, la vida de los enemigos de los capítulos 2 a 6 y del Abismo subió alrededor de un 13 %.
+El bot detona todas las Bombitas y rompe todos los escudos al instante; una persona se deja algunas
+(7 % de barricada cada una), así que el margen real es menor. Hay que confirmarlo con jugadores. Las
+perillas de ajuste rápido son el `hpMult` de cada capítulo y los costos y valores de los puestos.
 
 Curva buscada: el Cap. 1 se puede ganar en la primera partida jugando bien. Los capítulos 2 y 3 exigen
 varias partidas de grindeo en el Taller, y el Abismo es el techo para el récord.
@@ -361,6 +422,17 @@ además Rango 10 (unas 20 partidas) y la 4.ª tenía un atajo por El Abismo, as�
 la 4.ª antes que la 3.ª. Ahora no hay atajos: la progresión de poder la marcan los capítulos.
 
 ---
+
+### 4.4 Logros (v1.2)
+
+**27 logros** en tres categorías:
+- **Historia**: capítulos y los dos finales.
+- **Combate**: bajas, jefes, combos, Bombitas, escudos, defensas y Juramentos.
+- **Progreso**: evolucionar armas, ganar con distintas armas, el Abismo, el Taller, las armaduras y el Rango.
+
+Cada logro tiene una barra de progreso y una **recompensa en oro**: de 300 a 35.000, en proporción a la
+etapa del juego. El progreso se lee del guardado, así que cuentan las partidas anteriores. El menú muestra
+un trofeo con la cantidad de logros por reclamar, y la pantalla de resultados anuncia los que se completan.
 
 ## 5. Dirección de arte y audio
 

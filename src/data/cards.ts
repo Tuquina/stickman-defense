@@ -50,3 +50,31 @@ export const LEGENDS: Record<LegendId, LegendDef> = {
   furiaEterna: { id: 'furiaEterna', name: 'Furia Eterna', desc: 'La Furia dura el doble y carga 50% más rápido' },
   estallido: { id: 'estallido', name: 'Estallido de Tinta', desc: 'Los enemigos explotan al morir' },
 };
+
+// ------------------------------------------------------------------ Juramentos de Tinta (late-run, exclusive)
+/**
+ * From level OATH_LEVEL on, level-ups also offer "Juramentos": three groups of three, and only ONE
+ * oath per group can be active. Picking another oath of a group you already hold swaps it (the level
+ * is kept), so late choices are about shaping the build instead of stacking more of everything.
+ */
+export type OathGroup = 'tinta' | 'barricada' | 'heroe';
+export type OathId = 'ardiente' | 'helada' | 'electrica' | 'espinas' | 'raices' | 'muro' | 'francotirador' | 'berserker' | 'cazador';
+export interface OathDef { id: OathId; group: OathGroup; name: string; desc: [string, string, string] }
+export const OATH_LEVEL = 30;
+export const OATH_MAX = 3;
+export const OATH_GROUPS: Record<OathGroup, { name: string; color: number }> = {
+  tinta: { name: 'Tinta', color: 0xff8a3c },
+  barricada: { name: 'Barricada', color: 0x4fd06a },
+  heroe: { name: 'Héroe', color: 0x6fd8ff },
+};
+export const OATHS: Record<OathId, OathDef> = {
+  ardiente: { id: 'ardiente', group: 'tinta', name: 'Tinta Ardiente', desc: ['Tus disparos queman: +30% del golpe en 3 s', 'Quema +45%', 'Quema +60%'] },
+  helada: { id: 'helada', group: 'tinta', name: 'Tinta Helada', desc: ['30% de ralentizar al golpear', '45% de ralentizar', '60% de ralentizar'] },
+  electrica: { id: 'electrica', group: 'tinta', name: 'Tinta Eléctrica', desc: ['12% de soltar un rayo en cadena', '18% de rayo en cadena', '24% de rayo en cadena'] },
+  espinas: { id: 'espinas', group: 'barricada', name: 'Espinas', desc: ['Quien golpea la barricada se hiere', 'Espinas más filosas', 'Espinas brutales'] },
+  raices: { id: 'raices', group: 'barricada', name: 'Raíces', desc: ['Si no la golpean 2 s, se regenera 0,6%/s', 'Regenera 1%/s', 'Regenera 1,4%/s'] },
+  muro: { id: 'muro', group: 'barricada', name: 'Muro Vivo', desc: ['+25% vida máx. de barricada', '+40% vida máx.', '+60% vida máx.'] },
+  francotirador: { id: 'francotirador', group: 'heroe', name: 'Francotirador', desc: ['+30% daño a enemigos lejanos', '+50% a lejanos', '+70% a lejanos'] },
+  berserker: { id: 'berserker', group: 'heroe', name: 'Berserker', desc: ['Hasta +40% velocidad cuanto más dañada la barricada', 'Hasta +60%', 'Hasta +80%'] },
+  cazador: { id: 'cazador', group: 'heroe', name: 'Cazador', desc: ['+40% daño extra al marcado', '+70% al marcado', '+100% al marcado'] },
+};

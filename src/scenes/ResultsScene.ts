@@ -3,6 +3,7 @@ import { Sound } from '../core/audio';
 import { fmt, pick } from '../core/format';
 import { addRankXp, Save } from '../core/save';
 import { armorUnlocked } from '../core/stats';
+import { achAnnounce } from '../data/achievements';
 import { ARMORS } from '../data/armor';
 import { CHAPTERS, type ChapterId } from '../data/chapters';
 import { DEFEAT_QUIPS, VICTORY_QUIPS } from '../data/story';
@@ -74,6 +75,14 @@ export class ResultsScene extends Phaser.Scene {
     ARMORS.forEach((a, i) => {
       if (i > d.armorSeen && armorUnlocked(d, i)) unlocks.push(`Armadura: ${a.name}`);
     });
+    // achievements completed in this run (claimed later from the menu)
+    const ach = achAnnounce(d);
+    if (ach.length) {
+      unlocks.push(`★ Logro: ${ach[0].name}`);
+      if (ach.length > 1) unlocks.push(`★ y ${ach.length - 1} logro${ach.length > 2 ? 's' : ''} más`);
+      Save.write();
+    }
+    unlocks.splice(4);
     unlocks.forEach((u, i) => {
       const t = this.add.text(GAME_W / 2, 770 + i * 40, u, txt(30, '#6aff8a', 6)).setOrigin(0.5).setAlpha(0);
       this.tweens.add({ targets: t, alpha: 1, delay: 1100 + i * 200, duration: 300, onStart: () => Sound.play('legend', 0) });

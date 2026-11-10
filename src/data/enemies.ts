@@ -1,4 +1,4 @@
-export type Behavior = 'walk' | 'hop' | 'fly' | 'ranged' | 'split' | 'healer' | 'spawner' | 'dash' | 'shield' | 'boss';
+export type Behavior = 'walk' | 'hop' | 'fly' | 'ranged' | 'split' | 'healer' | 'spawner' | 'dash' | 'shield' | 'boss' | 'bomber' | 'shielded';
 
 export interface EnemyDef {
   id: string;
@@ -36,6 +36,9 @@ export const ENEMIES: Record<string, EnemyDef> = {
 
   // ---- Capítulo 3: Ciudadela de Ceniza
   mancha: { id: 'mancha', name: 'Mancha', hp: 42, speed: 44, dps: 7, xp: 2, radius: 24, behavior: 'split', gold: 0.25 },
+  // ---- reactive enemies (ask the player to tap): explode at the barricade / shield that only marking breaks
+  bombita: { id: 'bombita', name: 'Bombita de Tinta', hp: 26, speed: 74, dps: 0, xp: 3, radius: 22, behavior: 'bomber', gold: 0.45 },
+  escudado: { id: 'escudado', name: 'Escudado', hp: 70, speed: 36, dps: 9, xp: 4, radius: 26, behavior: 'shielded', gold: 0.5 },
   manchita: { id: 'manchita', name: 'Manchita', hp: 15, speed: 70, dps: 3, xp: 1, radius: 14, behavior: 'walk', gold: 0.05 },
   sombra: { id: 'sombra', name: 'Sombra', hp: 36, speed: 60, dps: 8, xp: 2, radius: 22, behavior: 'dash', gold: 0.3 },
   brujo: { id: 'brujo', name: 'Brujo Vacío', hp: 60, speed: 34, dps: 5, xp: 4, radius: 22, behavior: 'healer', gold: 0.5 },

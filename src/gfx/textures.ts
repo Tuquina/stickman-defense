@@ -254,6 +254,41 @@ export function generateTextures(scene: Phaser.Scene): void {
     g.fillPoints(pts([[0, -3], [8, 0], [0, 3]], sk.handF.x + 20, sk.handF.y), true);
   });
 
+  // ------------------------------------------------------------ defence posts (built with Tinta during a run)
+  bake(scene, 'b_spikes', 96, 64, (g) => {
+    // a row of ink stakes leaning towards the enemies
+    for (let i = 0; i < 5; i++) {
+      const x = 10 + i * 19;
+      const h = 34 + (i % 2) * 12;
+      g.fillStyle(INK, 1);
+      g.fillPoints(pts([[x - 8, 62], [x + 8, 62], [x + 16, 62 - h]]), true);
+      g.fillStyle(0x3a2a4a, 1);
+      g.fillPoints(pts([[x - 4, 60], [x + 5, 60], [x + 12, 66 - h]]), true);
+      g.fillStyle(0xd27bff, 1);
+      g.fillCircle(x + 15, 63 - h, 2.5);
+    }
+    g.fillStyle(0x2a1c18, 1).fillRect(0, 56, 96, 8);
+  });
+  bake(scene, 'b_inkwell', 64, 72, (g) => {
+    // ink pot with a quill: heals the barricade
+    g.fillStyle(INK, 1).fillEllipse(32, 66, 50, 12);
+    g.fillStyle(INK, 1).fillRoundedRect(8, 26, 48, 42, 12);
+    g.fillStyle(0x1e3a5a, 1).fillRoundedRect(12, 30, 40, 34, 9);
+    g.fillStyle(0x4fd06a, 0.85).fillRoundedRect(16, 40, 32, 20, 6);
+    g.fillStyle(0xffffff, 0.35).fillRect(18, 34, 6, 22);
+    g.fillStyle(INK, 1).fillRoundedRect(20, 18, 24, 12, 4);
+    g.lineStyle(4, INK, 1).lineBetween(34, 22, 54, 2);
+    g.fillStyle(0xf4efe2, 1).fillPoints(pts([[50, 8], [62, 0], [56, 12]]), true);
+  });
+  bake(scene, 'b_pad', 64, 64, (g) => {
+    // empty building spot: a stone ring with a plus sign
+    g.fillStyle(0x0b111a, 0.75).fillCircle(32, 32, 28);
+    g.lineStyle(4, 0x6a7a8a, 1).strokeCircle(32, 32, 27);
+    g.lineStyle(6, 0xd8e4ef, 1);
+    g.lineBetween(32, 18, 32, 46);
+    g.lineBetween(18, 32, 46, 32);
+  });
+
   // ------------------------------------------------------------ chapter 1 enemies
   enemy(scene, 'arana', 80, 60, (g, f) => spider(g, f, 36, 34, 0.9, 0xd8323a));
   enemy(scene, 'aranaMadre', 150, 110, (g, f) => spider(g, f, 66, 64, 1.75, 0xb8222a, false, true));
@@ -329,6 +364,29 @@ export function generateTextures(scene: Phaser.Scene): void {
   };
   enemy(scene, 'mancha', 70, 56, (g, f) => blob(g, f, 35, 30, 1));
   enemy(scene, 'manchita', 44, 36, (g, f) => blob(g, f, 22, 20, 0.6));
+  // reactive enemies
+  enemy(scene, 'bombita', 70, 80, (g, f) => {
+    const bob = f === 0 ? 0 : 2;
+    // little legs
+    g.lineStyle(5, INK, 1);
+    g.lineBetween(26, 64 - bob, 20 + f * 6, 78);
+    g.lineBetween(44, 64 - bob, 50 - f * 6, 78);
+    // ink sphere with a highlight
+    g.fillStyle(INK, 1).fillCircle(35, 46 - bob, 25);
+    g.fillStyle(0x2a1830, 1).fillCircle(35, 46 - bob, 22);
+    g.fillStyle(0xffffff, 0.25).fillEllipse(27, 36 - bob, 12, 7);
+    // angry eyes
+    g.fillStyle(0xff5a3a, 1);
+    g.fillPoints(pts([[20, 46], [31, 49], [21, 53]], 0, -bob), true);
+    g.fillPoints(pts([[50, 46], [39, 49], [49, 53]], 0, -bob), true);
+    // fuse and spark
+    g.lineStyle(4, 0x8a6a40, 1);
+    g.lineBetween(42, 24 - bob, 50, 10 - bob);
+    g.fillStyle(f === 0 ? 0xffd34d : 0xff7a2a, 1);
+    star(g, 52, 8 - bob, f === 0 ? 9 : 7, 3.5, 5, f * 0.6);
+    g.fillStyle(0xffffff, 1).fillCircle(52, 8 - bob, 2.5);
+  });
+  humanoid(scene, 'escudado', 104, 128, 0.85, { eyes: 'glow', eyeColor: 0x6fe3ff, body: 0x10161e, shield: true, outline: 0x2ad4c4, scarf: null });
   humanoid(scene, 'sombra', 96, 124, 0.85, { eyes: 'glow', eyeColor: 0xd27bff, body: 0x120a1a, outline: 0x6a2fc0 });
   humanoid(scene, 'brujo', 90, 130, 0.85, { eyes: 'glow', eyeColor: 0x6aff8a, hoodColor: 0x2a5a3a, capeColor: 0x1a3a2a, weapon: 'baston' });
   enemy(scene, 'golem', 120, 124, (g, f) => {
@@ -473,7 +531,7 @@ export function generateTextures(scene: Phaser.Scene): void {
     ENEMY_TEX[id].w += PAD * 2;
     ENEMY_TEX[id].h += PAD * 2;
   }
-  for (const k of ['p_earrow', 'turret', 'coin', 'xp', 'stake', 'rock', 'chest', 'lock']) {
+  for (const k of ['p_earrow', 'turret', 'coin', 'xp', 'stake', 'rock', 'chest', 'lock', 'b_spikes', 'b_inkwell']) {
     stickerize(scene, k, { pad: 2 });
   }
 
