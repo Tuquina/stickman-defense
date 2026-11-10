@@ -194,7 +194,7 @@ export class BootScene extends Phaser.Scene {
     const tap = this.add.text(GAME_W / 2 + 20, 1188, 'TOCA PARA EMPEZAR', txt(34, '#ffd34d', 8)).setOrigin(0.5);
     const hand = this.add.image(GAME_W / 2 - 185, 1196, 'hand').setScale(0.42).setAngle(-15);
     const blink = this.tweens.add({ targets: [tap, pill, hand], alpha: 0.45, duration: 750, yoyo: true, repeat: -1 });
-    this.add.text(GAME_W / 2, 1255, 'v0.9 · Temporada 1', txt(16, '#8899aa', 4)).setOrigin(0.5);
+    this.add.text(GAME_W / 2, 1255, 'v0.10 · Temporada 1', txt(16, '#8899aa', 4)).setOrigin(0.5);
 
     onUpdate(this, (time: number) => {
       const t = time / 1000;

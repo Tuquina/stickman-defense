@@ -1,4 +1,5 @@
 import { ARMORS } from '../data/armor';
+import { CHAPTERS } from '../data/chapters';
 import { UPGRADES } from '../data/upgrades';
 import type { WeaponId } from '../data/weapons';
 import { Save, type SaveData } from './save';
@@ -65,4 +66,36 @@ export function weaponUnlocked(d: SaveData, w: WeaponId): boolean {
   if (w === 'shuriken') return d.chapters.c2.cleared;
   if (w === 'lanza') return d.chapters.c4.cleared;
   return true;
+}
+
+/** Story chapters cleared (c1..c6). */
+export function chaptersCleared(d: SaveData = Save.d): number {
+  return (['c1', 'c2', 'c3', 'c4', 'c5', 'c6'] as const).filter((c) => d.chapters[c].cleared).length;
+}
+
+/**
+ * Workshop stock grows with the story: the highest upgrade level you can buy depends on how many
+ * chapters you have cleared. It keeps a few levels of margin over what each chapter needs (bot runs:
+ * c2 ≈ 10, c3 ≈ 16, c4 ≈ 19, c5 ≈ 23, c6 ≈ 30) but stops farming an early chapter to steamroll the rest.
+ */
+const UPGRADE_CAPS = [6, 14, 20, 25, 29, 36, 50];
+const WEAPON_CAPS = [3, 5, 7, 9, 10, 10, 10];
+export function upgradeCap(d: SaveData = Save.d): number {
+  return UPGRADE_CAPS[chaptersCleared(d)];
+}
+export function weaponCap(d: SaveData = Save.d): number {
+  return WEAPON_CAPS[chaptersCleared(d)];
+}
+/** Name of the chapter that raises the caps next (null when everything is unlocked). */
+export function nextCapChapter(d: SaveData = Save.d): string | null {
+  const k = chaptersCleared(d);
+  if (k >= 6) return null;
+  return CHAPTERS[(['c1', 'c2', 'c3', 'c4', 'c5', 'c6'] as const)[k]].num;
+}
+
+/** The Abyss pays in line with your story progress (half of your best chapter), never less than ×2. */
+export function abismoGoldMult(d: SaveData = Save.d): number {
+  let best = 0;
+  for (const c of ['c1', 'c2', 'c3', 'c4', 'c5', 'c6'] as const) if (d.chapters[c].cleared) best = CHAPTERS[c].goldMult;
+  return Math.max(2, best * 0.5);
 }

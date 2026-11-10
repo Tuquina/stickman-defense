@@ -21,7 +21,7 @@ export const PASSIVES: Record<PassiveId, PassiveDef> = {
   filo: { id: 'filo', name: 'Filo de Tinta', desc: '+15% daño', icon: 'ATK', color: 0xe8553a },
   prisa: { id: 'prisa', name: 'Prisa', desc: '+12% velocidad de ataque', icon: 'VEL', color: 0x3ad1e8 },
   critico: { id: 'critico', name: 'Ojo Crítico', desc: '+6% prob. de crítico', icon: 'CRT', color: 0xffc93c },
-  combo: { id: 'combo', name: 'Combo', desc: '+6% prob. de disparo doble', icon: 'x2', color: 0xff8a3c },
+  combo: { id: 'combo', name: 'Combo', desc: '+6% prob. de volver a disparar al instante', icon: 'x2', color: 0xff8a3c },
   estacas: { id: 'estacas', name: 'Estacas Reforzadas', desc: '+20% vida máx. de barricada', icon: 'HP', color: 0x9c6b3c },
   savia: { id: 'savia', name: 'Savia', desc: 'Regenera 0,4% barricada/seg', icon: '+', color: 0x4fd06a },
   mente: { id: 'mente', name: 'Mente Rápida', desc: '−8% recarga de habilidades', icon: 'CD', color: 0x7a7cff },

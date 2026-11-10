@@ -61,7 +61,7 @@ export const WEAPONS: Record<WeaponId, WeaponDef> = {
     id: 'shuriken', name: 'SHURIKEN', evoName: 'ESTRELLA INFINITA', rarity: 'Legendario',
     desc: 'Rebota entre 2 enemigos.',
     starDesc: '+25% daño · +1 rebote',
-    evoDesc: '6 rebotes y vuelve.',
+    evoDesc: '+4 rebotes, más alcance y cada rebote pega 15% más fuerte.',
     kind: 'star', dmgMult: 0.85, rate: 1.5, speed: 900, combo: 0.1, pierce: 0, bounce: 2,
     unlockText: 'Vence el Capítulo 2', color: 0xc8d2e0,
   },
