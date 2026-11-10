@@ -15,6 +15,8 @@ import { drawStickman, POSES } from '../gfx/stickman';
 import { ENEMY_TEX } from '../gfx/textures';
 import { button, drawPanel, iconBox, stars } from '../ui/widgets';
 import { ensureBackground } from '../gfx/backgrounds';
+import { drawCharacter } from '../gfx/characters';
+import { BATTLE_LINES, CHAR_COLORS, VOICES, type BattleSpeaker } from '../data/story';
 
 // ------------------------------------------------------------------ types
 interface Enemy {
@@ -667,6 +669,9 @@ export class BattleScene extends Phaser.Scene {
     this.spawnQ.sort((a, b) => a.t - b.t);
     this.banner(isBoss ? '¡JEFE!' : isMini ? `OLEADA ${n} · MINI-JEFE` : `OLEADA ${n}`, isBoss ? '#ff4a6a' : '#ffffff');
     Sound.play('wave');
+    // story banter: a short radio line after the wave banner
+    const line = (BATTLE_LINES[this.ch.id] ?? []).find((l) => l.wave === n);
+    if (line && !DEBUG.bot) this.later.push({ t: 1.9, fn: () => this.comms(line.who, line.text) });
   }
 
   private waveScale(): { hp: number; dmg: number; boss: number } {
@@ -706,6 +711,48 @@ export class BattleScene extends Phaser.Scene {
       this.cameras.main.shake(300, 0.006);
     }
     return e;
+  }
+
+  /** Radio line from an ally (or the Crown) at the top of the field. */
+  private comms(who: BattleSpeaker, text: string): void {
+    if (this.ended) return;
+    const names: Record<BattleSpeaker, string> = { clip: 'Tío Clip', pluma: 'Pluma', lino: 'Lino', corona: VOICES.corona.name, voz: VOICES.voz.name };
+    const col = who === 'corona' ? VOICES.corona.color : who === 'voz' ? VOICES.voz.color : CHAR_COLORS[who];
+    const D = 3900;
+    const y = 262;
+    const c = this.add.container(0, 0).setDepth(D).setAlpha(0);
+    const g = this.add.graphics();
+    g.fillStyle(who === 'corona' ? 0x12061e : 0x05070a, 0.86).fillRoundedRect(16, y, GAME_W - 32, 104, 18);
+    g.lineStyle(3, col, 0.95).strokeRoundedRect(16, y, GAME_W - 32, 104, 18);
+    g.fillStyle(col, 0.25).fillCircle(66, y + 52, 40);
+    g.lineStyle(3, col, 0.9).strokeCircle(66, y + 52, 40);
+    c.add(g);
+    // portrait: the speaker itself, or the Crown's eye
+    // the portrait lives outside the container: child masks are ignored inside containers
+    const pg = this.add.graphics({ x: 66, y: y + 96 }).setDepth(D + 1).setAlpha(0);
+    if (who === 'corona' || who === 'voz') {
+      pg.fillStyle(who === 'corona' ? 0xd050ff : 0x9aa8b8, 0.9).fillEllipse(0, -44, 40, 18);
+      pg.fillStyle(0x05070a, 1).fillCircle(0, -44, 6);
+      if (who === 'corona') {
+        pg.fillStyle(0xb060ff, 1).fillTriangle(-20, -64, -10, -64, -16, -80).fillTriangle(-6, -64, 6, -64, 0, -84).fillTriangle(10, -64, 20, -64, 16, -80);
+      }
+    } else {
+      // head-and-shoulders bust, cropped by the round frame
+      pg.y = y + 150;
+      drawCharacter(pg, { id: who, pose: 'idle', eyes: who === 'lino' ? 'determined' : undefined }, Save.d.armorEquipped, 1.05, 1, 0);
+      const m = this.make.graphics({}, false);
+      m.fillStyle(0xffffff).fillCircle(66, y + 52, 38);
+      pg.setMask(m.createGeometryMask());
+      pg.once('destroy', () => m.destroy());
+    }
+    c.add(this.add.text(122, y + 22, names[who], txt(22, '#' + col.toString(16).padStart(6, '0'), 5)).setOrigin(0, 0.5));
+    c.add(this.add.text(122, y + 40, text, { ...txt(24, who === 'corona' ? VOICES.corona.text : '#ffffff', 5), wordWrap: { width: 560 } }).setOrigin(0, 0));
+    if (who === 'corona') {
+      Sound.play('roar');
+      this.cameras.main.shake(200, 0.004);
+    } else Sound.play('click');
+    this.tweens.add({ targets: [c, pg], alpha: 1, duration: 220 });
+    this.tweens.add({ targets: [c, pg], alpha: 0, delay: 3200, duration: 350, onComplete: () => { c.destroy(); pg.destroy(); } });
   }
 
   private bossQuote(id: string): void {
@@ -2197,10 +2244,10 @@ export class BattleScene extends Phaser.Scene {
   private bossIntro(def: EnemyDef): void {
     const sub: Record<string, string> = {
       reina: 'Madre del Bosque Sombrío',
-      sirHueco: 'El primer vaciado por la Corona',
-      ecoDante: 'Lo que la Corona dejó de Dante',
+      sirHueco: 'Guardián de la Corona. El primer vaciado.',
+      ecoDante: 'Un disfraz de la Corona con la cara de Dante',
       kraken: 'La bestia que atacó la aldea',
-      recuerdo: 'Dante, a los diez años. Corrompido.',
+      recuerdo: 'Los recuerdos de Dante, en manos de la Corona',
       dante: 'Hermano. Poder 100.000.',
     };
     const quote: Record<string, string> = {

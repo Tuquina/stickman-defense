@@ -536,7 +536,52 @@ function logo(scene: Phaser.Scene): void {
   });
 }
 
+/** The handwritten oath page (story prop): torn parchment, kid handwriting, two ink thumbprints. */
+function oathPage(scene: Phaser.Scene): void {
+  paint(scene, 'oath_page', 340, 230, (ctx, w, h) => {
+    const edge: number[][] = [];
+    for (let x = 10; x <= w - 10; x += 18) edge.push([x, 10 + (x % 36 ? 4 : 0)]);
+    for (let y = 10; y <= h - 10; y += 18) edge.push([w - 10 - (y % 36 ? 5 : 0), y]);
+    for (let x = w - 10; x >= 10; x -= 18) edge.push([x, h - 10 - (x % 36 ? 3 : 0)]);
+    for (let y = h - 10; y >= 10; y -= 18) edge.push([10 + (y % 36 ? 4 : 0), y]);
+    ctx.save();
+    ctx.shadowColor = 'rgba(0,0,0,0.5)';
+    ctx.shadowBlur = 14;
+    ctx.shadowOffsetY = 6;
+    poly(ctx, edge);
+    ctx.fillStyle = lin(ctx, 0, 0, w, h, [[0, '#fbf2d8'], [1, '#e6d4a8']]);
+    ctx.fill();
+    ctx.restore();
+    ctx.strokeStyle = 'rgba(120,90,50,0.6)';
+    ctx.lineWidth = 2;
+    poly(ctx, edge);
+    ctx.stroke();
+    // faint ruled lines
+    ctx.strokeStyle = 'rgba(90,120,160,0.25)';
+    ctx.lineWidth = 1.5;
+    for (let y = 62; y < h - 30; y += 34) { ctx.beginPath(); ctx.moveTo(28, y); ctx.lineTo(w - 28, y); ctx.stroke(); }
+    // kid handwriting
+    ctx.save();
+    ctx.translate(w / 2, 0);
+    ctx.rotate(-0.03);
+    ctx.fillStyle = '#1a1a2a';
+    ctx.textAlign = 'center';
+    ctx.font = '34px "Lilita One", "Arial Black", sans-serif';
+    ctx.fillText('Nunca nos vamos', 0, 74);
+    ctx.fillText('a abandonar.', 0, 112);
+    ctx.font = '24px "Lilita One", "Arial Black", sans-serif';
+    ctx.fillText('— Lino y Dante', 10, 160);
+    ctx.restore();
+    // two thumbprints in each brother's colour
+    radial(ctx, 70, 190, 18, [[0, 'rgba(42,212,196,0.85)'], [1, 'rgba(42,212,196,0)']]);
+    radial(ctx, w - 70, 186, 18, [[0, 'rgba(226,85,44,0.85)'], [1, 'rgba(226,85,44,0)']]);
+    ctx.fillStyle = 'rgba(20,20,30,0.35)';
+    ctx.beginPath(); ctx.arc(250, 40, 6, 0, Math.PI * 2); ctx.fill();
+  });
+}
+
 export function generateFx(scene: Phaser.Scene): void {
+  oathPage(scene);
   logo(scene);
   vfx(scene);
   projectiles(scene);

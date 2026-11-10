@@ -16,6 +16,8 @@ export function charLook(a: Pick<Actor, 'id' | 'eyes' | 'mouth' | 'pose'>, heroT
     recuerdo: { kid: true, collar: 0xe2552c, crown: true, outline: 0xb060ff, eyes: 'glow', eyeColor: 0xffb0c8, body: 0x1a0a28 },
     // Dante freed from the Crown: no armor, his red-orange scarf restored
     danteLibre: { scarf: 0xe2552c, eyes: 'sad' },
+    // Pluma, the Citadel scribe the Crown used as its Echo (chapter 3 on)
+    pluma: { scribe: true, collar: 0x5a9cff, eyes: 'determined', mouth: 'none' },
   };
   const l = { ...base[a.id] };
   if (a.id === 'hueco' && (a as Actor).pose === 'kneel') l.weapon = null;

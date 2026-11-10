@@ -1,9 +1,9 @@
-import { GAME_H, GAME_W, txt } from '../config';
+import { GAME_H, GAME_W, ttl, txt } from '../config';
 import { Sound } from '../core/audio';
 import { fmt } from '../core/format';
 import { Save } from '../core/save';
 import { power } from '../core/stats';
-import { CHAR_NAMES, STORY, type Actor, type Beat, type StoryScene as StoryDef } from '../data/story';
+import { CHAR_COLORS, CHAR_NAMES, STORY, VOICES, type Actor, type Beat, type StoryScene as StoryDef } from '../data/story';
 import { drawCharacter } from '../gfx/characters';
 import { button } from '../ui/widgets';
 import { ensureBackground } from '../gfx/backgrounds';
@@ -18,6 +18,8 @@ interface Slot {
   actor: Actor | null;
   baseX: number;
   facing: number;
+  /** set when a new character takes the slot this beat (it walks in) */
+  entering: boolean;
 }
 
 const GROUND = 1000;
@@ -46,6 +48,11 @@ export class StoryScene extends Phaser.Scene {
   private t = 0;
   private lock = 0;
   private choosing = false;
+  private dlg!: Phaser.GameObjects.Graphics;
+  private arrow!: Phaser.GameObjects.Graphics;
+  private dialogOn = false;
+  private page: Phaser.GameObjects.Image | null = null;
+  private carding = false;
 
   constructor() {
     super('Story');
@@ -56,6 +63,9 @@ export class StoryScene extends Phaser.Scene {
     this.next = data.next ?? { scene: 'Menu' };
     this.idx = -1;
     this.choosing = false;
+    this.page = null;
+    this.carding = false;
+    this.dialogOn = false;
   }
 
   create(): void {
@@ -65,12 +75,9 @@ export class StoryScene extends Phaser.Scene {
     this.bg = this.add.image(GAME_W / 2, GAME_H / 2, this.def.bg);
     this.shade = this.add.rectangle(GAME_W / 2, GAME_H / 2, GAME_W, GAME_H, 0x000000, 0).setDepth(5);
     this.tint = this.add.rectangle(GAME_W / 2, GAME_H / 2, GAME_W, GAME_H, 0xa040ff, 0).setDepth(6);
-    // bottom gradient for readability
-    const grad = this.add.graphics().setDepth(7);
-    for (let i = 0; i < 30; i++) {
-      grad.fillStyle(0x000000, (i / 30) * 0.6);
-      grad.fillRect(0, 980 + i * 10, GAME_W, 10);
-    }
+    // visual-novel style dialogue box (drawn per beat with the speaker's colour)
+    this.dlg = this.add.graphics().setDepth(8);
+    this.arrow = this.add.graphics().setDepth(11);
 
     const mk = (x: number, facing: number): Slot => ({
       g: this.add.renderTexture(x, GROUND, RT_W, RT_H).setOrigin(FEET_X / RT_W, FEET_Y / RT_H).setDepth(3),
@@ -79,22 +86,23 @@ export class StoryScene extends Phaser.Scene {
       actor: null,
       baseX: x,
       facing,
+      entering: false,
     });
     this.slots = { L: mk(200, 1), R: mk(530, -1) };
 
-    this.nameTag = this.add.text(40, 1040, '', txt(30, '#ffd34d', 6)).setOrigin(0, 0.5).setDepth(10);
-    this.line = this.add.text(GAME_W / 2, 1110, '', { ...txt(44, '#ffffff', 10), wordWrap: { width: 660 } }).setOrigin(0.5).setDepth(10);
-    this.hl = this.add.text(GAME_W / 2, 1190, '', { ...txt(48, '#ffa62b', 10), wordWrap: { width: 680 } }).setOrigin(0.5).setDepth(10);
+    this.nameTag = this.add.text(60, 1004, '', txt(26, '#ffffff', 6)).setOrigin(0, 0.5).setDepth(10);
+    this.line = this.add.text(GAME_W / 2, 1100, '', { ...txt(40, '#ffffff', 8), wordWrap: { width: 640 } }).setOrigin(0.5).setDepth(10);
+    this.hl = this.add.text(GAME_W / 2, 1185, '', { ...txt(44, '#ffa62b', 9), wordWrap: { width: 640 } }).setOrigin(0.5).setDepth(10);
     // narrator/caption box sits between the power numbers and the characters' heads
     this.narr = this.add.graphics().setDepth(9);
-    this.caption = this.add.text(GAME_W / 2, 570, '', { ...txt(68, '#ffffff', 12), wordWrap: { width: 660 } }).setOrigin(0.5).setDepth(10);
-    this.add.text(GAME_W / 2, 1256, 'toca para continuar', txt(18, '#9aa8b8', 4)).setOrigin(0.5).setDepth(10).setAlpha(0.7);
+    this.caption = this.add.text(GAME_W / 2, 570, '', { ...ttl(54, '#ffffff', 11), wordWrap: { width: 640 } }).setOrigin(0.5).setDepth(10);
 
     button(this, GAME_W - 90, 50, 140, 54, 'SALTAR', () => this.finish(), { size: 24, color: 0x3a4a5e }).setDepth(20);
 
     this.input.on('pointerdown', (p: Phaser.Input.Pointer) => {
       if (p.y < 90 && p.x > GAME_W - 180) return;
       Sound.unlock();
+      if (this.carding) return;
       if (this.choosing || this.time.now < this.lock) return;
       if (this.typing) {
         this.shown = this.full.length;
@@ -102,15 +110,58 @@ export class StoryScene extends Phaser.Scene {
       }
       this.advance();
     });
-    this.advance();
+    this.titleCard();
+  }
+
+  /** Cinematic title card at the start of every scene (tap to skip). */
+  private titleCard(): void {
+    const [head, sub] = this.def.title.split(' · ');
+    this.carding = true;
+    const D = 40;
+    const top = this.add.rectangle(GAME_W / 2, -90, GAME_W, 180, 0x000000).setDepth(D);
+    const bot = this.add.rectangle(GAME_W / 2, GAME_H + 90, GAME_W, 180, 0x000000).setDepth(D);
+    const dim = this.add.rectangle(GAME_W / 2, GAME_H / 2, GAME_W, GAME_H, 0x05070a, 0.55).setDepth(D - 1);
+    const t1 = this.add.text(GAME_W / 2, 560, head.toUpperCase(), ttl(34, '#ffd34d', 8)).setOrigin(0.5).setDepth(D).setAlpha(0);
+    const t2 = this.add.text(GAME_W / 2, 625, sub ?? '', { ...ttl(54, '#ffffff', 11), wordWrap: { width: 640 }, align: 'center' }).setOrigin(0.5).setDepth(D).setAlpha(0);
+    const line = this.add.rectangle(GAME_W / 2, 590, 0, 3, 0xffd34d).setDepth(D);
+    this.tweens.add({ targets: top, y: 90, duration: 300, ease: 'Quad.easeOut' });
+    this.tweens.add({ targets: bot, y: GAME_H - 90, duration: 300, ease: 'Quad.easeOut' });
+    this.tweens.add({ targets: [t1, t2], alpha: 1, duration: 400, delay: 150 });
+    this.tweens.add({ targets: line, width: 380, duration: 500, delay: 150, ease: 'Quad.easeOut' });
+    Sound.play('whoosh');
+    let done = false;
+    const end = () => {
+      if (done) return;
+      done = true;
+      this.tweens.add({ targets: [top, bot, dim, t1, t2, line], alpha: 0, duration: 300, onComplete: () => [top, bot, dim, t1, t2, line].forEach((o) => o.destroy()) });
+      this.time.delayedCall(150, () => {
+        this.carding = false;
+        this.advance();
+      });
+    };
+    this.time.delayedCall(1700, end);
+    this.input.once('pointerup', () => this.time.delayedCall(0, end));
   }
 
   private setActor(slot: Slot, a: Actor | null | undefined): void {
     if (a === undefined) return;
+    const prev = slot.actor;
+    slot.entering = !!a && (!prev || prev.id !== a.id) && a.pose !== 'fallen';
+    if (!a) {
+      // walks out: fade the last drawn frame instead of popping away
+      slot.actor = null;
+      if (prev && slot.g.visible) {
+        this.tweens.add({ targets: [slot.g, slot.power], alpha: 0, duration: 280, onComplete: () => { slot.g.setVisible(false); slot.power.setVisible(false); } });
+      } else {
+        slot.g.setVisible(false);
+        slot.power.setVisible(false);
+      }
+      return;
+    }
     slot.actor = a;
-    slot.g.setVisible(!!a);
-    slot.power.setVisible(!!a && !!a.power);
-    if (!a) return;
+    this.tweens.killTweensOf([slot.g, slot.power]);
+    slot.g.setVisible(true);
+    slot.power.setVisible(!!a.power).setAlpha(1);
     slot.g.setAlpha(a.alpha ?? 1);
     slot.g.setRotation(a.pose === 'fallen' ? -1.45 * slot.facing : 0);
     slot.g.y = a.pose === 'fallen' ? GROUND - 20 : GROUND;
@@ -164,6 +215,23 @@ export class StoryScene extends Phaser.Scene {
       Sound.vibrate(80);
     }
     if (fx.includes('flash')) this.cameras.main.flash(300, 255, 255, 255);
+    if (fx.includes('zoom')) {
+      // camera punch on the big lines
+      const cam = this.cameras.main;
+      cam.zoomTo(1.08, 110, 'Quad.easeOut', true);
+      this.time.delayedCall(260, () => cam.zoomTo(1, 380, 'Sine.easeInOut', true));
+    }
+    if (fx.includes('ink')) {
+      // ink burst where the right-hand character stands (dissolving / breaking free)
+      const em = this.add.particles(0, 0, 'fx_smoke', {
+        x: this.slots.R.baseX, y: GROUND - 170, speed: { min: 120, max: 420 }, angle: { min: 0, max: 360 },
+        scale: { start: 0.9, end: 0 }, alpha: { start: 0.95, end: 0 }, tint: [0x2a1048, 0x7a3ad8, 0x0b0b0e, 0xb060ff],
+        lifespan: 750, gravityY: 300, emitting: false,
+      }).setDepth(7);
+      em.explode(32);
+      this.time.delayedCall(1000, () => em.destroy());
+      Sound.play('whoosh');
+    }
     if (fx.includes('pulse')) {
       this.tweens.add({ targets: this.slots.R.power, scale: 1.25, duration: 120, yoyo: true, repeat: 2 });
       Sound.play('roar');
@@ -185,16 +253,65 @@ export class StoryScene extends Phaser.Scene {
       this.slots.R.power.setAlpha(1);
     }
 
+    // characters that just took a slot walk in from their side
+    for (const k of ['L', 'R'] as const) {
+      const sl = this.slots[k];
+      if (!sl.entering || !sl.actor) continue;
+      const dir = k === 'L' ? -1 : 1;
+      const base = sl.actor.alpha ?? 1;
+      if (fx.includes('reveal')) {
+        // appears in place, out of the ink (someone freed from a possession)
+        sl.g.setX(sl.baseX).setAlpha(0).setScale(0.8);
+        sl.power.setX(sl.baseX).setAlpha(0);
+        this.tweens.add({ targets: sl.g, alpha: base, scale: 1, duration: 650, ease: 'Back.easeOut' });
+        this.tweens.add({ targets: sl.power, alpha: 1, duration: 400, delay: 500 });
+        continue;
+      }
+      sl.g.setX(sl.baseX + dir * 260).setAlpha(0);
+      sl.power.setX(sl.baseX).setAlpha(0);
+      this.tweens.add({ targets: sl.g, x: sl.baseX, alpha: base, duration: 380, ease: 'Cubic.easeOut' });
+      this.tweens.add({ targets: sl.power, alpha: 1, duration: 380, delay: 150 });
+    }
+    // story prop: the oath page
+    if (this.page) {
+      const pg = this.page;
+      this.page = null;
+      this.tweens.add({ targets: pg, alpha: 0, scale: 0.8, duration: 200, onComplete: () => pg.destroy() });
+    }
+    if (fx.includes('page')) {
+      const y = b.who === 'N' || b.who === 'C' ? 820 : 600;
+      this.page = this.add.image(GAME_W / 2, y, 'oath_page').setDepth(9).setScale(0.4).setAlpha(0).setAngle(-12);
+      this.tweens.add({ targets: this.page, scale: 1.1, alpha: 1, angle: -4, duration: 420, ease: 'Back.easeOut' });
+      Sound.play('legend', 0);
+    }
+
     // text
     this.caption.setText('');
     this.line.setText('');
     this.hl.setText('');
     this.nameTag.setText('');
     this.narr.clear();
+    this.dlg.clear();
+    this.arrow.clear();
+    this.dialogOn = false;
+    this.line.setColor('#ffffff');
+    this.hl.setColor('#ffa62b');
     if (b.who === 'C' || b.who === 'N') {
       const h = b.who === 'C' ? 200 : b.hl ? 230 : 170;
-      this.narr.fillStyle(0x05070a, 0.72).fillRoundedRect(24, 570 - h / 2, GAME_W - 48, h, 22);
-      this.narr.lineStyle(3, 0xffffff, 0.15).strokeRoundedRect(24, 570 - h / 2, GAME_W - 48, h, 22);
+      const v = b.voice ? VOICES[b.voice] : null;
+      this.narr.fillStyle(v ? 0x0c0414 : 0x05070a, v ? 0.88 : 0.72).fillRoundedRect(24, 570 - h / 2, GAME_W - 48, h, 22);
+      this.narr.lineStyle(v ? 4 : 3, v ? v.color : 0xffffff, v ? 0.95 : 0.15).strokeRoundedRect(24, 570 - h / 2, GAME_W - 48, h, 22);
+      if (v) {
+        // an off-screen voice speaks: plate with its name over the box
+        this.nameTag.setText(v.name);
+        const w = this.nameTag.width + 44;
+        const y = 570 - h / 2 - 22;
+        this.narr.fillStyle(v.color, 1).fillRoundedRect(48, y, w, 44, 14);
+        this.narr.lineStyle(3, 0x05070a, 1).strokeRoundedRect(48, y, w, 44, 14);
+        this.nameTag.setOrigin(0, 0.5).setPosition(70, y + 22);
+        this.line.setColor(v.text);
+        this.hl.setColor('#ff8ae0');
+      }
     }
     if (b.who === 'C') {
       this.caption.setText(b.text).setAlpha(0).setScale(0.9);
@@ -206,7 +323,21 @@ export class StoryScene extends Phaser.Scene {
     }
     if (b.who === 'L' || b.who === 'R') {
       const a = this.slots[b.who].actor;
-      if (a) this.nameTag.setText(CHAR_NAMES[a.id]).setX(b.who === 'L' ? 40 : GAME_W - 40).setOrigin(b.who === 'L' ? 0 : 1, 0.5);
+      const col = a ? CHAR_COLORS[a.id] : 0x3a4a5e;
+      this.dialogOn = true;
+      // box
+      this.dlg.fillStyle(0x05070a, 0.9).fillRoundedRect(18, 1020, GAME_W - 36, 238, 22);
+      this.dlg.lineStyle(4, col, 0.9).strokeRoundedRect(18, 1020, GAME_W - 36, 238, 22);
+      this.dlg.lineStyle(2, 0xffffff, 0.08).strokeRoundedRect(26, 1028, GAME_W - 52, 222, 18);
+      // name plate on the speaker's side
+      if (a) {
+        this.nameTag.setText(CHAR_NAMES[a.id]);
+        const w = this.nameTag.width + 44;
+        const x = b.who === 'L' ? 44 : GAME_W - 44 - w;
+        this.dlg.fillStyle(col, 1).fillRoundedRect(x, 984, w, 44, 14);
+        this.dlg.lineStyle(3, 0x05070a, 1).strokeRoundedRect(x, 984, w, 44, 14);
+        this.nameTag.setOrigin(0, 0.5).setPosition(x + 22, 1006);
+      }
     }
     this.full = b.text;
     this.shown = 0;
@@ -214,12 +345,12 @@ export class StoryScene extends Phaser.Scene {
     if (b.choice) this.showChoice(b.choice);
     this.hl.setData('text', b.hl ?? '');
     const hlLen = (b.hl ?? '').length;
-    this.hl.setFontSize(hlLen > 30 ? 34 : hlLen > 22 ? 40 : 48);
+    this.hl.setFontSize(hlLen > 32 ? 32 : hlLen > 22 ? 38 : 44);
     if (b.who === 'N') {
       this.line.setY(b.hl ? 530 : 570).setFontSize(b.text.length > 40 ? 38 : 44);
       this.hl.setY(625);
     } else {
-      this.line.setY(b.hl ? 1100 : 1130).setFontSize(b.text.length > 36 ? 38 : 42);
+      this.line.setY(b.hl ? 1098 : 1135).setFontSize(b.text.length > 36 ? 34 : 40);
       this.hl.setY(1185);
     }
   }
@@ -250,6 +381,13 @@ export class StoryScene extends Phaser.Scene {
           this.tweens.add({ targets: this.hl, scale: 1, alpha: 1, duration: 220, ease: 'Back.easeOut' });
         }
       }
+    }
+    // "continue" arrow once the line is fully written
+    this.arrow.clear();
+    if (this.dialogOn && !this.typing && !this.choosing) {
+      const bob = Math.sin(this.t * 6) * 4;
+      this.arrow.fillStyle(0xffd34d, 0.6 + Math.sin(this.t * 6) * 0.4);
+      this.arrow.fillTriangle(664, 1226 + bob, 690, 1226 + bob, 677, 1242 + bob);
     }
     void time;
   }
