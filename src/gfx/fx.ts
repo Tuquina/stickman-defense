@@ -580,8 +580,40 @@ function oathPage(scene: Phaser.Scene): void {
   });
 }
 
+/** Dante's farewell note (prologue): small folded paper, hasty handwriting, a tear stain. */
+function danteNote(scene: Phaser.Scene): void {
+  paint(scene, 'dante_note', 300, 170, (ctx, w, h) => {
+    ctx.save();
+    ctx.shadowColor = 'rgba(0,0,0,0.5)';
+    ctx.shadowBlur = 12;
+    ctx.shadowOffsetY = 5;
+    poly(ctx, [[14, 16], [w - 12, 10], [w - 16, h - 14], [18, h - 10]]);
+    ctx.fillStyle = lin(ctx, 0, 0, w, h, [[0, '#f4ecd6'], [1, '#dccaa0']]);
+    ctx.fill();
+    ctx.restore();
+    // fold line
+    ctx.strokeStyle = 'rgba(120,90,50,0.35)';
+    ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.moveTo(w / 2, 12); ctx.lineTo(w / 2 + 3, h - 12); ctx.stroke();
+    // tear stain
+    radial(ctx, 220, 110, 22, [[0, 'rgba(120,150,190,0.35)'], [1, 'rgba(120,150,190,0)']]);
+    ctx.save();
+    ctx.translate(w / 2, 0);
+    ctx.rotate(0.04);
+    ctx.fillStyle = '#2a1a1a';
+    ctx.textAlign = 'center';
+    ctx.font = '30px "Lilita One", "Arial Black", sans-serif';
+    ctx.fillText('Nunca más voy', 0, 66);
+    ctx.fillText('a ser débil.', 0, 102);
+    ctx.font = '24px "Lilita One", "Arial Black", sans-serif';
+    ctx.fillText('— D.', 70, 140);
+    ctx.restore();
+  });
+}
+
 export function generateFx(scene: Phaser.Scene): void {
   oathPage(scene);
+  danteNote(scene);
   logo(scene);
   vfx(scene);
   projectiles(scene);
