@@ -26,7 +26,7 @@ export interface ChapterDef {
 
 export const CHAPTERS: Record<ChapterId, ChapterDef> = {
   c1: {
-    id: 'c1', num: 'CAPÍTULO 1', name: 'Bosque Sombrío', subtitle: 'Las arañas están en oferta.',
+    id: 'c1', num: 'CAPÍTULO 1', name: 'Bosque Sombrío', subtitle: 'Las arañas bajaron del bosque.',
     bg: 'bg_c1', music: 'c1',
     pool: [
       { id: 'arana', weight: 10, from: 1 },
@@ -49,7 +49,7 @@ export const CHAPTERS: Record<ChapterId, ChapterDef> = {
     intro: 'c2_intro', outro: 'c2_outro', requires: 'c1', requiresText: 'Vence el Capítulo 1', color: 0x8a7a64,
   },
   c3: {
-    id: 'c3', num: 'CAPÍTULO 3', name: 'Ciudadela de Ceniza', subtitle: 'Decoración minimalista.',
+    id: 'c3', num: 'CAPÍTULO 3', name: 'Ciudadela de Ceniza', subtitle: 'Donde dicen que pasó Dante.',
     bg: 'bg_c3', music: 'c3',
     pool: [
       { id: 'mancha', weight: 8, from: 1 },
@@ -61,7 +61,7 @@ export const CHAPTERS: Record<ChapterId, ChapterDef> = {
     intro: 'c3_intro', outro: 'c3_outro', requires: 'c2', requiresText: 'Vence el Capítulo 2', color: 0x9b4fd0,
   },
   c4: {
-    id: 'c4', num: 'CAPÍTULO 4', name: 'Marisma de Tinta', subtitle: 'De aquí salió La Mancha.',
+    id: 'c4', num: 'CAPÍTULO 4', name: 'Marisma de Tinta', subtitle: 'De aquí salieron los monstruos.',
     bg: 'bg_c4', music: 'c4',
     pool: [
       { id: 'renacuajo', weight: 9, from: 1 },
