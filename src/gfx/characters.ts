@@ -1,7 +1,7 @@
 import type { Actor, CharId, PoseId } from '../data/story';
 import { drawStickman, POSES, type Look, type Pose } from './stickman';
 
-export function charLook(a: Pick<Actor, 'id' | 'eyes' | 'mouth' | 'pose'>, heroTier: number): Look {
+export function charLook(a: Pick<Actor, 'id' | 'eyes' | 'mouth' | 'pose'> & Partial<Pick<Actor, 'prop' | 'tears' | 'bandage'>>, heroTier: number): Look {
   const base: Record<CharId, Look> = {
     linoKid: { kid: true, scarf: 0x2ad4c4, eyes: 'determined' },
     danteKid: { kid: true, collar: 0xe2552c, eyes: 'happy', mouth: 'grin' },
@@ -23,6 +23,9 @@ export function charLook(a: Pick<Actor, 'id' | 'eyes' | 'mouth' | 'pose'>, heroT
   if (a.id === 'hueco' && (a as Actor).pose === 'kneel') l.weapon = null;
   if (a.eyes) l.eyes = a.eyes;
   if (a.mouth) l.mouth = a.mouth;
+  if (a.prop) l.weapon = a.prop;
+  if (a.tears) l.tears = true;
+  if (a.bandage) l.bandage = true;
   return l;
 }
 

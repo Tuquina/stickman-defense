@@ -12,6 +12,10 @@ export interface Actor {
   mouth?: 'none' | 'grin' | 'open' | 'frown';
   pose?: PoseId;
   alpha?: number;
+  /** story-only extras */
+  prop?: 'broom' | 'broomBroken';
+  tears?: boolean;
+  bandage?: boolean;
 }
 
 export interface Beat {
@@ -24,6 +28,11 @@ export interface Beat {
   bg?: string;
   /** 'zoom' camera punch · 'reveal' new actor appears in place (no walk-in) · 'ink' ink burst on the right slot */
   fx?: ('shake' | 'flash' | 'purple' | 'dark' | 'light' | 'pushL' | 'exitR' | 'pulse' | 'page' | 'zoom' | 'reveal' | 'ink')[];
+  /** lighting that persists until another beat changes it */
+  mood?: 'day' | 'night' | 'fire' | 'dawn';
+  /** staged animation: 'horde' monsters running, 'beast' the giant creature (both persist while listed),
+   *  'swipe' tentacle strike on the left actor, 'crack' broken broom, 'note' Dante's farewell note */
+  cine?: ('horde' | 'beast' | 'swipe' | 'crack' | 'note')[];
   /** narrator beats spoken by an off-screen voice (name plate over the box) */
   voice?: 'corona' | 'voz';
   /** branching beat: shows buttons instead of advancing on tap */
@@ -88,9 +97,25 @@ export const STORY: Record<string, StoryScene> = {
       { who: 'R', text: 'No importa quién tenga más nivel.', hl: 'Siempre vamos a ser hermanos.', right: danteKid({ eyes: 'happy', mouth: 'grin', pose: 'point' }) },
       { who: 'R', text: 'Mejor lo escribimos. Lo que se escribe con tinta', hl: 'no se borra nunca.', right: danteKid({ eyes: 'happy', mouth: 'grin', pose: 'hands' }) },
       { who: 'N', text: 'Lo firmaron en una hoja de cuaderno, con la huella del pulgar.', hl: 'Lo llamaron el Juramento de Tinta.', left: linoKid({ eyes: 'happy', mouth: 'grin', pose: 'fist' }), right: danteKid({ eyes: 'happy', mouth: 'open', pose: 'fist' }), fx: ['flash', 'page'] },
-      { who: 'N', text: 'Esa noche, La Mancha se desbordó.', hl: 'Cientos de monstruos de tinta bajaron de la Marisma.', fx: ['dark', 'shake'], music: 'sad' },
-      { who: 'N', text: 'Dante los enfrentó con un palo de escoba. No alcanzó.', hl: 'Lino estuvo tres días sin despertar.', fx: ['dark'] },
-      { who: 'N', text: 'Cuando abrió los ojos, Dante ya no estaba.', hl: 'Solo dejó una nota: «Nunca más voy a ser débil».', left: linoKid({ eyes: 'sad', pose: 'kneel' }), right: null, fx: ['dark', 'purple'] },
+      // ---- the attack
+      { who: 'N', mood: 'night', text: 'Esa noche, la aldea dormía.', hl: 'Hasta que el río empezó a ponerse negro.', left: linoKid({ eyes: 'closed' }), right: danteKid({ eyes: 'closed' }), music: 'sad' },
+      { who: 'N', mood: 'fire', cine: ['horde'], text: 'La Mancha se desbordó desde la Marisma.', hl: 'Cientos de monstruos de tinta entraron a la aldea.', left: linoKid({ eyes: 'shock', pose: 'hands' }), right: danteKid({ eyes: 'shock', mouth: 'open' }), fx: ['shake'], music: 'boss' },
+      { who: 'R', cine: ['horde'], text: '¡Lino, ponte detrás de mí!', hl: '¡Y no te muevas!', right: danteKid({ eyes: 'angry', mouth: 'open', pose: 'fist', prop: 'broom' }) },
+      { who: 'L', cine: ['horde'], text: 'Dante… son demasiados…', left: linoKid({ eyes: 'shock', pose: 'hands', tears: true }) },
+      { who: 'R', cine: ['horde'], text: '¡Mientras yo esté…', hl: '…nadie te toca!', right: danteKid({ eyes: 'angry', mouth: 'open', pose: 'point', prop: 'broom' }), fx: ['zoom'] },
+      { who: 'N', cine: ['horde', 'beast'], text: 'Entonces, del río salió algo mucho más grande.', hl: 'En la frente le brillaba una marca violeta.', left: linoKid({ eyes: 'shock', pose: 'hands' }), right: danteKid({ eyes: 'shock', mouth: 'open', pose: 'hands', prop: 'broom' }), fx: ['purple'] },
+      { who: 'R', cine: ['beast', 'swipe'], text: '¡LINO!', left: linoKid({ eyes: 'closed', pose: 'fallen' }), right: danteKid({ eyes: 'shock', mouth: 'open', pose: 'hands', prop: 'broom' }), fx: ['pushL'] },
+      { who: 'R', cine: ['beast'], text: '¡Déjalo! ¡DÉJALO!', hl: '¡Pelea conmigo, cobarde!', right: danteKid({ eyes: 'angry', mouth: 'open', pose: 'fist', prop: 'broom', tears: true }), fx: ['shake', 'zoom'] },
+      { who: 'N', cine: ['beast', 'crack'], text: 'Dante le pegó con lo único que tenía: un palo de escoba.', hl: 'El palo se partió en dos.', right: danteKid({ eyes: 'shock', mouth: 'open', pose: 'point', prop: 'broomBroken', tears: true }) },
+      { who: 'N', text: 'La bestia ni siquiera lo miró.', hl: 'Se hundió en el río y se fue, como si nada.', right: danteKid({ eyes: 'sad', mouth: 'open', pose: 'kneel', prop: 'broomBroken', tears: true }), music: 'sad' },
+      // ---- the days after
+      { who: 'N', mood: 'night', text: 'Lino estuvo tres días sin despertar.', hl: 'Casi no la cuenta.', left: linoKid({ eyes: 'closed', pose: 'fallen', bandage: true }), right: danteKid({ eyes: 'sad', pose: 'kneel', tears: true }) },
+      { who: 'R', text: 'Perdóname, Lino…', hl: 'No pude hacer nada.', right: danteKid({ eyes: 'sad', mouth: 'frown', pose: 'kneel', tears: true }) },
+      { who: 'R', text: 'Tenía un palo de escoba. Nada más.', hl: 'Soy débil… ¡SOY DÉBIL!', right: danteKid({ eyes: 'angry', mouth: 'open', pose: 'fist', tears: true }), fx: ['shake', 'zoom'] },
+      { who: 'N', voice: 'voz', text: '«En las Ruinas del Castillo hay algo que te puede hacer fuerte…', hl: '…si te atreves a ir a buscarlo.»', fx: ['purple'] },
+      { who: 'R', text: 'Nunca más.', hl: 'Nunca más voy a ser débil.', right: danteKid({ eyes: 'determined', mouth: 'none', pose: 'fist', tears: true }), fx: ['purple'] },
+      { who: 'N', mood: 'dawn', text: 'Esa misma madrugada, Dante se fue', hl: 'sin despedirse.', right: danteKid({ eyes: 'determined', pose: 'idle' }), fx: ['exitR'] },
+      { who: 'N', mood: 'day', cine: ['note'], text: 'Cuando Lino despertó, solo encontró una nota.', left: linoKid({ eyes: 'sad', pose: 'kneel', bandage: true }), right: null },
     ],
   },
   prologo2: {

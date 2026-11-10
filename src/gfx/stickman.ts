@@ -27,7 +27,7 @@ export interface Look {
   eyes?: Eyes;
   eyeColor?: number;
   mouth?: 'none' | 'grin' | 'open' | 'frown';
-  weapon?: WeaponId | 'sword' | 'bowE' | 'staffE' | null;
+  weapon?: WeaponId | 'sword' | 'bowE' | 'staffE' | 'broom' | 'broomBroken' | null;
   twin?: boolean; // second pistol in back hand
   crown?: boolean;
   corrupt?: boolean;
@@ -44,6 +44,10 @@ export interface Look {
   capeColor?: number | null;
   /** Pluma (the scribe): ponytail, round glasses and a quill behind the ear */
   scribe?: boolean;
+  /** tear streaks under the eyes (story) */
+  tears?: boolean;
+  /** head bandage (story: Lino after the attack) */
+  bandage?: boolean;
 }
 
 export const POSES = {
@@ -521,6 +525,23 @@ function drawHead(g: G, sk: Skeleton, s: number, f: number, look: Look, tier: nu
       break;
   }
 
+  if (look.tears) {
+    // two tear streaks and a drop that keeps falling
+    g.lineStyle(2.6 * s, 0x8fdcff, 0.9);
+    g.lineBetween(e.x - 7 * s * f, e.y + 4 * s, e.x - 8 * s * f, e.y + 13 * s);
+    g.lineBetween(e.x + 8 * s * f, e.y + 4 * s, e.x + 9 * s * f, e.y + 12 * s);
+    const k = (t * 1.6) % 1;
+    g.fillStyle(0x8fdcff, 1 - k);
+    g.fillCircle(e.x - 8 * s * f, e.y + (14 + k * 14) * s, 2.4 * s);
+  }
+  if (look.bandage) {
+    const rr = r / s;
+    poly(g, h, s, f, [[-rr, -rr * 0.55], [rr, -rr * 0.7], [rr, -rr * 0.25], [-rr, -rr * 0.1]], 0xf2efe6);
+    poly(g, h, s, f, [[-rr, -rr * 0.5], [-rr - 10, -rr * 0.9], [-rr - 8, -rr * 0.2]], 0xe6e0d2);
+    g.fillStyle(0xd04040, 0.85);
+    g.fillCircle(h.x + rr * 0.35 * s * f, h.y - rr * 0.45 * s, 3 * s);
+  }
+
   if (look.crown) {
     const cy = h.y - r * 2.15 + Math.sin(t * 2.5) * 2 * s;
     const c = { x: h.x + 1 * s * f, y: cy };
@@ -718,6 +739,33 @@ export function drawWeapon(g: G, w: Look['weapon'], elbow: V, hand: V, s: number
       g.lineBetween(c.x - sy * 11 * s, c.y + sx * 11 * s, c.x + sy * 11 * s, c.y - sx * 11 * s);
       g.lineStyle(4.5 * s, 0xc8a050, 1);
       g.lineBetween(c.x - sy * 10 * s, c.y + sx * 10 * s, c.x + sy * 10 * s, c.y - sx * 10 * s);
+      break;
+    }
+    case 'broom':
+    case 'broomBroken': {
+      // Dante's broom stick (prologue): bristles, or a splintered stump once broken
+      const sx = Math.cos(ang - 1.0 * f);
+      const sy = Math.sin(ang - 1.0 * f);
+      const len = w === 'broom' ? 74 : 30;
+      const tip = { x: c.x + sx * len * s, y: c.y + sy * len * s };
+      const back = { x: c.x - sx * 14 * s, y: c.y - sy * 14 * s };
+      g.lineStyle(8 * s, INK, 1);
+      g.lineBetween(back.x, back.y, tip.x, tip.y);
+      g.lineStyle(5 * s, 0xa0682e, 1);
+      g.lineBetween(back.x, back.y, tip.x, tip.y);
+      if (w === 'broom') {
+        const nx = -sy;
+        const ny = sx;
+        const q = (a: number, b: number) => new Phaser.Math.Vector2(tip.x + sx * a * s + nx * b * s, tip.y + sy * a * s + ny * b * s);
+        const pts = [q(-4, -5), q(-4, 5), q(22, 13), q(24, -13)];
+        g.fillStyle(INK, 1).fillPoints(pts.map((v, i) => new Phaser.Math.Vector2(v.x + (i < 2 ? 0 : sx * 2 * s), v.y + (i < 2 ? 0 : sy * 2 * s))), true);
+        g.fillStyle(0xe0b85a, 1).fillPoints(pts, true);
+        g.lineStyle(1.5 * s, 0xa07a30, 1);
+        for (const b of [-6, 0, 6]) g.lineBetween(q(0, b * 0.6).x, q(0, b * 0.6).y, q(22, b * 1.7).x, q(22, b * 1.7).y);
+      } else {
+        g.fillStyle(0xd8a060, 1);
+        g.fillTriangle(tip.x - sy * 4 * s, tip.y + sx * 4 * s, tip.x + sy * 4 * s, tip.y - sx * 4 * s, tip.x + sx * 8 * s, tip.y + sy * 8 * s);
+      }
       break;
     }
     default:
