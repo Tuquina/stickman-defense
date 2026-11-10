@@ -174,6 +174,18 @@ era de cartón. Literal." · "Tranqui, todos empezamos siendo basura. Bueno, tú
 5. Ganas al derrotar al jefe. Pierdes si la barricada llega a 0. **Siempre te quedas con el oro**
    ganado, así que perder también hace avanzar.
 
+
+**Modo de mejoras** (Ajustes y Pausa):
+
+| Modo | Comportamiento |
+|---|---|
+| **Fin de oleada** (por defecto) | Las subidas de nivel se acumulan (▲N en el HUD) y se eligen al terminar la oleada. No hay pausas en mitad del combate. |
+| **Al instante** | La elección aparece apenas subes de nivel (el comportamiento clásico). |
+| **Automático** | El juego elige sin pausar según la prioridad elegida (equilibrado, ataque, defensa o habilidades) y muestra un aviso de cada elección. Las legendarias se anuncian siempre. |
+
+La pantalla de cartas tiene además el botón **ELEGIR AUTOMÁTICO**, que resuelve esa elección y todas las
+pendientes de una vez. Cuando ya no queda nada por mejorar (solo Reparación o Botín), se toma solo, sin pausa.
+
 ### 3.4 Cartas de subida de nivel
 
 **Mejora de arma** (hasta 5★): +25 % de daño por estrella y un extra según el arma.
@@ -341,8 +353,12 @@ juntar las mejoras del siguiente.
 | 0 | Bufanda del Juramento | Inicio | — | Bufanda turquesa |
 | 1 | Capucha de Vigía | Vencer el Cap. 1 | +10 % daño, +15 % vida | Capucha azul, cuello de piel, brazaletes de cuero |
 | 2 | Armadura de Caballero | Vencer el Cap. 2 | +25 % daño, +30 % vida | Yelmo plateado con visera, hombreras con filo dorado, capa azul |
-| 3 | Paladín de Tinta | Vencer el Cap. 3 + Rango 10 | +45 % daño, +50 % vida | Armadura dorada, cresta con alas, aura celeste |
-| 4 | Heredero del Juramento | Vencer el Cap. 5 (u oleada 25 del Abismo) | +80 % daño, +80 % vida | Blanco y oro, bufanda luminosa, aura intensa |
+| 3 | Paladín de Tinta | Vencer el Cap. 3 | +45 % daño, +50 % vida | Armadura dorada, cresta con alas, aura celeste |
+| 4 | Heredero del Juramento | Vencer el Cap. 5 (regalo del Tío Clip en la historia) | +80 % daño, +80 % vida | Blanco y oro, bufanda luminosa, aura intensa |
+
+Cada armadura se desbloquea con un capítulo de la historia y siempre en orden. Antes, la 3.ª pedía
+además Rango 10 (unas 20 partidas) y la 4.ª tenía un atajo por El Abismo, así que se podía conseguir
+la 4.ª antes que la 3.ª. Ahora no hay atajos: la progresión de poder la marcan los capítulos.
 
 ---
 

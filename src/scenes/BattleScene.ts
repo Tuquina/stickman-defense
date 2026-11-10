@@ -370,6 +370,14 @@ export class BattleScene extends Phaser.Scene {
     this.time.delayedCall(400, () => {
       // every run starts with a free skill pick: decisions from second one; the first wave starts after it
       this.pendingStart = true;
+      if (this.cardMode() === 'auto') {
+        const c = this.autoPick(this.starterCards());
+        this.applyCard(c);
+        this.autoToast(c, 0, false);
+        this.pendingStart = false;
+        this.startWave(Math.max(1, DEBUG.wave));
+        return;
+      }
       this.showCards(this.starterCards(), 'ELIGE TU HABILIDAD', false, 'Tu primera habilidad de la partida');
     });
   }
@@ -602,7 +610,8 @@ export class BattleScene extends Phaser.Scene {
     this.hud.furyText.setColor(this.fury >= 100 || this.furyT > 0 ? '#ffd34d' : '#ffffff');
 
     this.hud.hpText.setText(`BARRICADA ${fmt(this.hp)}/${fmt(this.st.maxHp)}`);
-    this.hud.lvText.setText(`Lv.${this.level}`);
+    this.hud.lvText.setText(this.pendingLevels > 0 && !this.modal ? `Lv.${this.level}  ▲${this.pendingLevels}` : `Lv.${this.level}`);
+    this.hud.lvText.setColor(this.pendingLevels > 0 && !this.modal ? '#ffd34d' : '#ffffff');
     this.hud.waveText.setText(this.ch.waves === Infinity ? `${Math.max(1, this.wave)}` : `${Math.max(1, this.wave)}/${this.ch.waves}`);
     this.hud.goldText.setText(fmt(this.gold));
     this.hud.killText.setText(`${fmt(this.kills)} bajas`);
@@ -1169,6 +1178,7 @@ export class BattleScene extends Phaser.Scene {
   }
 
   private waveCleared(): void {
+    if (this.pendingLevels > 0 && this.cardMode() === 'oleada' && !this.modal && !this.ended) this.later.push({ t: 0.35, fn: () => { if (!this.modal && !this.ended) this.openCards(); } });
     const g = Math.round(10 * this.goldWave() * this.st.goldMult);
     this.gold += g;
     if (this.hud) this.floatHud(`+${fmt(g)}`, GOLD_POS.x + 70, GOLD_POS.y - 40);
@@ -1642,7 +1652,100 @@ export class BattleScene extends Phaser.Scene {
       this.xpNeed = this.xfor();
       this.pendingLevels++;
     }
-    if (this.pendingLevels > 0 && !this.modal && !this.ended) this.openCards();
+    if (this.pendingLevels > 0 && !this.modal && !this.ended) {
+      const mode = this.cardMode();
+      if (mode === 'auto') this.autoResolve();
+      else if (mode === 'manual') this.openCards();
+      // 'oleada': the choices wait for the end of the wave (no pauses mid-fight)
+    }
+  }
+
+  /** How level-up cards are handled (the bot always picks through the modal). */
+  private cardMode(): 'manual' | 'oleada' | 'auto' {
+    if (DEBUG.bot) return 'manual';
+    return Save.d.settings.cards ?? 'oleada';
+  }
+
+  /** Next level-up choice (marks milestone chests as claimed). */
+  private nextChoice(): { cards: Card[]; title: string; legend: boolean } {
+    const milestone = MILESTONES.find((m) => this.level >= m && !this.claimedMilestones.has(m));
+    if (milestone) {
+      this.claimedMilestones.add(milestone);
+      this.rerolls++;
+      return { cards: this.legendCards(), title: `COFRE DE HITO · Lv.${milestone}`, legend: true };
+    }
+    return { cards: this.normalCards(), title: '¡SUBISTE DE NIVEL!', legend: false };
+  }
+
+  /** Card score for the automatic pick, following the chosen priority. */
+  private autoScore(c: Card): number {
+    const pr = Save.d.settings.priority ?? 'equilibrado';
+    const pw: Record<string, Partial<Record<PassiveId, number>>> = {
+      equilibrado: { filo: 36, prisa: 34, estacas: 33, critico: 30, mente: 28, savia: 26, combo: 26, perforacion: 24, furia: 20, sabiduria: 18, bolsillos: 14 },
+      ataque: { filo: 42, prisa: 40, critico: 38, combo: 34, perforacion: 32, furia: 24, mente: 18, sabiduria: 16, estacas: 12, savia: 10, bolsillos: 10 },
+      defensa: { estacas: 44, savia: 42, filo: 32, prisa: 28, mente: 24, critico: 22, furia: 20, combo: 18, perforacion: 18, sabiduria: 14, bolsillos: 12 },
+      habilidades: { mente: 44, furia: 36, filo: 32, prisa: 26, critico: 24, estacas: 24, savia: 20, combo: 18, perforacion: 18, sabiduria: 16, bolsillos: 12 },
+    };
+    const lw: Record<string, Partial<Record<LegendId, number>>> = {
+      equilibrado: { dobleTrazo: 60, tormenta: 56, eco: 52, vampiro: 50, ejecutor: 48, estallido: 46, corazon: 44, furiaEterna: 42 },
+      ataque: { dobleTrazo: 64, tormenta: 62, ejecutor: 58, estallido: 54, corazon: 44, eco: 42, furiaEterna: 40, vampiro: 38 },
+      defensa: { vampiro: 64, corazon: 60, estallido: 52, dobleTrazo: 50, eco: 46, tormenta: 44, ejecutor: 42, furiaEterna: 40 },
+      habilidades: { eco: 66, furiaEterna: 60, dobleTrazo: 52, tormenta: 48, estallido: 46, vampiro: 44, ejecutor: 42, corazon: 40 },
+    };
+    const lowHp = this.hp / this.st.maxHp < 0.4;
+    switch (c.type) {
+      case 'evo': return 100;
+      case 'weapon': return 62;
+      case 'legend': return lw[pr][c.id] ?? 45;
+      case 'skill': {
+        const owned = this.skills.some((x) => x.id === c.id);
+        return (owned ? 38 : 46) + (pr === 'habilidades' ? 14 : 0);
+      }
+      case 'turret': return pr === 'defensa' ? 40 : 30;
+      case 'passive': return pw[pr][c.id] ?? 20;
+      case 'heal': return lowHp ? 90 : 4;
+      case 'gold': return 8;
+    }
+  }
+
+  private autoPick(cards: Card[]): Card {
+    return cards.map((c) => ({ c, s: this.autoScore(c) + Math.random() * 3 })).sort((a, b) => b.s - a.s)[0].c;
+  }
+
+  /** Resolves every pending level-up without stopping the fight; a small toast shows each pick. */
+  private autoResolve(): void {
+    let n = 0;
+    while (this.pendingLevels > 0 && !this.ended) {
+      this.pendingLevels--;
+      const ch = this.nextChoice();
+      const c = this.autoPick(ch.cards);
+      this.applyCard(c);
+      // legendary picks are always announced; normal ones up to three, then a summary
+      if (ch.legend || n < 3) this.autoToast(c, Math.min(n, 3), ch.legend);
+      n++;
+    }
+    if (n > 3) {
+      const t = this.add.text(14, 268 + 4 * 58, `+${n - 3} mejoras más`, txt(20, '#ffd34d', 5)).setOrigin(0, 0.5).setDepth(4500).setAlpha(0);
+      this.tweens.add({ targets: t, alpha: 1, duration: 200, delay: 400 });
+      this.tweens.add({ targets: t, alpha: 0, delay: 2200, duration: 300, onComplete: () => t.destroy() });
+    }
+    this.recalc();
+  }
+
+  private autoToast(c: Card, i: number, legend: boolean): void {
+    const info = this.cardInfo(c);
+    const y = 268 + (i % 4) * 58;
+    const col = legend ? 0xb84ae0 : info.color;
+    const cont = this.add.container(-260, y).setDepth(4500);
+    const g = this.add.graphics();
+    g.fillStyle(0x05070a, 0.82).fillRoundedRect(0, -24, 250, 48, 14);
+    g.lineStyle(3, col, 0.95).strokeRoundedRect(0, -24, 250, 48, 14);
+    cont.add(g);
+    cont.add(this.add.text(14, 0, legend ? '★' : 'AUTO', txt(legend ? 26 : 16, legend ? '#e0a0ff' : '#9aa8b8', 4)).setOrigin(0, 0.5));
+    cont.add(this.add.text(legend ? 44 : 64, 0, `${info.name}${info.max > 0 ? ` ${Math.min(info.lv, info.max)}` : ''}`, txt(20, '#ffffff', 4)).setOrigin(0, 0.5));
+    this.tweens.add({ targets: cont, x: 14, duration: 220, delay: i * 120, ease: 'Back.easeOut' });
+    this.tweens.add({ targets: cont, alpha: 0, x: -40, delay: 1700 + i * 120, duration: 300, onComplete: () => cont.destroy() });
+    if (i === 0) Sound.play(legend ? 'legend' : 'levelup', 0);
   }
 
   private xfor(): number {
@@ -1652,16 +1755,19 @@ export class BattleScene extends Phaser.Scene {
   private openCards(): void {
     if (this.pendingLevels <= 0 || this.ended) return;
     this.pendingLevels--;
-    const milestone = MILESTONES.find((m) => this.level >= m && !this.claimedMilestones.has(m));
-    if (milestone) {
-      this.claimedMilestones.add(milestone);
-      this.rerolls++;
-      this.showCards(this.legendCards(), `COFRE DE HITO · Lv.${milestone}`, true);
-      Sound.play('legend');
-    } else {
-      this.showCards(this.normalCards(), '¡SUBISTE DE NIVEL!', false);
-      Sound.play('levelup');
+    const ch = this.nextChoice();
+    // nothing left to improve (only repair / loot): take the useful one without stopping the game
+    if (!ch.legend && ch.cards.every((c) => c.type === 'heal' || c.type === 'gold')) {
+      const c = this.autoPick(ch.cards);
+      this.applyCard(c);
+      this.recalc();
+      this.autoToast(c, 0, false);
+      if (this.pendingLevels > 0) this.openCards();
+      return;
     }
+    const left = this.pendingLevels;
+    this.showCards(ch.cards, ch.title, ch.legend, left > 0 ? `${ch.legend ? 'Elige un poder legendario' : `Nivel ${this.level}`} · faltan ${left}` : undefined);
+    Sound.play(ch.legend ? 'legend' : 'levelup');
   }
 
   private normalCards(): Card[] {
@@ -1768,7 +1874,23 @@ export class BattleScene extends Phaser.Scene {
       L.add(cc);
       (cc as unknown as { card: Card }).card = c;
     });
-    if (this.rerolls > 0 && !subtitle) {
+    // one tap resolves this choice and every pending one with the auto-pick priorities
+    const ab = button(this, GAME_W / 2, 1212, 360, 64, 'ELEGIR AUTOMÁTICO', () => {
+      if (this.time.now < lockUntil) return;
+      const c = this.autoPick(cards);
+      this.applyCard(c);
+      this.autoToast(c, 0, legend);
+      this.modalLayer?.destroy();
+      this.modalLayer = null;
+      this.modal = false;
+      if (this.pendingStart) {
+        this.pendingStart = false;
+        this.startWave(Math.max(1, DEBUG.wave));
+      }
+      this.autoResolve();
+    }, { size: 24, color: 0x4a3a7a });
+    L.add(ab);
+    if (this.rerolls > 0 && !this.pendingStart) {
       const rb = button(this, GAME_W / 2, 1125, 300, 74, `CAMBIAR (${this.rerolls})`, () => {
         if (this.time.now < lockUntil) return;
         this.rerolls--;
@@ -2488,7 +2610,7 @@ export class BattleScene extends Phaser.Scene {
     this.modalLayer = L;
     L.add(this.add.rectangle(GAME_W / 2, GAME_H / 2, GAME_W, GAME_H, 0x000000, 0.78).setInteractive());
     const g = this.add.graphics();
-    drawPanel(g, 80, 250, 560, 800, 0x1c2a44, 0x05070a, 22);
+    drawPanel(g, 80, 250, 560, 900, 0x1c2a44, 0x05070a, 22);
     L.add(g);
     L.add(this.add.text(GAME_W / 2, 310, 'PAUSA', ttl(60, '#ffffff', 10)).setOrigin(0.5));
     // run summary
@@ -2508,6 +2630,11 @@ export class BattleScene extends Phaser.Scene {
       L.destroy();
       this.modalLayer = null;
       this.paused = false;
+      // the card mode may have changed: resolve what is pending accordingly
+      if (this.pendingLevels > 0 && !this.ended) {
+        if (this.cardMode() === 'auto') this.autoResolve();
+        else if (this.cardMode() === 'manual') this.openCards();
+      }
     };
     const toggle = (y: number, label: string, get: () => string, act: () => void, on: () => boolean) => {
       const b = button(this, GAME_W / 2, y, 440, 74, `${label}: ${get()}`, () => {
@@ -2519,13 +2646,18 @@ export class BattleScene extends Phaser.Scene {
       }, { color: on() ? 0x2a7a72 : 0x3a4a5e, size: 28 });
       L.add(b);
     };
-    L.add(button(this, GAME_W / 2, 545, 440, 88, 'CONTINUAR', close, { color: 0x2a9d8f, size: 38 }));
-    toggle(645, 'MÚSICA', () => (s.music ? 'SÍ' : 'NO'), () => { s.music = !s.music; }, () => s.music);
-    toggle(730, 'SONIDOS', () => (s.sfx ? 'SÍ' : 'NO'), () => { s.sfx = !s.sfx; }, () => s.sfx);
-    toggle(815, 'VELOCIDAD', () => `x${this.speed}`, () => this.toggleSpeed(), () => this.speed > 1);
-    toggle(900, 'EFECTOS VISUALES', () => (s.lowFx ? 'NO' : 'SÍ'), () => { s.lowFx = !s.lowFx; this.lowFx = s.lowFx; }, () => !s.lowFx);
+    L.add(button(this, GAME_W / 2, 540, 440, 84, 'CONTINUAR', close, { color: 0x2a9d8f, size: 38 }));
+    toggle(630, 'MÚSICA', () => (s.music ? 'SÍ' : 'NO'), () => { s.music = !s.music; }, () => s.music);
+    toggle(706, 'SONIDOS', () => (s.sfx ? 'SÍ' : 'NO'), () => { s.sfx = !s.sfx; }, () => s.sfx);
+    toggle(782, 'VELOCIDAD', () => `x${this.speed}`, () => this.toggleSpeed(), () => this.speed > 1);
+    toggle(858, 'EFECTOS', () => (s.lowFx ? 'NO' : 'SÍ'), () => { s.lowFx = !s.lowFx; this.lowFx = s.lowFx; }, () => !s.lowFx);
+    const modes = ['manual', 'oleada', 'auto'] as const;
+    const modeName = { manual: 'AL INSTANTE', oleada: 'FIN DE OLEADA', auto: 'AUTOMÁTICO' };
+    toggle(934, 'MEJORAS', () => modeName[s.cards], () => { s.cards = modes[(modes.indexOf(s.cards) + 1) % 3]; }, () => s.cards !== 'manual');
+    const prios = ['equilibrado', 'ataque', 'defensa', 'habilidades'] as const;
+    toggle(1010, 'PRIORIDAD', () => s.priority.toUpperCase(), () => { s.priority = prios[(prios.indexOf(s.priority) + 1) % 4]; }, () => true);
     let confirm = false;
-    const quit = button(this, GAME_W / 2, 995, 440, 74, 'ABANDONAR', () => {
+    const quit = button(this, GAME_W / 2, 1098, 440, 70, 'ABANDONAR', () => {
       if (!confirm) {
         confirm = true;
         quit.label.setText('¿SEGURO? Te quedas el oro');
