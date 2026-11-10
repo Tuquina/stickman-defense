@@ -5,8 +5,8 @@ import { clamp, fmt, fmtShort, pick, shuffle } from '../core/format';
 import { Save } from '../core/save';
 import { abismoGoldMult, baseStats, weaponLvMult } from '../core/stats';
 import {
-  LEGENDS, MAX_PASSIVE, MAX_SKILL, MAX_SKILL_SLOTS, MAX_TURRETS, MILESTONES, PASSIVES, SKILLS,
-  type LegendId, type PassiveId, type SkillId,
+  LEGENDS, MAX_PASSIVE, MAX_SKILL, MAX_SKILL_SLOTS, MAX_TURRETS, MILESTONES, OATH_GROUPS, OATH_LEVEL, OATH_MAX, OATHS, PASSIVES, SKILLS,
+  type LegendId, type OathGroup, type OathId, type PassiveId, type SkillId,
 } from '../data/cards';
 import { ABISMO_BOSSES, CHAPTERS, type ChapterDef, type ChapterId } from '../data/chapters';
 import { ENEMIES, type EnemyDef } from '../data/enemies';
@@ -49,6 +49,15 @@ interface Enemy {
   ice?: Phaser.GameObjects.Image;
   /** horizontal velocity of the last sim step (for leading shots) */
   vx: number;
+  /** ink shield: blocks all damage until the player marks (taps) the enemy */
+  inkShield?: boolean;
+  /** time of the last "blocked" hint */
+  blockT?: number;
+  /** exploded at the barricade: no loot */
+  noLoot?: boolean;
+  /** Tinta Ardiente */
+  burnT?: number;
+  burnDps?: number;
 }
 
 interface Proj {
@@ -101,6 +110,30 @@ interface Fx { t: number; dur: number; step: (k: number, dt: number) => void; do
 
 interface SkillSlot { id: SkillId; lv: number; cd: number }
 
+type PostKind = 'torre' | 'pinchos' | 'tintero';
+interface Post {
+  x: number;
+  y: number;
+  kind: PostKind | null;
+  lv: number;
+  pad: Phaser.GameObjects.Image;
+  img: Phaser.GameObjects.Image | null;
+  spikes: Phaser.GameObjects.Image | null;
+  pips: Phaser.GameObjects.Graphics;
+  t: number;
+}
+/** Defence posts behind the barricade: cost to build (lv1) and to upgrade (lv2, lv3), in Tinta. */
+const POST_COST = [50, 110, 200];
+const POST_INFO: Record<PostKind, { name: string; desc: string[]; tex: string; color: number }> = {
+  torre: { name: 'Torre', desc: ['Dispara sola · 30% de tu daño', '45% de tu daño', '65% de tu daño'], tex: 'turret', color: 0x2a8a80 },
+  pinchos: { name: 'Pinchos', desc: ['Hiere a los que golpean este carril', 'Más daño', 'Mucho más daño'], tex: 'b_spikes', color: 0x8a5ae0 },
+  tintero: { name: 'Tintero', desc: ['Repara la barricada poco a poco', 'Repara más rápido', 'Repara mucho más rápido'], tex: 'b_inkwell', color: 0x4fd06a },
+};
+const POST_YS = [500, 735, 880];
+
+type TutorKind = 'mark' | 'skill' | 'fury' | 'bomb' | 'shield' | 'build';
+type HeroAct = 'cheer' | 'hurt' | 'cast' | 'level' | 'win' | 'lose';
+
 type Card =
   | { type: 'weapon' }
   | { type: 'evo' }
@@ -108,6 +141,7 @@ type Card =
   | { type: 'skill'; id: SkillId }
   | { type: 'turret' }
   | { type: 'legend'; id: LegendId }
+  | { type: 'oath'; id: OathId }
   | { type: 'heal' }
   | { type: 'gold' };
 
@@ -140,6 +174,8 @@ export class BattleScene extends Phaser.Scene {
   private xpNeed = 7;
   private kills = 0;
   private bossKills = 0;
+  private bombsTapped = 0;
+  private shieldsBroken = 0;
   private gold = 0;
   private rankXp = 0;
   private wave = 0;
@@ -154,7 +190,6 @@ export class BattleScene extends Phaser.Scene {
   private furyT = 0;
   private heroSlowT = 0;
   private attackT = 0;
-  private turretT = 0;
   private recoil = 0;
   private aimAngle = 1.5;
   private marked: Enemy | null = null;
@@ -173,7 +208,10 @@ export class BattleScene extends Phaser.Scene {
   private splatIdx = 0;
   private comboText!: Phaser.GameObjects.Text;
   private dangerImg!: Phaser.GameObjects.Image;
-  private tutor: { box: Phaser.GameObjects.Container; label: Phaser.GameObjects.Text; dx: number; kind: 'mark' | 'skill' | 'fury' } | null = null;
+  private tutorTarget: Enemy | null = null;
+  private heroA: { kind: HeroAct; t: number } | null = null;
+  private lastHp = 0;
+  private tutor: { box: Phaser.GameObjects.Container; label: Phaser.GameObjects.Text; dx: number; kind: TutorKind } | null = null;
   private lowFx = false;
   private pendingStart = false;
   private lastHitstop = -9;
@@ -202,6 +240,14 @@ export class BattleScene extends Phaser.Scene {
   private overlayG!: Phaser.GameObjects.Graphics; // hp bars + shadows
   private markImg!: Phaser.GameObjects.Image;
   private stakes: Phaser.GameObjects.Image[] = [];
+  private posts: Post[] = [];
+  private ink = 0;
+  private inkText!: Phaser.GameObjects.Text;
+  private postMenu: Phaser.GameObjects.Container | null = null;
+  private builds = 0;
+  private oaths = new Map<OathGroup, { id: OathId; lv: number }>();
+  private lastHitT = -9;
+  private oathPicks = 0;
   private turretImgs: Phaser.GameObjects.Image[] = [];
   private emitters: Record<string, Phaser.GameObjects.Particles.ParticleEmitter> = {};
   private furyVignette!: Phaser.GameObjects.Rectangle;
@@ -241,6 +287,11 @@ export class BattleScene extends Phaser.Scene {
     this.skills = [];
     this.legends = new Set();
     this.turrets = 0;
+    this.heroA = null;
+    this.tutorTarget = null;
+    this.bombsTapped = 0;
+    this.shieldsBroken = 0;
+    this.lastHp = 0;
     this.level = 1;
     this.xp = 0;
     this.xpNeed = this.xpFor(1);
@@ -259,7 +310,6 @@ export class BattleScene extends Phaser.Scene {
     this.furyT = 0;
     this.heroSlowT = 0;
     this.attackT = 0;
-    this.turretT = 0;
     this.marked = null;
     this.simTime = 0;
     this.pendingLevels = 0;
@@ -293,6 +343,13 @@ export class BattleScene extends Phaser.Scene {
     this.fxs = [];
     this.later = [];
     this.stakes = [];
+    this.posts = [];
+    this.oaths = new Map();
+    this.lastHitT = -9;
+    this.oathPicks = 0;
+    this.ink = 40;
+    this.postMenu = null;
+    this.builds = 0;
     this.turretImgs = [];
     this.modalLayer = null;
   }
@@ -357,11 +414,17 @@ export class BattleScene extends Phaser.Scene {
     this.add.image(GAME_W / 2, GAME_H / 2, 'vignette').setDisplaySize(GAME_W, GAME_H).setAlpha(0.6).setDepth(1990);
     this.dangerImg = this.add.image(GAME_W / 2, GAME_H / 2, 'vignette').setDisplaySize(GAME_W, GAME_H).setTint(0xff1a1a).setAlpha(0).setDepth(2950);
 
-    // input: mark enemies / collect coins
+    this.buildPosts();
+    // input: defence posts / mark enemies / collect coins
     this.input.on('pointerdown', (p: Phaser.Input.Pointer) => {
       Sound.unlock();
-      if (this.modal || this.paused || this.ended) return;
+      if (this.modal || this.paused || this.ended || this.postMenu) return;
       if (p.y < FIELD.top - 120 || p.y > FIELD.bottom + 40) return;
+      const post = this.posts.find((o) => Math.hypot(o.x - p.x, o.y - 26 - p.y) < 46);
+      if (post) {
+        this.openPostMenu(post);
+        return;
+      }
       this.tapField(p.x, p.y);
     });
     this.game.events.on('hidden', this.onHidden, this);
@@ -409,7 +472,7 @@ export class BattleScene extends Phaser.Scene {
       aoe: (w.aoe ?? 0) + (w.id === 'baston' ? 12 * (this.stars - 1) + 14 * p.perforacion : 0),
       skillMult: 1 + (w.skillDmg ?? 0),
       cdMult: 1 - 0.08 * p.mente,
-      maxHp: b.hp * 2 * (1 + 0.2 * p.estacas),
+      maxHp: b.hp * 2 * (1 + 0.2 * p.estacas) * (1 + [0, 0.25, 0.4, 0.6][this.oathLv('muro')]),
       regen: 0.004 * p.savia,
       xpMult: b.xp * (1 + 0.15 * p.sabiduria),
       goldMult: b.gold * (1 + 0.2 * p.bolsillos) * (this.ch.waves === Infinity ? abismoGoldMult() : this.ch.goldMult),
@@ -707,6 +770,7 @@ export class BattleScene extends Phaser.Scene {
       frameT: Math.random(), frame: 0, flashT: 0, frozenT: 0, slowT: 0, atWall: false,
       t: Math.random() * 2, t2: 0, lift: 0, dashT: 0, shieldT: 0, phase: 0, kb: 0, tornadoTick: 0, vx: 0,
     };
+    if (def.behavior === 'shielded') e.inkShield = true;
     this.enemies.push(e);
     if (this.bossWave && id === this.bossId && !this.boss) {
       this.boss = e;
@@ -799,7 +863,7 @@ export class BattleScene extends Phaser.Scene {
       return;
     }
     if (this.slowmo > 0) this.slowmo -= real;
-    let dt = real * this.speed * (this.slowmo > 0 ? 0.25 : 1);
+    let dt = real * this.speed * (this.slowmo > 0 ? 0.25 : 1) * (this.postMenu ? 0.15 : 1);
     // bot runs: fixed number of sim steps per frame regardless of frame rate (fast balancing)
     if (DEBUG.bot && DEBUG.speed > 1) dt = DEBUG.speed / 60;
     // fixed sub-steps keep collisions stable at high speed
@@ -826,6 +890,13 @@ export class BattleScene extends Phaser.Scene {
       return;
     }
     this.simTime += dt;
+    if (this.heroA) {
+      this.heroA.t += dt;
+      const dur = { cheer: 0.9, hurt: 0.45, cast: 0.4, level: 0.6, win: 99, lose: 99 }[this.heroA.kind];
+      if (this.heroA.t > dur) this.heroA = null;
+    }
+    if (this.lastHp - this.hp > this.st.maxHp * 0.03) this.heroAct('hurt');
+    this.lastHp = this.hp;
 
     // scheduled callbacks
     for (let i = this.later.length - 1; i >= 0; i--) {
@@ -879,7 +950,8 @@ export class BattleScene extends Phaser.Scene {
     // hero attack
     const furyK = this.furyT > 0 ? 2 : 1;
     const slowK = this.heroSlowT > 0 ? 0.6 : 1;
-    this.attackT += dt * this.st.rate * furyK * slowK;
+    const berserk = 1 + [0, 0.4, 0.6, 0.8][this.oathLv('berserker')] * (1 - clamp(this.hp / this.st.maxHp, 0, 1));
+    this.attackT += dt * this.st.rate * furyK * slowK * berserk;
     if (this.attackT >= 1) {
       const target = this.getTarget();
       if (target) {
@@ -891,17 +963,18 @@ export class BattleScene extends Phaser.Scene {
       }
     }
 
-    // turrets
-    if (this.turrets > 0) {
-      this.turretT += dt * 1.25;
-      if (this.turretT >= 1) {
-        this.turretT = 0;
-        this.turretImgs.forEach((ti) => {
-          const t = this.nearestEnemy(ti.x, ti.y, 900);
-          if (t) this.shoot('turret', ti.x + 16, ti.y - 30, t, this.st.dmg * 0.4, 0);
-        });
-      }
+    // defence posts
+    this.updatePosts(dt);
+    // Juramentos over time: burning enemies, regrowing barricade
+    for (const e of this.enemies) {
+      if (!e.alive || !e.burnT || e.burnT <= 0) continue;
+      e.burnT -= dt;
+      if (e.inkShield) continue;
+      e.hp -= (e.burnDps ?? 0) * dt;
+      if (e.hp <= 0) this.kill(e);
     }
+    const roots = this.oathLv('raices');
+    if (roots > 0 && this.simTime - this.lastHitT > 2) this.hp = Math.min(this.st.maxHp, this.hp + this.st.maxHp * [0, 0.006, 0.01, 0.014][roots] * dt);
 
     this.updateEnemies(dt);
     this.updateProjs(dt);
@@ -933,12 +1006,18 @@ export class BattleScene extends Phaser.Scene {
 
   private getTarget(): Enemy | null {
     if (this.marked && this.onField(this.marked)) return this.marked;
+    // shielded enemies are ignored while there is anything else to shoot (the player must tap them)
     let best: Enemy | null = null;
+    let shielded: Enemy | null = null;
     for (const e of this.enemies) {
       if (!this.onField(e)) continue;
+      if (e.inkShield) {
+        if (!shielded || e.x < shielded.x) shielded = e;
+        continue;
+      }
       if (!best || e.x < best.x) best = e;
     }
-    return best;
+    return best ?? shielded;
   }
 
   private nearestEnemy(x: number, y: number, maxD: number, exclude?: Set<Enemy>): Enemy | null {
@@ -1059,6 +1138,15 @@ export class BattleScene extends Phaser.Scene {
   // ================================================================= damage
   private damage(e: Enemy, base: number, opts: { canCrit?: boolean; skill?: boolean; silent?: boolean } = {}): void {
     if (!e.alive) return;
+    if (e.inkShield) {
+      // nothing gets through the ink shield: the player has to tap (mark) it
+      if (this.simTime - (e.blockT ?? -9) > 1.2) {
+        e.blockT = this.simTime;
+        this.floatHud('¡TÓCALO!', e.x, e.y - e.hitY * 2 - 10, '#9ff0ff');
+        Sound.play('error', 200);
+      }
+      return;
+    }
     let amt = base;
     let crit = false;
     if (opts.canCrit !== false && Math.random() < this.st.crit) {
@@ -1067,7 +1155,8 @@ export class BattleScene extends Phaser.Scene {
     }
     if (this.furyT > 0) amt *= 1.5;
     if (this.legends.has('corazon') && this.hp / this.st.maxHp < 0.35) amt *= 1.6;
-    if (e === this.marked) amt *= 1.3;
+    if (e === this.marked) amt *= 1.3 * (1 + [0, 0.4, 0.7, 1][this.oathLv('cazador')]);
+    if (!opts.skill && e.x > 450) amt *= 1 + [0, 0.3, 0.5, 0.7][this.oathLv('francotirador')];
     if (opts.skill) amt *= this.st.skillMult;
     if (e.frozenT > 0) amt *= 1.25; // synergy: Escarcha de Grafito
     let armor = e.def.armor ?? 0;
@@ -1092,6 +1181,200 @@ export class BattleScene extends Phaser.Scene {
     if (e.hp <= 0) this.kill(e);
   }
 
+  // ================================================================= defence posts
+  private buildPosts(): void {
+    for (const y of POST_YS) {
+      const x = FIELD.barricadeX - 34;
+      const pad = this.add.image(x, y - 26, 'b_pad').setDepth(y + 18).setScale(0.8);
+      const pips = this.add.graphics().setDepth(y + 23);
+      this.posts.push({ x, y, kind: null, lv: 0, pad, img: null, spikes: null, pips, t: 0 });
+    }
+    // Tinta counter above the posts
+    this.add.image(FIELD.barricadeX - 34, FIELD.top - 2, 'fx_glow').setTint(0x8a5ae0).setScale(1.1, 0.5).setAlpha(0.5).setDepth(4010);
+    this.inkText = this.add.text(FIELD.barricadeX - 34, FIELD.top - 2, '', txt(22, '#d8b0ff', 5)).setOrigin(0.5).setDepth(4011);
+    this.addInk(0);
+  }
+
+  private postCost(p: Post): number | null {
+    return p.lv >= 3 ? null : POST_COST[p.lv];
+  }
+
+  private addInk(v: number): void {
+    this.ink += v;
+    this.inkText?.setText(`TINTA ${this.ink}`);
+  }
+
+  private openPostMenu(post: Post): void {
+    if (this.postMenu) return;
+    Sound.play('click');
+    const L = this.add.container(0, 0).setDepth(6200);
+    this.postMenu = L;
+    // tap anywhere else to close
+    const back = this.add.zone(GAME_W / 2, GAME_H / 2, GAME_W, GAME_H).setInteractive();
+    back.on('pointerdown', () => this.closePostMenu());
+    L.add(back);
+    const dim = this.add.rectangle(GAME_W / 2, GAME_H / 2, GAME_W, GAME_H, 0x05070a, 0.35);
+    L.add(dim);
+    const y = clamp(post.y - 40, FIELD.top + 60, FIELD.bottom - 70);
+    const options: { kind: PostKind; lv: number }[] = post.kind ? (post.lv < 3 ? [{ kind: post.kind, lv: post.lv + 1 }] : []) : (['torre', 'pinchos', 'tintero'] as PostKind[]).map((k) => ({ kind: k, lv: 1 }));
+    const title = post.kind ? (post.lv < 3 ? `Mejorar ${POST_INFO[post.kind].name}` : `${POST_INFO[post.kind].name} al máximo`) : 'Construir defensa';
+    L.add(this.add.text(GAME_W / 2 + 60, y - 100, title, txt(28, '#ffffff', 6)).setOrigin(0.5));
+    L.add(this.add.text(GAME_W / 2 + 60, y - 68, `Tienes ${this.ink} de Tinta · el tiempo va lento`, txt(18, '#d8b0ff', 4)).setOrigin(0.5));
+    const cost = this.postCost(post);
+    options.forEach((o, i) => {
+      const info = POST_INFO[o.kind];
+      const cx = options.length === 1 ? 430 : 260 + i * 160;
+      const can = cost !== null && this.ink >= cost;
+      const card = this.add.container(cx, y + 20);
+      const g = this.add.graphics();
+      drawPanel(g, -72, -78, 144, 156, can ? 0x1c2a44 : 0x1a1d22, can ? info.color : 0x05070a, 14);
+      card.add(g);
+      card.add(this.add.image(0, -30, info.tex).setScale(o.kind === 'pinchos' ? 0.7 : 0.9).setAlpha(can ? 1 : 0.5));
+      card.add(this.add.text(0, 14, o.lv > 1 ? `${info.name} Nv.${o.lv}` : info.name, txt(20, can ? '#ffc93c' : '#8a94a0', 4)).setOrigin(0.5));
+      card.add(this.add.text(0, 38, info.desc[o.lv - 1], { ...txt(13, '#bfe9ff', 3), align: 'center', wordWrap: { width: 132 } }).setOrigin(0.5, 0));
+      card.add(this.add.text(0, -66, `${cost}`, txt(18, can ? '#d8b0ff' : '#ff8a8a', 4)).setOrigin(0.5));
+      const z = this.add.zone(0, 0, 144, 156).setInteractive({ useHandCursor: true });
+      z.on('pointerdown', () => {
+        if (!can || cost === null) {
+          Sound.play('error');
+          this.tweens.add({ targets: card, x: cx + 6, duration: 50, yoyo: true, repeat: 2 });
+          return;
+        }
+        this.addInk(-cost);
+        this.setPost(post, o.kind, o.lv);
+        this.closePostMenu();
+      });
+      card.add(z);
+      card.setScale(0.8).setAlpha(0);
+      this.tweens.add({ targets: card, scale: 1, alpha: 1, duration: 160, delay: i * 50, ease: 'Back.easeOut' });
+      L.add(card);
+    });
+  }
+
+  private closePostMenu(): void {
+    this.postMenu?.destroy();
+    this.postMenu = null;
+  }
+
+  private setPost(post: Post, kind: PostKind, lv: number): void {
+    post.kind = kind;
+    post.lv = lv;
+    this.builds++;
+    this.tutorDone('build');
+    post.pad.setVisible(false);
+    post.img?.destroy();
+    post.spikes?.destroy();
+    post.spikes = null;
+    const info = POST_INFO[kind];
+    post.img = this.add.image(post.x, post.y, info.tex).setOrigin(0.4, 1).setDepth(post.y + 21).setScale(0.95 + lv * 0.08);
+    if (kind === 'pinchos') {
+      post.img.setScale(0.55 + lv * 0.05).setOrigin(0.5, 1);
+      // the stakes themselves stand in front of the barricade, in this lane
+      post.spikes = this.add.image(FIELD.barricadeX + 44, post.y + 6, 'b_spikes').setOrigin(0.5, 1).setDepth(post.y + 22).setScale(0.9 + lv * 0.12);
+    }
+    if (lv > 1) post.img.setTint(lv === 3 ? 0xffe08a : 0xcfe8ff);
+    this.emitters.cyan.explode(16, post.x, post.y - 30);
+    this.ring(post.x, post.y - 30, 60, info.color, 260);
+    Sound.play('buy');
+    this.drawPips(post);
+  }
+
+  private drawPips(post: Post): void {
+    const g = post.pips;
+    g.clear();
+    for (let i = 0; i < 3; i++) {
+      g.fillStyle(i < post.lv ? 0xffd34d : 0x2a3340, 1).fillCircle(post.x - 14 + i * 14, post.y + 10, 5);
+      g.lineStyle(2, 0x05070a, 1).strokeCircle(post.x - 14 + i * 14, post.y + 10, 5);
+    }
+  }
+
+  private updatePosts(dt: number): void {
+    for (const p of this.posts) {
+      p.t += dt;
+      if (!p.kind) continue;
+      if (p.kind === 'torre' && p.t >= 1 / 1.2) {
+        const t = this.nearestEnemy(p.x, p.y, 900);
+        if (t) {
+          p.t = 0;
+          this.shoot('turret', p.x + 16, p.y - 30, t, this.st.dmg * [0.3, 0.45, 0.65][p.lv - 1], 0);
+        }
+      } else if (p.kind === 'pinchos' && p.t >= 0.5) {
+        p.t = 0;
+        const dmg = this.st.dmg * [0.6, 1.0, 1.5][p.lv - 1] * 0.5;
+        let hit = false;
+        for (const e of this.enemies) {
+          if (!e.alive || !e.atWall || Math.abs(e.y - p.y) > 90) continue;
+          this.damage(e, dmg, { canCrit: false, silent: true });
+          hit = true;
+        }
+        if (hit && p.spikes) this.tweens.add({ targets: p.spikes, scaleY: p.spikes.scaleX * 1.25, duration: 70, yoyo: true });
+      } else if (p.kind === 'tintero') {
+        this.hp = Math.min(this.st.maxHp, this.hp + this.st.maxHp * [0.002, 0.0035, 0.005][p.lv - 1] * dt);
+        if (p.t > 1.2) {
+          p.t = 0;
+          if (this.hp < this.st.maxHp) this.emitters.green.explode(4, FIELD.barricadeX + 10, p.y - 60);
+        }
+      }
+    }
+  }
+
+  /** Pads glow when the player can afford them (render). */
+  private renderPosts(): void {
+    const t = this.simTime;
+    for (const p of this.posts) {
+      const c = this.postCost(p);
+      const can = c !== null && this.ink >= c;
+      if (!p.kind) {
+        p.pad.setAlpha(can ? 0.75 + 0.25 * Math.sin(t * 6) : 0.45).setTint(can ? 0xffe08a : 0xffffff);
+      } else if (p.img) {
+        p.img.setAlpha(1);
+        // an upgrade is available: soft golden pulse on the structure
+        if (can) p.pips.setAlpha(0.6 + 0.4 * Math.sin(t * 6));
+        else p.pips.setAlpha(1);
+      }
+    }
+  }
+
+  /** Ink bomb goes off: tapped by the player (rewarding blast) or against the barricade (it hurts). */
+  private detonate(e: Enemy, byTap: boolean): void {
+    if (!e.alive) return;
+    const x = e.x;
+    const y = this.cy(e);
+    this.emitters.ink.explode(30, x, y);
+    this.ring(x, y, byTap ? 95 : 70, byTap ? 0xffb340 : 0xff3a3a, 320);
+    Sound.play('thud');
+    if (byTap) {
+      this.bombsTapped++;
+      this.tutorDone('bomb');
+      this.floatHud('¡BOOM!', x, y - 50, '#ffb340');
+      e.hp = 0;
+      this.kill(e);
+      this.aoe(x, y, 95, this.st.dmg * 3, { color: 'purple', kb: 60 });
+      this.cameras.main.shake(160, 0.006);
+    } else {
+      e.noLoot = true;
+      e.hp = 0;
+      this.kill(e);
+      const dmg = this.st.maxHp * 0.07;
+      this.hp -= dmg;
+      this.floatHud(`-${fmt(dmg)}`, FIELD.barricadeX + 20, y - 40, '#ff6a6a');
+      this.cameras.main.shake(260, 0.012);
+      this.heroAct('hurt');
+      Sound.vibrate(80);
+    }
+  }
+
+  private breakShield(e: Enemy): void {
+    e.inkShield = false;
+    e.slowT = Math.max(e.slowT, 1);
+    this.shieldsBroken++;
+    this.tutorDone('shield');
+    this.emitters.cyan.explode(18, e.x, this.cy(e));
+    this.ring(e.x, this.cy(e), e.r * 2.2, 0x9ff0ff, 260);
+    this.floatHud('¡ESCUDO ROTO!', e.x, e.y - e.hitY * 2 - 10, '#9ff0ff');
+    Sound.play('crit');
+  }
+
   private aoe(x: number, y: number, r: number, dmg: number, opts: { skill?: boolean; kb?: number; color?: string; silent?: boolean } = {}): void {
     const r2 = r * r;
     for (const e of this.enemies) {
@@ -1108,6 +1391,11 @@ export class BattleScene extends Phaser.Scene {
 
   private kill(e: Enemy): void {
     e.alive = false;
+    if (e.def.behavior === 'bomber' && !e.noLoot) {
+      // shot down: it still pops and hurts its neighbours (nice chain reactions)
+      this.later.push({ t: 0.01, fn: () => this.aoe(e.x, this.cy(e), 75, this.st.dmg * 1.5, { color: 'purple', silent: true }) });
+      this.emitters.ink.explode(18, e.x, this.cy(e));
+    }
     if (e.ice) {
       if (!this.lowFx) this.emitters.shard.setParticleTint(0xcff0ff).explode(10, e.x, this.cy(e));
       e.ice.destroy();
@@ -1140,6 +1428,7 @@ export class BattleScene extends Phaser.Scene {
       const n = e.boss ? (e.def.rank === 'boss' ? 14 : 7) : 1;
       for (let i = 0; i < n; i++) this.dropCoin(e.x, e.y, Math.max(1, Math.round(this.goldWave() * this.st.goldMult * (e.boss ? 3 : 1))));
     }
+    if (!e.noLoot) this.addInk(e.boss ? 12 : 1);
     this.fury = Math.min(100, this.fury + (e.boss ? 20 : 1.5) * this.st.furyMult * (1 + Math.min(this.combo, 60) / 60));
     if (this.legends.has('vampiro')) this.hp = Math.min(this.st.maxHp, this.hp + this.st.maxHp * 0.005);
     if (this.legends.has('estallido') && !e.boss) {
@@ -1178,6 +1467,8 @@ export class BattleScene extends Phaser.Scene {
   }
 
   private waveCleared(): void {
+    this.heroAct('cheer');
+    this.addInk(6);
     if (this.pendingLevels > 0 && this.cardMode() === 'oleada' && !this.modal && !this.ended) this.later.push({ t: 0.35, fn: () => { if (!this.modal && !this.ended) this.openCards(); } });
     const g = Math.round(10 * this.goldWave() * this.st.goldMult);
     this.gold += g;
@@ -1297,8 +1588,18 @@ export class BattleScene extends Phaser.Scene {
       } else {
         e.x = stopX;
         e.atWall = true;
+        if (b === 'bomber') {
+          this.detonate(e, false);
+          continue;
+        }
         if (e.frozenT <= 0) {
           this.hp -= e.dps * dt;
+          this.lastHitT = this.simTime;
+          const thorns = this.oathLv('espinas');
+          if (thorns > 0 && !e.inkShield) {
+            e.hp -= this.st.dmg * [0, 1, 1.6, 2.4][thorns] * dt;
+            if (e.hp <= 0) this.kill(e);
+          }
           if (Math.random() < dt * 2) {
             Sound.play('barricade', 120);
             const s = this.stakes[Math.floor(clamp((e.y - FIELD.top) / 62, 0, 7))];
@@ -1437,6 +1738,7 @@ export class BattleScene extends Phaser.Scene {
           this.dmgText(FIELD.heroX, FIELD.heroY - 140, 0, false, 'LENTO');
         } else {
           this.hp -= p.dmg;
+          this.lastHitT = this.simTime;
           this.emitters[p.kind === 'orb' ? 'purple' : 'ink'].explode(8, p.x, p.y);
           Sound.play('barricade', 60);
         }
@@ -1494,12 +1796,14 @@ export class BattleScene extends Phaser.Scene {
     switch (p.kind) {
       case 'orb':
         this.aoe(p.x, p.y, p.aoe, p.dmg);
+        this.oathHit(e, p.dmg);
         this.emitters.cyan.explode(10, p.x, p.y);
         if (evo) this.chain(p.x, p.y, 3, p.dmg * 0.6, new Set([e]));
         this.deactivate(p);
         return;
       case 'star':
         this.damage(e, p.dmg);
+        this.oathHit(e, p.dmg);
         if (p.bounce > 0) {
           p.bounce--;
           // evolved star: longer reach and every bounce hits 15% harder
@@ -1517,6 +1821,7 @@ export class BattleScene extends Phaser.Scene {
         return;
       default:
         this.damage(e, p.dmg);
+        this.oathHit(e, p.dmg);
         if (p.kind === 'pellet' && evo) this.aoe(p.x, p.y, 45, p.dmg * 0.5, { color: 'purple' });
         if (p.kind === 'lance' && evo) this.aoe(p.x, p.y, 60, p.dmg * 0.4, { color: 'purple' });
         if (p.kind === 'arrow' && evo) {
@@ -1618,6 +1923,21 @@ export class BattleScene extends Phaser.Scene {
       }
     }
     if (got) return;
+    // bombs: tap to detonate them where they are (and hurt the crowd around)
+    let bomb: Enemy | null = null;
+    let bb = 95 * 95;
+    for (const e of this.enemies) {
+      if (!this.onField(e) || e.def.behavior !== 'bomber') continue;
+      const d = (e.x - x) ** 2 + (this.cy(e) - y) ** 2;
+      if (d < bb) {
+        bb = d;
+        bomb = e;
+      }
+    }
+    if (bomb) {
+      this.detonate(bomb, true);
+      return;
+    }
     // mark nearest enemy
     let best: Enemy | null = null;
     let bd = 110 * 110;
@@ -1633,6 +1953,7 @@ export class BattleScene extends Phaser.Scene {
     }
     this.marked = best;
     this.markImg.setVisible(!!best);
+    if (best && best.inkShield) this.breakShield(best);
     if (best) {
       Sound.play('click');
       this.tutorDone('mark');
@@ -1653,6 +1974,7 @@ export class BattleScene extends Phaser.Scene {
       this.pendingLevels++;
     }
     if (this.pendingLevels > 0 && !this.modal && !this.ended) {
+      this.heroAct('level');
       const mode = this.cardMode();
       if (mode === 'auto') this.autoResolve();
       else if (mode === 'manual') this.openCards();
@@ -1697,6 +2019,16 @@ export class BattleScene extends Phaser.Scene {
       case 'evo': return 100;
       case 'weapon': return 62;
       case 'legend': return lw[pr][c.id] ?? 45;
+      case 'oath': {
+        const held = this.oaths.get(OATHS[c.id].group);
+        const fav: Record<string, OathId[]> = {
+          equilibrado: ['electrica', 'raices', 'cazador'], ataque: ['ardiente', 'electrica', 'francotirador', 'cazador'],
+          defensa: ['espinas', 'raices', 'muro', 'helada'], habilidades: ['electrica', 'berserker', 'helada'],
+        };
+        const base = fav[pr].includes(c.id) ? 58 : 48;
+        if (held && held.id === c.id) return base + 8;
+        return held ? 6 : base; // the auto-pick never swaps an oath it already chose
+      }
       case 'skill': {
         const owned = this.skills.some((x) => x.id === c.id);
         return (owned ? 38 : 46) + (pr === 'habilidades' ? 14 : 0);
@@ -1781,7 +2113,6 @@ export class BattleScene extends Phaser.Scene {
     for (const id of Object.keys(PASSIVES) as PassiveId[]) {
       if (this.passives[id] < MAX_PASSIVE) opts.push({ c: { type: 'passive', id }, w: 1.1 });
     }
-    if (this.turrets < MAX_TURRETS) opts.push({ c: { type: 'turret' }, w: 1.2 });
     const out: Card[] = [];
     while (out.length < 3 && opts.length) {
       const total = opts.reduce((a, o) => a + o.w, 0);
@@ -1795,8 +2126,49 @@ export class BattleScene extends Phaser.Scene {
       out.push(opts[idx].c);
       opts.splice(idx, 1);
     }
+    // late levels: one card (or more, when nothing else is left) is a Juramento
+    if (this.level >= OATH_LEVEL) {
+      const oaths = this.oathOptions();
+      if (oaths.length) {
+        if (out.length >= 3) out[2] = oaths.shift()!;
+        while (out.length < 3 && oaths.length) out.push(oaths.shift()!);
+      }
+    }
     while (out.length < 3) out.push(out.length % 2 ? { type: 'gold' } : { type: 'heal' });
     return out;
+  }
+
+  private oathLv(id: OathId): number {
+    const h = this.oaths.get(OATHS[id].group);
+    return h && h.id === id ? h.lv : 0;
+  }
+
+  /** Oath cards on offer: upgrades of the ones you hold, or one per free group / a swap. */
+  private oathOptions(): Card[] {
+    const opts: { c: Card; w: number }[] = [];
+    for (const id of Object.keys(OATHS) as OathId[]) {
+      const g = OATHS[id].group;
+      const held = this.oaths.get(g);
+      if (!held) opts.push({ c: { type: 'oath', id }, w: 1.4 });
+      else if (held.id === id) {
+        if (held.lv < OATH_MAX) opts.push({ c: { type: 'oath', id }, w: 2.4 });
+      } else opts.push({ c: { type: 'oath', id }, w: 0.7 });
+    }
+    return shuffle(opts.map((o) => ({ ...o, k: Math.random() * o.w }))).sort((a, b) => b.k - a.k).map((o) => o.c);
+  }
+
+  /** On-hit effects of the Tinta group. */
+  private oathHit(e: Enemy, dmg: number): void {
+    if (!e.alive || e.inkShield) return;
+    const burn = this.oathLv('ardiente');
+    if (burn > 0) {
+      e.burnT = 3;
+      e.burnDps = Math.max(e.burnDps ?? 0, (dmg * [0, 0.3, 0.45, 0.6][burn]) / 3);
+    }
+    const ice = this.oathLv('helada');
+    if (ice > 0 && Math.random() < [0, 0.3, 0.45, 0.6][ice]) e.slowT = Math.max(e.slowT, 1.5);
+    const zap = this.oathLv('electrica');
+    if (zap > 0 && Math.random() < [0, 0.12, 0.18, 0.24][zap]) this.chain(e.x, this.cy(e), 3, dmg * 0.5, new Set([e]));
   }
 
   private legendCards(): Card[] {
@@ -1828,6 +2200,14 @@ export class BattleScene extends Phaser.Scene {
       }
       case 'turret':
         return { name: 'Torreta Lápiz', tag: 'Aliado', desc: 'Mini-stickman que dispara (40% de tu daño)', icon: 'ic_turret', glyph: '', color: 0x2a8a80, lv: this.turrets + 1, max: MAX_TURRETS };
+      case 'oath': {
+        const o = OATHS[c.id];
+        const held = this.oaths.get(o.group);
+        const grp = OATH_GROUPS[o.group];
+        if (held && held.id === c.id) return { name: o.name, tag: `Juramento · ${grp.name}`, desc: o.desc[held.lv], icon: 'ic_legend', glyph: '', color: grp.color, lv: held.lv + 1, max: OATH_MAX };
+        if (held) return { name: o.name, tag: 'CAMBIAR', desc: `Reemplaza ${OATHS[held.id].name} (Nv.${held.lv}). ${o.desc[held.lv - 1]}`, icon: 'ic_legend', glyph: '', color: grp.color, lv: held.lv, max: OATH_MAX };
+        return { name: o.name, tag: `Juramento · ${grp.name}`, desc: `${o.desc[0]} · solo 1 de ${grp.name}`, icon: 'ic_legend', glyph: '', color: grp.color, lv: 1, max: OATH_MAX };
+      }
       case 'legend': {
         const l = LEGENDS[c.id];
         return { name: l.name, tag: 'Legendaria', desc: l.desc, icon: 'ic_legend', glyph: '', color: 0xb84ae0, lv: 0, max: 0 };
@@ -1840,6 +2220,7 @@ export class BattleScene extends Phaser.Scene {
   }
 
   private showCards(cards: Card[], title: string, legend: boolean, subtitle?: string): void {
+    this.closePostMenu();
     this.modal = true;
     const L = this.add.container(0, 0).setDepth(8000);
     this.modalLayer = L;
@@ -1950,6 +2331,17 @@ export class BattleScene extends Phaser.Scene {
       case 'legend':
         this.legends.add(c.id);
         break;
+      case 'oath': {
+        const g = OATHS[c.id].group;
+        const held = this.oaths.get(g);
+        // same oath: level up; another one of the group: swap it (the level is kept)
+        const lv = held ? (held.id === c.id ? Math.min(OATH_MAX, held.lv + 1) : held.lv) : 1;
+        this.oaths.set(g, { id: c.id, lv });
+        this.oathPicks++;
+        this.banner(`${OATHS[c.id].name} Nv.${lv}`, '#' + OATH_GROUPS[g].color.toString(16).padStart(6, '0'), 330, 40);
+        this.recalc();
+        break;
+      }
       case 'heal':
         this.hp = Math.min(this.st.maxHp, this.hp + this.st.maxHp * 0.3);
         Sound.play('heal');
@@ -1986,6 +2378,15 @@ export class BattleScene extends Phaser.Scene {
     return best ? { x: best.x, y: this.cy(best) } : null;
   }
 
+  /** Short hero animations: cheer, flinch, cast, level-up hop, victory, defeat. */
+  private heroAct(kind: HeroAct): void {
+    if (this.heroA && (this.heroA.kind === 'win' || this.heroA.kind === 'lose')) return;
+    // a flinch never interrupts a cheer that just started
+    if (kind === 'hurt' && this.heroA?.kind === 'cheer' && this.heroA.t < 0.3) return;
+    this.heroA = { kind, t: 0 };
+    if (kind === 'level') this.emitters.gold.explode(12, FIELD.heroX, FIELD.heroY - 70);
+  }
+
   private useSkill(i: number): void {
     if (this.modal || this.paused || this.ended) return;
     const s = this.skills[i];
@@ -1993,6 +2394,7 @@ export class BattleScene extends Phaser.Scene {
       if (s) Sound.play('error');
       return;
     }
+    this.heroAct('cast');
     const hasTargets = this.enemies.some((e) => this.onField(e));
     if (!hasTargets && s.id !== 'muro') {
       Sound.play('error');
@@ -2418,8 +2820,34 @@ export class BattleScene extends Phaser.Scene {
       } else if (k === 'mark') {
         const t = this.getTarget();
         if (t) this.tutor.box.setPosition(t.x, this.cy(t));
+      } else if (k === 'bomb' || k === 'shield') {
+        // follow the enemy that is being taught; if it is gone, try again with the next one
+        const t = this.tutorTarget;
+        if (t && t.alive) this.tutor.box.setPosition(t.x, this.cy(t));
+        else {
+          this.tutor.box.destroy();
+          this.tutor = null;
+          this.tutorTarget = null;
+        }
       }
       this.keepOnScreen();
+      return;
+    }
+    // reactive enemies: taught the first time they show up (with a moment of slow motion)
+    for (const [k, beh, text] of [['bomb', 'bomber', '¡Tócala antes de que\nllegue a la barricada!'], ['shield', 'shielded', '¡Tócalo para romper\nsu escudo!']] as const) {
+      if (tut[k]) continue;
+      const e = this.enemies.find((o) => this.onField(o) && o.def.behavior === beh && o.x < GAME_W - 90);
+      if (e) {
+        this.tutorTarget = e;
+        this.slowmo = 1.4;
+        this.showTutor(k, e.x, this.cy(e), text);
+        return;
+      }
+    }
+    // first time there is enough Tinta for a defence
+    if (!tut.build && tut.mark && this.ink >= POST_COST[0] && this.posts.every((p) => !p.kind)) {
+      const p = this.posts[1];
+      this.showTutor('build', p.x, p.y - 30, '¡Construye una defensa\ncon tu Tinta!');
       return;
     }
     if (!tut.mark && this.simTime > 4) {
@@ -2439,11 +2867,11 @@ export class BattleScene extends Phaser.Scene {
     }
   }
 
-  private showTutor(kind: 'mark' | 'skill' | 'fury', x: number, y: number, text: string): void {
+  private showTutor(kind: TutorKind, x: number, y: number, text: string): void {
     const box = this.add.container(x, y).setDepth(6500);
     const hand = this.add.image(18, 40, 'hand').setOrigin(0.2, 0);
-    const above = kind !== 'mark';
-    const label = this.add.text(kind === 'fury' ? -60 : kind === 'skill' ? 90 : 0, above ? -110 : 150, text, { ...txt(26, '#ffffff', 7), align: 'center' }).setOrigin(0.5);
+    const above = kind === 'skill' || kind === 'fury';
+    const label = this.add.text(kind === 'fury' ? -60 : kind === 'skill' ? 90 : kind === 'build' ? 190 : 0, above ? -110 : kind === 'build' ? -30 : 150, text, { ...txt(26, '#ffffff', 7), align: 'center' }).setOrigin(0.5);
     box.add([hand, label]);
     this.tweens.add({ targets: hand, y: 22, duration: 420, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
     this.tutor = { box, label, dx: label.x, kind };
@@ -2458,7 +2886,7 @@ export class BattleScene extends Phaser.Scene {
     label.x = clamp(dx, half - box.x, GAME_W - half - box.x);
   }
 
-  private tutorDone(kind: 'mark' | 'skill' | 'fury'): void {
+  private tutorDone(kind: TutorKind): void {
     if (Save.d.tutorial[kind]) return;
     Save.d.tutorial[kind] = true;
     if (!DEBUG.bot && DEBUG.meta === null) Save.write();
@@ -2475,11 +2903,48 @@ export class BattleScene extends Phaser.Scene {
       hg.fillCircle(FIELD.heroX, FIELD.heroY - 60, 80);
     }
     const armAng = clamp(this.aimAngle, 0.6, 2.6);
-    const pose = POSES.aim(t, armAng - this.recoil * 0.15);
+    let pose = POSES.aim(t, armAng - this.recoil * 0.15);
     if (this.wdef.kind === 'orb' || this.wdef.kind === 'star') pose.armF = [armAng, 0.2];
+    let eyes: 'sad' | 'angry' | 'happy' | 'shock' | 'determined' = this.hp / this.st.maxHp < 0.3 ? 'sad' : 'angry';
+    let dy = 0;
+    let dx = 0;
+    const A = this.heroA;
+    if (A) {
+      const k = A.t;
+      switch (A.kind) {
+        case 'cheer': // fist pump with a little jump
+          pose = { ...POSES.fist(t), armF: [2.7, 0.3], lean: -0.05 };
+          dy = -Math.sin(Math.min(1, k / 0.5) * Math.PI) * 26;
+          eyes = 'happy';
+          break;
+        case 'hurt': // knocked back a step
+          pose = { ...pose, lean: -0.3, head: -0.2, armB: [-0.9, 0.6] };
+          dx = -8 * Math.sin((k / 0.45) * Math.PI);
+          eyes = 'shock';
+          break;
+        case 'cast': // free arm raised to call the skill
+          pose = { ...pose, armB: [2.8, 0.2] };
+          hg.fillStyle(0x6fd8ff, 0.25 * (1 - k / 0.4)).fillCircle(FIELD.heroX - 10, FIELD.heroY - 150, 26 + k * 60);
+          eyes = 'determined';
+          break;
+        case 'level':
+          dy = -Math.sin(Math.min(1, k / 0.6) * Math.PI) * 16;
+          eyes = 'happy';
+          break;
+        case 'win':
+          pose = { ...POSES.fist(t), armF: [2.7, 0.3] };
+          dy = -Math.abs(Math.sin(k * 5)) * 22;
+          eyes = 'happy';
+          break;
+        case 'lose':
+          pose = POSES.kneel(t);
+          eyes = 'sad';
+          break;
+      }
+    }
     const weapon = this.evolved ? (this.weaponId === 'arco' ? 'bowE' : this.weaponId === 'baston' ? 'staffE' : this.weaponId) : this.weaponId;
-    drawStickman(hg, FIELD.heroX - this.recoil * 3, FIELD.heroY, 1.05, pose, {
-      tier: Save.d.armorEquipped, eyes: this.hp / this.st.maxHp < 0.3 ? 'sad' : 'angry', weapon,
+    drawStickman(hg, FIELD.heroX - this.recoil * 3 + dx, FIELD.heroY + dy, 1.05, pose, {
+      tier: Save.d.armorEquipped, eyes, weapon,
       twin: this.evolved && this.weaponId === 'pistola', outline: this.furyT > 0 ? COLORS.hero : null,
     }, 1, t);
     if (this.heroSlowT > 0) {
@@ -2495,6 +2960,7 @@ export class BattleScene extends Phaser.Scene {
         Sound.play('heart', 0);
       }
     } else this.dangerImg.setAlpha(0);
+    this.renderPosts();
     this.updateTutor();
 
     // enemies
@@ -2523,8 +2989,24 @@ export class BattleScene extends Phaser.Scene {
       if (e.flashT > 0) e.img.setTintFill(0xffffff);
       else if (e.frozenT > 0) e.img.setTint(0x9fd8ff);
       else if (e.shieldT > 0) e.img.setTint(0xd8a0ff);
+      else if (e.burnT && e.burnT > 0) e.img.setTint(Math.sin(t * 20) > 0 ? 0xffa060 : 0xff7040);
       else e.img.clearTint();
       if (e.def.id === 'ecoDante') e.img.setAlpha(0.85 + Math.sin(t * 6) * 0.1);
+      if (e.inkShield) {
+        const cy = e.y - e.lift - e.hitY;
+        const rr = Math.max(e.r * 1.7, e.hitY * 1.25);
+        og.fillStyle(0x6fe3ff, 0.16 + Math.sin(t * 5 + e.x) * 0.04).fillCircle(e.x, cy, rr);
+        og.lineStyle(3, 0x9ff0ff, 0.85).strokeCircle(e.x, cy, rr);
+        og.lineStyle(3, 0xffffff, 0.6).beginPath();
+        og.arc(e.x, cy, rr - 6, Math.PI * 1.15, Math.PI * 1.45);
+        og.strokePath();
+      }
+      if (e.def.behavior === 'bomber') {
+        // danger ring pulses faster the closer it gets
+        const k = clamp(1 - (e.x - FIELD.barricadeX) / 500, 0, 1);
+        og.lineStyle(3, 0xff3a3a, 0.35 + 0.5 * Math.abs(Math.sin(t * (4 + k * 10))));
+        og.strokeCircle(e.x, e.y - e.hitY, e.r * (1.5 + 0.2 * Math.sin(t * 8)));
+      }
       // shadow
       const sw = e.r * 2.2;
       og.fillStyle(0x000000, 0.28);
@@ -2605,6 +3087,7 @@ export class BattleScene extends Phaser.Scene {
   // ================================================================= pause / end
   private openPause(): void {
     if (this.paused || this.ended || this.modal) return;
+    this.closePostMenu();
     this.paused = true;
     const L = this.add.container(0, 0).setDepth(8000);
     this.modalLayer = L;
@@ -2673,6 +3156,8 @@ export class BattleScene extends Phaser.Scene {
 
   private endRun(victory: boolean, abandoned = false): void {
     if (this.ended) return;
+    this.closePostMenu();
+    this.heroAct(victory ? 'win' : 'lose');
     this.ended = true;
     this.modal = false;
     this.modalLayer?.destroy();
@@ -2701,6 +3186,14 @@ export class BattleScene extends Phaser.Scene {
     d.stats.kills += this.kills;
     d.stats.bossKills += this.bossKills;
     d.stats.goldEarned += this.gold;
+    // achievement counters
+    d.stats.bestCombo = Math.max(d.stats.bestCombo, this.bestCombo);
+    d.stats.bombs += this.bombsTapped;
+    d.stats.shields += this.shieldsBroken;
+    d.stats.builds += this.builds;
+    d.stats.oaths += this.oathPicks;
+    if (this.evolved && !d.stats.evolved.includes(this.weaponId)) d.stats.evolved.push(this.weaponId);
+    if (victory && id !== 'abismo' && !d.stats.wins.includes(this.weaponId)) d.stats.wins.push(this.weaponId);
     const rankBefore = d.rank;
     // rank XP is applied (and saved) by the Results scene so it can animate the rank-up
     const rx = this.rankXp + Math.floor(this.kills / 25);
@@ -2756,6 +3249,25 @@ export class BattleScene extends Phaser.Scene {
     }
     if (this.fury >= 100) this.activateFury();
     for (const d of this.drops) if (d.kind === 'coin' && !d.flying && d.t > 0.3) this.tapField(d.x, d.y);
+    // builds defences: a tower in the middle first, then spikes and the inkwell, then upgrades
+    if (!this.postMenu) {
+      const order: [number, PostKind][] = [[1, 'torre'], [0, 'pinchos'], [2, 'tintero']];
+      for (const [i, k] of order) {
+        const p = this.posts[i];
+        const c = this.postCost(p);
+        if (c !== null && this.ink >= c) {
+          this.addInk(-c);
+          this.setPost(p, p.kind ?? k, p.lv + 1);
+          break;
+        }
+      }
+    }
+    // a player reacts to bombs and shields (with a human-ish delay)
+    for (const e of this.enemies) {
+      if (!this.onField(e)) continue;
+      if (e.def.behavior === 'bomber' && e.x < 520 && e.t > 0.6) this.tapField(e.x, this.cy(e));
+      else if (e.inkShield && e.t > 1.2) this.tapField(e.x, this.cy(e));
+    }
     if (this.boss && this.boss.alive && this.marked !== this.boss) {
       this.marked = this.boss;
       this.markImg.setVisible(true);

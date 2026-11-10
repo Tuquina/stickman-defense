@@ -26,10 +26,18 @@ export interface SaveData {
     /** what the auto-pick favours */
     priority: 'equilibrado' | 'ataque' | 'defensa' | 'habilidades';
   };
-  tutorial: { mark: boolean; skill: boolean; fury: boolean };
+  tutorial: { mark: boolean; skill: boolean; fury: boolean; bomb: boolean; shield: boolean; build: boolean };
   /** ending chosen at the end of chapter 6 (season 1) */
   finale: 'venganza' | 'liberacion' | null;
-  stats: { runs: number; kills: number; bossKills: number; goldEarned: number };
+  stats: {
+    runs: number; kills: number; bossKills: number; goldEarned: number;
+    bestCombo: number; bombs: number; shields: number; builds: number; oaths: number;
+    /** weapons evolved at least once / weapons a chapter was won with / endings seen */
+    evolved: string[]; wins: string[]; endings: string[];
+  };
+  /** achievements already claimed / already announced */
+  achClaimed: string[];
+  achSeen: string[];
 }
 
 function fresh(): SaveData {
@@ -54,9 +62,11 @@ function fresh(): SaveData {
     },
     storySeen: [],
     settings: { music: true, sfx: true, vibrate: true, speed2: false, lowFx: false, cards: 'oleada', priority: 'equilibrado' },
-    tutorial: { mark: false, skill: false, fury: false },
+    tutorial: { mark: false, skill: false, fury: false, bomb: false, shield: false, build: false },
     finale: null,
-    stats: { runs: 0, kills: 0, bossKills: 0, goldEarned: 0 },
+    stats: { runs: 0, kills: 0, bossKills: 0, goldEarned: 0, bestCombo: 0, bombs: 0, shields: 0, builds: 0, oaths: 0, evolved: [], wins: [], endings: [] },
+    achClaimed: [],
+    achSeen: [],
   };
 }
 

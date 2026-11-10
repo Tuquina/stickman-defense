@@ -871,6 +871,7 @@ export class StoryScene extends Phaser.Scene {
 
   private pick(o: NonNullable<Beat['choice']>[number]): void {
     Save.d.finale = o.finale;
+    if (!Save.d.stats.endings.includes(o.finale)) Save.d.stats.endings.push(o.finale);
     if (!Save.d.storySeen.includes(this.def.id)) Save.d.storySeen.push(this.def.id);
     Save.write();
     Sound.play(o.finale === 'venganza' ? 'roar' : 'legend');

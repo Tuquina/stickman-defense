@@ -393,34 +393,40 @@ export type BattleSpeaker = 'clip' | 'pluma' | 'lino' | 'corona' | 'voz';
 export const BATTLE_LINES: Record<string, { wave: number; who: BattleSpeaker; text: string }[]> = {
   c1: [
     { wave: 1, who: 'clip', text: 'Tú dispara, que yo cuido la carreta.' },
+    { wave: 3, who: 'clip', text: 'Con la Tinta que sueltan, construye detrás de la barricada. Los Pinchos frenan a las arañas.' },
     { wave: 6, who: 'clip', text: '¡Las grandes primero, chico! Márcalas y caen más rápido.' },
     { wave: 13, who: 'lino', text: 'Si Dante me viera ahora…' },
     { wave: 17, who: 'voz', text: '…hermanito…' },
   ],
   c2: [
     { wave: 1, who: 'lino', text: 'Por esa escalera subíamos a jugar.' },
+    { wave: 3, who: 'clip', text: 'Los arqueros pegan desde lejos. Una Torre en el centro los baja antes.' },
     { wave: 6, who: 'clip', text: 'Esos esqueletos traen armadura. ¡Apunta a las rodillas!' },
     { wave: 14, who: 'voz', text: 'Quien viene a buscar la Corona… solo encuentra el vacío.' },
     { wave: 17, who: 'clip', text: 'Ese caballero suena muy cansado, ¿no?' },
   ],
   c3: [
     { wave: 1, who: 'clip', text: 'No toques los cristales violetas. Te lo digo por experiencia.' },
+    { wave: 3, who: 'clip', text: 'Los de la burbuja no sienten tus flechas. Tócalos y se les rompe el escudo.' },
     { wave: 8, who: 'lino', text: 'Quien sea que esté ahí adentro… aguanta un poco.' },
     { wave: 15, who: 'corona', text: '¿Te gusta la cara que le puse? La elegí pensando en ti.' },
   ],
   c4: [
     { wave: 1, who: 'pluma', text: 'Pisa donde hay pasto. Donde no hay, te hundes.' },
+    { wave: 3, who: 'pluma', text: 'Las sanguijuelas muerden la barricada. Un Tintero la mantiene en pie.' },
     { wave: 7, who: 'clip', text: 'Pluma, ¿cuánto falta para la Torre?' },
     { wave: 8, who: 'pluma', text: 'Medio día. Si seguimos vivos.' },
     { wave: 15, who: 'corona', text: 'Yo lo mandé esa noche. Y tu hermano vino a mí llorando.' },
   ],
   c5: [
     { wave: 1, who: 'pluma', text: 'Cuidado con los libros que se mueven. No son libros.' },
+    { wave: 3, who: 'pluma', text: 'Las Bombitas vuelan la barricada. Tócalas antes y que revienten entre ellas.' },
     { wave: 8, who: 'clip', text: '¿Soy yo, o alguien nos está leyendo?' },
     { wave: 15, who: 'corona', text: 'Todo lo que rompas aquí, lo vuelvo a escribir.' },
   ],
   c6: [
     { wave: 1, who: 'pluma', text: 'Es la última escalera. De aquí no se baja.' },
+    { wave: 3, who: 'pluma', text: 'Aquí viene de todo. Reparte la Tinta entre los tres puestos y súbelos al máximo.' },
     { wave: 7, who: 'clip', text: 'Si salimos de esta, te hago precio en todo. Una semana.' },
     { wave: 14, who: 'corona', text: 'Cinco años me costó. No te lo voy a devolver.' },
     { wave: 19, who: 'lino', text: 'Aguanta, Dante. Ya casi llego.' },

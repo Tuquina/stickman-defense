@@ -5,6 +5,7 @@ import { rankXpNeed, Save } from '../core/save';
 import { armorUnlocked, power } from '../core/stats';
 import { ARMORS } from '../data/armor';
 import { CHAPTER_ORDER, CHAPTERS } from '../data/chapters';
+import { achClaimable } from '../data/achievements';
 import { drawCharacter } from '../gfx/characters';
 import { drawStickman, POSES } from '../gfx/stickman';
 import { button, drawPanel, fadeIn, go, goldLabel, onUpdate } from '../ui/widgets';
@@ -92,6 +93,22 @@ export class MenuScene extends Phaser.Scene {
     withIcon(button(this, 190, 1150, 300, 90, 'TALLER', () => go(this, 'Workshop'), { size: 36, color: 0x2a9d8f }), 'ui_hammer', -90, 0.75);
     withIcon(button(this, 530, 1150, 300, 90, 'HISTORIA', () => go(this, 'Settings', { tab: 'story' }), { size: 36, color: 0x6a4ac0 }), 'ui_book', -100, 0.75);
     button(this, GAME_W - 56, 178, 76, 64, '', () => go(this, 'Settings', { tab: 'settings' }), { color: 0x3a4a5e }).add(this.add.image(0, 0, 'gear').setScale(0.9));
+    // achievements: trophy button with a badge when there is something to claim
+    const ach = button(this, GAME_W - 56, 254, 76, 64, '', () => go(this, 'Achievements'), { color: 0x6a4a1a });
+    const tg = this.add.graphics();
+    tg.fillStyle(0xffd34d, 1).fillRoundedRect(-14, -18, 28, 20, 6);
+    tg.fillStyle(0xffd34d, 1).fillRect(-4, 0, 8, 10);
+    tg.fillStyle(0xffd34d, 1).fillRoundedRect(-12, 10, 24, 7, 3);
+    tg.lineStyle(4, 0xffd34d, 1).strokeCircle(-16, -10, 7).strokeCircle(16, -10, 7);
+    tg.fillStyle(0xfff2c0, 0.8).fillRect(-8, -14, 4, 12);
+    ach.add(tg);
+    const n = achClaimable(d).length;
+    if (n > 0) {
+      const badge = this.add.container(GAME_W - 26, 228);
+      badge.add(this.add.circle(0, 0, 15, 0xe2342c).setStrokeStyle(3, 0x05070a));
+      badge.add(this.add.text(0, 0, `${n}`, txt(18, '#ffffff', 4)).setOrigin(0.5));
+      this.tweens.add({ targets: badge, scale: 1.15, duration: 600, yoyo: true, repeat: -1 });
+    }
 
     // cheap affordance: show if something is affordable in the workshop
     // next goal: first unlocked chapter not cleared yet (or the endless record)

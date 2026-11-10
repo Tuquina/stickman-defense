@@ -49,7 +49,7 @@ export class BootScene extends Phaser.Scene {
     }
     if (DEBUG.scene) {
       const [s, arg] = DEBUG.scene.split(':');
-      const map: Record<string, string> = { menu: 'Menu', workshop: 'Workshop', chapters: 'Chapters', story: 'Story', weapons: 'WeaponSelect', settings: 'Settings', gallery: 'Gallery', results: 'Results', credits: 'Credits', story_list: 'Settings' };
+      const map: Record<string, string> = { achievements: 'Achievements', menu: 'Menu', workshop: 'Workshop', chapters: 'Chapters', story: 'Story', weapons: 'WeaponSelect', settings: 'Settings', gallery: 'Gallery', results: 'Results', credits: 'Credits', story_list: 'Settings' };
       const data: Record<string, object> = {
         story: { id: arg ?? 'prologo2', next: { scene: 'Menu' } },
         gallery: { page: Number(arg ?? 0) },
@@ -194,7 +194,7 @@ export class BootScene extends Phaser.Scene {
     const tap = this.add.text(GAME_W / 2 + 20, 1188, 'TOCA PARA EMPEZAR', txt(34, '#ffd34d', 8)).setOrigin(0.5);
     const hand = this.add.image(GAME_W / 2 - 185, 1196, 'hand').setScale(0.42).setAngle(-15);
     const blink = this.tweens.add({ targets: [tap, pill, hand], alpha: 0.45, duration: 750, yoyo: true, repeat: -1 });
-    this.add.text(GAME_W / 2, 1255, 'v1.1 · Temporada 1', txt(16, '#8899aa', 4)).setOrigin(0.5);
+    this.add.text(GAME_W / 2, 1255, 'v1.2 · Temporada 1', txt(16, '#8899aa', 4)).setOrigin(0.5);
 
     onUpdate(this, (time: number) => {
       const t = time / 1000;
